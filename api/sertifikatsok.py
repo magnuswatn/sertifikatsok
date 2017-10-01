@@ -355,7 +355,7 @@ def download_crl(url):
     """Downloads a crl from the specified url"""
     headers = {'user-agent': 'sertifikatsok.no'}
     filename = './crls/{}'.format(urllib.parse.quote_plus(url))
-    app.logger.info('Downloading CRL %s', url)
+    api.logger.info('Downloading CRL %s', url)
     try:
         r = requests.get(url, headers=headers, timeout=5)
     except requests.exceptions.ConnectionError as error:
