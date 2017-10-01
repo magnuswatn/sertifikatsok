@@ -1,0 +1,21 @@
+[Unit]
+Description=sertifikatsok api
+After=network-online.target
+Wants=network-online.target systemd-networkd-wait-online.service
+
+
+[Service]
+User=SERVICE_USER
+Group=SERVICE_GROUP
+PIDFile=BINHOME/gunicorn.pid
+RuntimeDirectory=gunicorn
+WorkingDirectory=APPHOME
+ExecStart=BINHOME/venv/bin/gunicorn --bind localhost:7001 --worker-class=gevent --workers=3 \
+	  --log-file=/var/log/caddy/sertifikatsok-app.log --pid=BINHOME/gunicorn.pid sertifikatsok:api
+      
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop=/bin/kill -s TERM $MAINPID
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

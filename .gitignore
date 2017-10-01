@@ -1,0 +1,6 @@
+*.crl
+.vscode/*
+.eslintrc.json
+node_modules/
+api/__pycache__/*
+www/Caddyfile

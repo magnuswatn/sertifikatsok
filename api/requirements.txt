@@ -1,0 +1,6 @@
+flask
+pyldap
+gevent
+gunicorn
+requests
+cryptography
