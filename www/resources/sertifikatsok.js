@@ -313,6 +313,7 @@ const loadPage = function() {
         }
     } else {
         // Search view
+        lastQuery = '';
         loadSearchGUI();
         $('#enterprise-search-value').focus();
     }
