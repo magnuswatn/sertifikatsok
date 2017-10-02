@@ -27,7 +27,7 @@ csshash=$(sha256sum ./resources/sertifikatsok.css | head -c 64)
 mv ./resources/sertifikatsok.css ./resources/sertifikatsok-$csshash.css
 sed -i -e "s/sertifikatsok.css/sertifikatsok-$csshash.css/" index.html
 
-find $temp_dir -name '*.js' -type f -exec $UGLIFY_ES  '{}' --mangle --compress -o '{}' \;
+find $temp_dir -name '*.js' -type f -exec $UGLIFY_ES  '{}' --mangle safari10=true --compress -o '{}' \;
 find $temp_dir -name '*.css' -type f -exec $CSSO '{}' --output '{}' \;
 find $temp_dir -name '*.html' -type f -exec $HTML_MINFIER --remove-comments --collapse-whitespace --output '{}' '{}' \;
 
