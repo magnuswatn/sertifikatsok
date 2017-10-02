@@ -14,16 +14,18 @@ SERVICE_NAME=sertifikatsok
 
 
 temp_dir=$(mktemp --directory) 
-uuid=$(uuidgen)
 
 cp $DIR/../www/* $temp_dir -R
 cd $temp_dir
 
 # sertifikatsok.js and .css are subject to change, so best to add some cache busting
-mv ./resources/sertifikatsok.js ./resources/sertifikatsok-$uuid.js
-sed -i -e "s/sertifikatsok.js/sertifikatsok-$uuid.js/" index.html
-mv ./resources/sertifikatsok.css ./resources/sertifikatsok-$uuid.css
-sed -i -e "s/sertifikatsok.css/sertifikatsok-$uuid.css/" index.html
+jshash=$(sha256sum ./resources/sertifikatsok.js | head -c 64)
+mv ./resources/sertifikatsok.js ./resources/sertifikatsok-$jshash.js
+sed -i -e "s/sertifikatsok.js/sertifikatsok-$jshash.js/" index.html
+
+csshash=$(sha256sum ./resources/sertifikatsok.css | head -c 64)
+mv ./resources/sertifikatsok.css ./resources/sertifikatsok-$csshash.css
+sed -i -e "s/sertifikatsok.css/sertifikatsok-$csshash.css/" index.html
 
 find $temp_dir -name '*.js' -type f -exec $UGLIFY_ES  '{}' --mangle --compress -o '{}' \;
 find $temp_dir -name '*.css' -type f -exec $CSSO '{}' --output '{}' \;
