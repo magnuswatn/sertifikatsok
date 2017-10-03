@@ -76,6 +76,10 @@ KNOWN_CERT_TYPES = {
      '2014 Commfides Norge AS - TEST, O=Commfides Norge AS - 988 312 495, C=NO',
      '2.16.578.1.29.913.1.1.0'): 'Commfides TEST virksomhetssertifikat',
 
+    ('CN=Commfides CPN Enterprise-Norwegian SHA256 CA - TEST2, OU=Commfides Trust Environment(C) '
+     '2014 Commfides Norge AS - TEST, O=Commfides Norge AS - 988 312 495, C=NO',
+     '2.16.578.1.29.913.1.1.0'): 'Commfides TEST virksomhetssertifikat',
+
     ('CN=CPN Person High SHA256 CLASS 3, OU=Commfides Trust Environment (c) 2011 '
      'Commfides Norge AS, O=Commfides Norge AS - 988 312 495, C=NO',
      '2.16.578.1.29.12.1.1.0'): 'Commfides person-sertifikat',
