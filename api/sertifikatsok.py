@@ -43,11 +43,11 @@ KNOWN_CERT_TYPES = {
     ('CN=Buypass Class 3 CA 3, O=Buypass AS-983163327, C=NO',
      '2.16.578.1.26.1.3.5'): 'Buypass virksomhetssertifikat (fysisk token)',
 
-    ('CN=Buypass Class 3 Test4 CA 1, O=Buypass AS-983163327, C=NO',
+    ('CN=Buypass Class 3 Test4 CA 1, O=Buypass, C=NO',
      '2.16.578.1.26.1.0.3.2'): 'Buypass TEST virksomhetssertifikat',
 
     # Have no source for this, just a guess based on the prod oid
-    ('CN=Buypass Class 3 Test4 CA 1, O=Buypass AS-983163327, C=NO',
+    ('CN=Buypass Class 3 Test4 CA 1, O=Buypass, C=NO',
      '2.16.578.1.26.1.0.3.5'): 'Buypass TEST virksomhetssertifikat (fysisk token)',
 
     ('CN=Buypass Class 3 CA 1, O=Buypass AS-983163327, C=NO',
@@ -56,7 +56,7 @@ KNOWN_CERT_TYPES = {
     ('CN=Buypass Class 3 CA 1, O=Buypass AS-983163327, C=NO',
      '2.16.578.1.26.1.3.5'): 'Buypass virksomhetssertifikat (fysisk token)',
 
-    ('CN=Buypass Class 3 Test4 CA 1, O=Buypass AS-983163327, C=NO',
+    ('CN=Buypass Class 3 Test4 CA 1, O=Buypass, C=NO',
      '2.16.578.1.26.1.0'): 'Buypass TEST person-sertifikat',
 
     ('CN=Buypass Class 3 CA 1, O=Buypass AS-983163327, C=NO',
