@@ -33,7 +33,7 @@ find $temp_dir -name '*.html' -type f -exec $HTML_MINFIER --remove-comments --co
 
 find $temp_dir -type f -not -name '*.png' -exec $BROTLI '{}' \;
 
-rsync $temp_dir/ $WWW_DIR --delete --recursive
+rsync $temp_dir/ $WWW_DIR --delete --recursive --checksum
 
 rm -Rf $temp_dir
 
