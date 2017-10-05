@@ -297,9 +297,9 @@ class QualifiedCertificateSet(object):
             ldap_filter)
         return ldap_url
 
-def get_issuer_cert(issuer):
+def get_issuer_cert(issuer, env):
     """Retrieves the issuer certificate from file, if we have it"""
-    filename = './certs/{}.pem'.format(urllib.parse.quote_plus(issuer))
+    filename = './certs/{}/{}.pem'.format(env, urllib.parse.quote_plus(issuer))
     try:
         with open(filename, 'rb') as open_file:
             issuer_bytes = open_file.read()
@@ -377,7 +377,7 @@ def download_crl(url):
 
     return r.content
 
-def get_cert_status(certs):
+def get_cert_status(certs, env):
     """
     Checks the trust status of the certificates against the trusted issuers
     """
@@ -388,7 +388,7 @@ def get_cert_status(certs):
     # load all the issuers that we need
     loaded_issuers = {}
     for issuer in issuers:
-        loaded_issuer = get_issuer_cert(issuer)
+        loaded_issuer = get_issuer_cert(issuer, env)
         if loaded_issuer:
             loaded_issuers[loaded_issuer.subject] = loaded_issuer
 
@@ -462,7 +462,7 @@ def query_buypass(search_filter, env):
         g.errors.append('Kunne ikke hente sertfikater fra Buypass')
         return []
     else:
-        return create_certificate_sets(result, (server, base), 'Buypass')
+        return create_certificate_sets(result, (server, base), env, 'Buypass')
 
 def query_commfides(search_filter, env, cert_type):
     """Query Commfides' LDAP server for certificates"""
@@ -483,9 +483,9 @@ def query_commfides(search_filter, env, cert_type):
         g.errors.append('Kunne ikke hente sertfikater fra Commfides')
         return []
     else:
-        return create_certificate_sets(result, (server, base), 'Commfides')
+        return create_certificate_sets(result, (server, base), env, 'Commfides')
 
-def create_certificate_sets(search_results, ldap_params, issuer):
+def create_certificate_sets(search_results, ldap_params, env, issuer):
     """Takes a ldap response and creates a list of QualifiedCertificateSet"""
     qualified_certs = []
     for result in search_results:
@@ -499,7 +499,7 @@ def create_certificate_sets(search_results, ldap_params, issuer):
             continue
         qualified_certs.append(qualified_cert)
 
-    get_cert_status(qualified_certs)
+    get_cert_status(qualified_certs, env)
 
     cert_sets = separate_certificate_sets(qualified_certs)
     return create_cert_response(cert_sets, issuer)
