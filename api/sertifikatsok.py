@@ -549,6 +549,7 @@ def create_cert_response(cert_sets, issuer):
             cert_info['Gyldig til'] = cert.cert.not_valid_after.isoformat()
             cert_info['Nøkkelbruk'] = cert.get_key_usages()
             cert_info['Type'] = cert.type
+            cert_info['Status'] = cert.status
             cert_element['info'] = cert_info
             cert_element['certificate'] = base64.b64encode(
                 cert.cert.public_bytes(Encoding.DER)).decode('ascii')
