@@ -32,7 +32,7 @@ sertifikatsok.no, www.sertifikatsok.no, xn--sertifikatsk-5jb.no, www.xn--sertifi
         X-Content-Type-Options "nosniff"
         X-XSS-Protection "1; mode=block"
         Referrer-Policy strict-origin-when-cross-origin
-        Content-Security-Policy "default-src 'self'; script-src 'self' cdnjs.cloudflare.com; font-src cdnjs.cloudflare.com fonts.gstatic.com; style-src 'self' 'unsafe-inline' cdnjs.cloudflare.com; connect-src 'self' data.brreg.no"
+        Content-Security-Policy "default-src 'none'; script-src 'self' cdnjs.cloudflare.com; font-src cdnjs.cloudflare.com fonts.gstatic.com; style-src 'self' 'unsafe-inline' cdnjs.cloudflare.com; img-src 'self'; connect-src 'self' data.brreg.no; frame-ancestors 'none'"
     }
     header /resources Cache-Control "max-age=31536000,public"
     header /api -Server
