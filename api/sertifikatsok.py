@@ -27,6 +27,7 @@ from cryptography.exceptions import InvalidSignature
 api = Flask(__name__)
 
 ORG_NUMBER_REGEX = re.compile(r'\d{9}')
+UNDERENHET_REGEX = re.compile(r'.*-\d{9}$')
 
 # Known issuer/PolicyOID combinations
 KNOWN_CERT_TYPES = {
@@ -241,7 +242,7 @@ class QualifiedCertificate(object):
                 NameOID.ORGANIZATIONAL_UNIT_NAME)[0].value
         except IndexError:
             return False
-        return bool(ORG_NUMBER_REGEX.search(ou_field))
+        return bool(UNDERENHET_REGEX.search(ou_field))
 
     def get_display_name(self):
         """
