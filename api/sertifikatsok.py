@@ -27,7 +27,7 @@ from cryptography.exceptions import InvalidSignature
 api = Flask(__name__)
 
 ORG_NUMBER_REGEX = re.compile(r'\d{9}')
-UNDERENHET_REGEX = re.compile(r'.*-\d{9}$')
+UNDERENHET_REGEX = re.compile(r'(?<!\d)\d{9}(?!\d)')
 
 # Known issuer/PolicyOID combinations
 KNOWN_CERT_TYPES = {
