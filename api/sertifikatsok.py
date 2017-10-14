@@ -591,7 +591,7 @@ def separate_certificate_sets(certs):
             # rest of the certificates in the set (maybe because they need to backup that key?).
             # But they should be issued within three days of each other
             elif (certs[counter].cert.not_valid_before
-                  - cert_set[0].cert.not_valid_before).days > 3:
+                  - cert_set[0].cert.not_valid_before).days not in range(-3, 4):
                 cert_sets.append(QualifiedCertificateSet(cert_set))
                 cert_set = []
                 cert_type_count = certs[counter].count_keyusage()
