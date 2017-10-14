@@ -23,12 +23,14 @@
 }
 
 /* sertifikatsok.no css */
+html {
+  overflow-y:scroll;
+}
 
 body {
   display: flex;
   min-height: 100vh;
   flex-direction: column;
-  overflow-y:scroll;
 }
 
 main {
