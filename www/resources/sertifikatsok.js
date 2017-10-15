@@ -115,14 +115,14 @@ const getCaIcon = function(certificateSet) {
     let image = '';
     switch (certificateSet.issuer) {
         case 'Buypass':
-            image = 'resources/buypass.png';
+            image = 'resources/buypass.svg';
             break;
         case 'Commfides':
-            image = 'resources/commfides.png';
+            image = 'resources/commfides.svg';
             break;
     }
     return $('<div/>', {class: 'right'})
-        .append($('<img/>', {src: image, height: '20'}));
+        .append($('<img/>', {src: image}));
 };
 
 const showCertificateSets = function(certificateSets) {
