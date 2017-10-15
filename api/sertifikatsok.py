@@ -73,7 +73,7 @@ KNOWN_CERT_TYPES = {
      'Commfides Norge AS, O=Commfides Norge AS - 988 312 495, C=NO',
      '2.16.578.1.29.13.1.1.0'): 'Commfides virksomhetssertifikat',
 
-     ('CN=Commfides CPN Enterprise-Norwegian SHA256 CA - TEST, OU=Commfides Trust Environment(C) '
+    ('CN=Commfides CPN Enterprise-Norwegian SHA256 CA - TEST, OU=Commfides Trust Environment(C) '
      '2014 Commfides Norge AS - TEST, OU=CPN Enterprise-Norwegian SHA256 CA- TEST, O=Commfides '
      'Norge AS - 988 312 495, C=NO',
      '2.16.578.1.29.913.1.1.0'): 'Commfides TEST virksomhetssertifikat',
@@ -89,17 +89,17 @@ KNOWN_CERT_TYPES = {
 
     # Commfides uses 2.16.578.1.29.12.1.1.1 as PolicyOID on new Person-High certificates,
     # but it is not documented in their CP/CPS ¯\_(ツ)_/¯
-     ('CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 '
+    ('CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 '
      'Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - '
      '988 312 495, C=NO',
      '2.16.578.1.29.12.1.1.1'): 'Commfides person-sertifikat',
 
-     ('CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 '
+    ('CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 '
      'Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - '
      '988 312 495, C=NO',
      '2.16.578.1.29.912.1.1.0'): 'Commfides TEST person-sertifikat',
 
-     ('CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 '
+    ('CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 '
      'Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - '
      '988 312 495, C=NO',
      '2.16.578.1.29.912.1.1.1'): 'Commfides TEST person-sertifikat'
