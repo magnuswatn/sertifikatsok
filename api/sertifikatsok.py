@@ -32,42 +32,45 @@ UNDERENHET_REGEX = re.compile(r'(?<!\d)\d{9}(?!\d)')
 # Known issuer/PolicyOID combinations
 KNOWN_CERT_TYPES = {
     ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 Test4 CA 3',
-     '2.16.578.1.26.1.0.3.2'): 'Buypass TEST virksomhetssertifikat',
+     '2.16.578.1.26.1.0.3.2'): 'Buypass TEST virksomhetssertifikat (softsertifikat)',
 
     # Have no source for this, just a guess based on the prod oid
     ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 Test4 CA 3',
-     '2.16.578.1.26.1.0.3.5'): 'Buypass TEST virksomhetssertifikat (fysisk token)',
+     '2.16.578.1.26.1.0.3.5'): 'Buypass TEST virksomhetssertifikat (smartkort)',
 
     ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 CA 3',
-     '2.16.578.1.26.1.3.2'): 'Buypass virksomhetssertifikat',
+     '2.16.578.1.26.1.3.2'): 'Buypass virksomhetssertifikat (softsertifikat)',
 
     ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 CA 3',
-     '2.16.578.1.26.1.3.5'): 'Buypass virksomhetssertifikat (fysisk token)',
+     '2.16.578.1.26.1.3.5'): 'Buypass virksomhetssertifikat (smartkort)',
 
     ('C=NO, O=Buypass, CN=Buypass Class 3 Test4 CA 1',
-     '2.16.578.1.26.1.0.3.2'): 'Buypass TEST virksomhetssertifikat',
+     '2.16.578.1.26.1.0.3.2'): 'Buypass TEST virksomhetssertifikat (softsertifikat)',
 
     # Have no source for this, just a guess based on the prod oid
     ('C=NO, O=Buypass, CN=Buypass Class 3 Test4 CA 1',
-     '2.16.578.1.26.1.0.3.5'): 'Buypass TEST virksomhetssertifikat (fysisk token)',
+     '2.16.578.1.26.1.0.3.5'): 'Buypass TEST virksomhetssertifikat (smartkort)',
 
     ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 CA 1',
-     '2.16.578.1.26.1.3.2'): 'Buypass virksomhetssertifikat',
+     '2.16.578.1.26.1.3.2'): 'Buypass virksomhetssertifikat (softsertifikat)',
 
     ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 CA 1',
-     '2.16.578.1.26.1.3.5'): 'Buypass virksomhetssertifikat (fysisk token)',
+     '2.16.578.1.26.1.3.5'): 'Buypass virksomhetssertifikat (smartkort)',
 
     ('C=NO, O=Buypass,  CN=Buypass Class 3 Test4 CA 1',
-     '2.16.578.1.26.1.0'): 'Buypass TEST person-sertifikat',
+     '2.16.578.1.26.1.0'): 'Buypass TEST person-sertifikat (smartkort)',
 
     ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 CA 1',
-     '2.16.578.1.26.1.3.1'): 'Buypass person-sertifikat',
+     '2.16.578.1.26.1.3.1'): 'Buypass person-sertifikat (smartkort)',
 
     ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 Test4 CA 3',
-     '2.16.578.1.26.1.0'): 'Buypass TEST person-sertifikat',
+     '2.16.578.1.26.1.0'): 'Buypass TEST person-sertifikat (smartkort)',
 
     ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 CA 3',
-     '2.16.578.1.26.1.3.1'): 'Buypass person-sertifikat',
+     '2.16.578.1.26.1.3.1'): 'Buypass person-sertifikat (smartkort)',
+
+    ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 CA 3',
+     '2.16.578.1.26.1.3.6'): 'Buypass person-sertifikat (HSM)',
 
     ('CN=CPN Enterprise SHA256 CLASS 3, OU=Commfides Trust Environment (c) 2011 '
      'Commfides Norge AS, O=Commfides Norge AS - 988 312 495, C=NO',
