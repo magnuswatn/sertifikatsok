@@ -31,54 +31,56 @@ UNDERENHET_REGEX = re.compile(r'(?<!\d)\d{9}(?!\d)')
 
 # Known issuer/PolicyOID combinations
 KNOWN_CERT_TYPES = {
-    ('CN=Buypass Class 3 Test4 CA 3, O=Buypass AS-983163327, C=NO',
+    ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 Test4 CA 3',
      '2.16.578.1.26.1.0.3.2'): 'Buypass TEST virksomhetssertifikat',
 
     # Have no source for this, just a guess based on the prod oid
-    ('CN=Buypass Class 3 Test4 CA 3, O=Buypass AS-983163327, C=NO',
+    ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 Test4 CA 3',
      '2.16.578.1.26.1.0.3.5'): 'Buypass TEST virksomhetssertifikat (fysisk token)',
 
-    ('CN=Buypass Class 3 CA 3, O=Buypass AS-983163327, C=NO',
+    ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 CA 3',
      '2.16.578.1.26.1.3.2'): 'Buypass virksomhetssertifikat',
 
-    ('CN=Buypass Class 3 CA 3, O=Buypass AS-983163327, C=NO',
+    ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 CA 3',
      '2.16.578.1.26.1.3.5'): 'Buypass virksomhetssertifikat (fysisk token)',
 
-    ('CN=Buypass Class 3 Test4 CA 1, O=Buypass, C=NO',
+    ('C=NO, O=Buypass, CN=Buypass Class 3 Test4 CA 1',
      '2.16.578.1.26.1.0.3.2'): 'Buypass TEST virksomhetssertifikat',
 
     # Have no source for this, just a guess based on the prod oid
-    ('CN=Buypass Class 3 Test4 CA 1, O=Buypass, C=NO',
+    ('C=NO, O=Buypass, CN=Buypass Class 3 Test4 CA 1',
      '2.16.578.1.26.1.0.3.5'): 'Buypass TEST virksomhetssertifikat (fysisk token)',
 
-    ('CN=Buypass Class 3 CA 1, O=Buypass AS-983163327, C=NO',
+    ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 CA 1',
      '2.16.578.1.26.1.3.2'): 'Buypass virksomhetssertifikat',
 
-    ('CN=Buypass Class 3 CA 1, O=Buypass AS-983163327, C=NO',
+    ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 CA 1',
      '2.16.578.1.26.1.3.5'): 'Buypass virksomhetssertifikat (fysisk token)',
 
-    ('CN=Buypass Class 3 Test4 CA 1, O=Buypass, C=NO',
+    ('C=NO, O=Buypass,  CN=Buypass Class 3 Test4 CA 1',
      '2.16.578.1.26.1.0'): 'Buypass TEST person-sertifikat',
 
-    ('CN=Buypass Class 3 CA 1, O=Buypass AS-983163327, C=NO',
+    ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 CA 1',
      '2.16.578.1.26.1.3.1'): 'Buypass person-sertifikat',
 
-    ('CN=Buypass Class 3 Test4 CA 3, O=Buypass AS-983163327, C=NO',
+    ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 Test4 CA 3',
      '2.16.578.1.26.1.0'): 'Buypass TEST person-sertifikat',
 
-    ('CN=Buypass Class 3 CA 3, O=Buypass AS-983163327, C=NO',
+    ('C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 CA 3',
      '2.16.578.1.26.1.3.1'): 'Buypass person-sertifikat',
 
     ('CN=CPN Enterprise SHA256 CLASS 3, OU=Commfides Trust Environment (c) 2011 '
      'Commfides Norge AS, O=Commfides Norge AS - 988 312 495, C=NO',
      '2.16.578.1.29.13.1.1.0'): 'Commfides virksomhetssertifikat',
 
-    ('CN=Commfides CPN Enterprise-Norwegian SHA256 CA - TEST, OU=Commfides Trust Environment(C) '
-     '2014 Commfides Norge AS - TEST, O=Commfides Norge AS - 988 312 495, C=NO',
+     ('CN=Commfides CPN Enterprise-Norwegian SHA256 CA - TEST, OU=Commfides Trust Environment(C) '
+     '2014 Commfides Norge AS - TEST, OU=CPN Enterprise-Norwegian SHA256 CA- TEST, O=Commfides '
+     'Norge AS - 988 312 495, C=NO',
      '2.16.578.1.29.913.1.1.0'): 'Commfides TEST virksomhetssertifikat',
 
     ('CN=Commfides CPN Enterprise-Norwegian SHA256 CA - TEST2, OU=Commfides Trust Environment(C) '
-     '2014 Commfides Norge AS - TEST, O=Commfides Norge AS - 988 312 495, C=NO',
+     '2014 Commfides Norge AS - TEST, OU=CPN Enterprise-Norwegian SHA256 CA- TEST2, O=Commfides '
+     'Norge AS - 988 312 495, C=NO',
      '2.16.578.1.29.913.1.1.0'): 'Commfides TEST virksomhetssertifikat',
 
     ('CN=CPN Person High SHA256 CLASS 3, OU=Commfides Trust Environment (c) 2011 '
@@ -87,23 +89,32 @@ KNOWN_CERT_TYPES = {
 
     # Commfides uses 2.16.578.1.29.12.1.1.1 as PolicyOID on new Person-High certificates,
     # but it is not documented in their CP/CPS ¯\_(ツ)_/¯
-    ('CN=CPN Person High SHA256 CLASS 3, OU=Commfides Trust Environment (c) 2011 '
-     'Commfides Norge AS, O=Commfides Norge AS - 988 312 495, C=NO',
+     ('CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 '
+     'Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - '
+     '988 312 495, C=NO',
      '2.16.578.1.29.12.1.1.1'): 'Commfides person-sertifikat',
 
-    ('CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 '
-     'Commfides Norge AS - TEST, O=Commfides Norge AS - 988 312 495, C=NO',
+     ('CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 '
+     'Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - '
+     '988 312 495, C=NO',
      '2.16.578.1.29.912.1.1.0'): 'Commfides TEST person-sertifikat',
 
-    ('CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 '
-     'Commfides Norge AS - TEST, O=Commfides Norge AS - 988 312 495, C=NO',
+     ('CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 '
+     'Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - '
+     '988 312 495, C=NO',
      '2.16.578.1.29.912.1.1.1'): 'Commfides TEST person-sertifikat'
 }
 
-SUBJECT_FIELDS = [('COUNTRY_NAME', 'C'), ('STATE_OR_PROVINCE_NAME', 'ST'),
-                  ('LOCALITY_NAME', 'L'), ('ORGANIZATION_NAME', 'O'),
-                  ('ORGANIZATIONAL_UNIT_NAME', 'OU'), ('COMMON_NAME', 'CN'),
-                  ('EMAIL_ADDRESS', 'email'), ('SERIAL_NUMBER', 'serialNumber')]
+SUBJECT_FIELDS = {
+    '2.5.4.3': 'CN',
+    '2.5.4.5': 'serialNumber',
+    '2.5.4.6': 'C',
+    '2.5.4.7': 'L',
+    '2.5.4.8': 'ST',
+    '2.5.4.10': 'O',
+    '2.5.4.11': 'OU',
+    '1.2.840.113549.1.9.1': 'email'
+}
 
 KEY_USAGES = [('digital_signature', 'Digital signature'),
               # Using Non-repudiation as it's the established name
@@ -206,28 +217,26 @@ class QualifiedCertificate(object):
         so they are not very useful and also different within a set
         """
         subject = []
-        for field_combo in SUBJECT_FIELDS:
-            name_oid = getattr(NameOID, field_combo[0])
-            field_value = self.cert.subject.get_attributes_for_oid(name_oid)
-            if field_combo[0] == 'SERIAL_NUMBER':
-                if ('Commfides' in self.issuer and not full
-                        and not ORG_NUMBER_REGEX.fullmatch(field_value[0].value)):
+        for field in self.cert.subject:
+            if field.oid.dotted_string == '2.5.4.5' and not full:
+                # Skip serialNumber if non-Enterprise cert from Commfides
+                if 'Commfides' in self.issuer and not ORG_NUMBER_REGEX.fullmatch(field.value):
                     continue
-            if field_value:
-                subject.append('%s=%s' % (field_combo[1], field_value[0].value))
-        return ', '.join(list(reversed(subject)))
+            subject.append('{}={}'.format(SUBJECT_FIELDS[field.oid.dotted_string], field.value))
+
+        # If not full (e.g. used for pretty printing), we order the fields in an uniform order
+        if not full:
+            subject.sort(key=subject_order)
+        return ', '.join(list(subject))
 
     def _print_issuer(self):
         """
         Returns the issuer of the cert as a string.
         """
         subject = []
-        for field_combo in SUBJECT_FIELDS:
-            name_oid = getattr(NameOID, field_combo[0])
-            field_value = self.cert.issuer.get_attributes_for_oid(name_oid)
-            if field_value:
-                subject.append('%s=%s' % (field_combo[1], field_value[0].value))
-        return ', '.join(list(reversed(subject)))
+        for field in self.cert.issuer:
+            subject.append('{}={}'.format(SUBJECT_FIELDS[field.oid.dotted_string], field.value))
+        return ', '.join(list(subject))
 
     def is_issued_to_underenhet(self):
         """
@@ -297,6 +306,12 @@ class QualifiedCertificateSet(object):
             urllib.parse.quote(self.certs[0].ldap_params[1], safe='=,'),
             ldap_filter)
         return ldap_url
+
+def subject_order(field):
+    """Returns the order of the subject element, for pretty printing"""
+    order = {'serialNumber': 0, 'email': 1, 'CN': 2, 'OU': 3, 'O': 4, 'L': 5, 'ST': 6, 'C': 7}
+    field_name = field.split('=')[0]
+    return order[field_name]
 
 def get_issuer_cert(issuer, env):
     """Retrieves the issuer certificate from file, if we have it"""
