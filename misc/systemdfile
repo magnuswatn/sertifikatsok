@@ -8,7 +8,7 @@ Wants=network-online.target systemd-networkd-wait-online.service
 User=SERVICE_USER
 Group=SERVICE_GROUP
 PIDFile=BINHOME/gunicorn.pid
-RuntimeDirectory=gunicorn
+RuntimeDirectory=sertifikatsok
 WorkingDirectory=APPHOME
 ExecStart=BINHOME/venv/bin/gunicorn --bind localhost:7001 --worker-class=gevent --workers=3 \
 	  --log-file=/var/log/caddy/sertifikatsok-app.log --pid=BINHOME/gunicorn.pid sertifikatsok:api
