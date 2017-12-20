@@ -400,6 +400,12 @@ $(document.body).on('click', '.ukjent', function() {
     return false;
 });
 
+$(document.body).on('click', '#hjelp-button', function() {
+    $('#hjelp-modal').modal();
+    $('#hjelp-modal').modal('open');
+    return false;
+});
+
 $(document.body).on('click', '#logo', function() {
     history.pushState(null, 'Sertifikatsøk', '/');
     loadPage();

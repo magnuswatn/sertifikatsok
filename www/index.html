@@ -29,6 +29,11 @@
 				<!-- Content will magically appear here -->
 			</div>
 		</main>
+		<div class="fixed-action-btn" id="hjelp-button">
+			<a class="btn-floating btn-small red tooltipped hoverable" data-position="left" data-tooltip="Litt forklaring">
+				<div class="center"><b>?</b></div>
+			</a>
+		</div>
 		<footer class="page-footer white">
 			<div class="center-align">
 				<a href="https://github.com/magnuswatn/sertifikatsok"><img src="resources/github.svg" height="32"></a>
@@ -36,6 +41,34 @@
 		</footer>
 		<!-- Modals -->
 		<div id ="modals">
+			<div id="hjelp-modal" class="modal">
+				<div class="modal-content">
+					<div class="right"><a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat modal-close-button"><i class="material-icons">close</i></a></div>
+					<div id="omnorskekvalifisertesertifikater">
+					<h4>Norske kvalifiserte sertifikater</h4>
+					<p>Norske kvalifiserte sertifikater er digitale ID-papirer, som kan brukes til å bekrefte identitet i den digitale verdenen. De baserer seg på samme teknologi som f.eks. SSL-sertifikater, og er spesifisert i <a href="https://www.regjeringen.no/no/dokumenter/kravspesifikasjon-for-pki-i-offentlig-se/id611085/">Kravspesifikasjon for PKI i offentlig sektor</a>.
+					<br>
+					<p>Det finnes i praksis to typer norske kvalifiserte sertifikater:</p>
+					<h5>Person-sertifikater</h5>
+					Person-sertifikater representerer en norsk statsborger i folkeregisteret. Slike sertifikater brukes typisk til:
+					<ul class="browser-default">
+						<li>Innlogging på tjenester som krever høy sikkerhet.</li>
+						<li>Signering av f.eks. avtaler eller e-resepter</li>
+						<li>Signering og kryptering av e-poster (S/MIME)</li>
+					</ul>
+					Person-sertifikater utstedes kun i fysisk form, da enten et smartkort ("tippekort") eller en USB-pinne.
+					<br><br>
+					<h5>Virksomhetssertifikater</h5>
+					Virksomhetssertifikater identifiserer en virksomhet registrert i Brønnøysundregistrene. Brukes typisk til:
+					<ul class="browser-default">
+						<li>Autentisering av virksomheten i maskin-til-maskin-kommunikasjon (f.eks. mellom fagsystemer i helsesektoren)</li>
+						<li>Signering av dokumenter på vegne av virksomheten</li>
+					</ul>
+					Virksomhetssertifikater er typisk "soft-sertifikater", men de finnes også i fysisk variant, da i form av smartkort.
+					<br><br>
+					<p>Det er i praksis to utstedere av kvalifiserte sertifikater Norge i dag, <a href="https://www.buypass.no">Buypass</a> og <a href="https://www.commfides.com/">Commfides</a>.</p>
+				</div>
+			</div>
 			<div id="underenhet-modal" class="modal">
 				<div class="modal-content">
 					<div class="right">
