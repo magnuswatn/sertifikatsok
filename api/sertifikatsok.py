@@ -225,7 +225,11 @@ class QualifiedCertificate(object):
                 # Skip serialNumber if non-Enterprise cert from Commfides
                 if 'Commfides' in self.issuer and not ORG_NUMBER_REGEX.fullmatch(field.value):
                     continue
-            subject.append('{}={}'.format(SUBJECT_FIELDS[field.oid.dotted_string], field.value))
+            try:
+                subject.append('{}={}'.format(SUBJECT_FIELDS[field.oid.dotted_string], field.value))
+            except KeyError:
+                # If we don't recognize the field, we just print the dotted string
+                subject.append('{}={}'.format(field.oid.dotted_string, field.value))
 
         # If not full (e.g. used for pretty printing), we order the fields in an uniform order
         if not full:
@@ -238,7 +242,11 @@ class QualifiedCertificate(object):
         """
         subject = []
         for field in self.cert.issuer:
-            subject.append('{}={}'.format(SUBJECT_FIELDS[field.oid.dotted_string], field.value))
+            try:
+                subject.append('{}={}'.format(SUBJECT_FIELDS[field.oid.dotted_string], field.value))
+            except KeyError:
+                # If we don't recognize the field, we just print the dotted string
+                subject.append('{}={}'.format(field.oid.dotted_string, field.value))
         return ', '.join(list(subject))
 
     def is_issued_to_underenhet(self):
@@ -314,7 +322,10 @@ def subject_order(field):
     """Returns the order of the subject element, for pretty printing"""
     order = {'serialNumber': 0, 'email': 1, 'CN': 2, 'OU': 3, 'O': 4, 'L': 5, 'ST': 6, 'C': 7}
     field_name = field.split('=')[0]
-    return order[field_name]
+    try:
+        return order[field_name]
+    except KeyError:
+        return 8
 
 def get_issuer_cert(issuer, env):
     """Retrieves the issuer certificate from file, if we have it"""
