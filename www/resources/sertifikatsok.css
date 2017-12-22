@@ -45,7 +45,7 @@ main {
   display: none;
 }
 
-/* 
+/*
   Materializecss has a modal max height of 70 %
   and that's a bit to small for the certificate display
   so we override it here
@@ -54,4 +54,17 @@ main {
   max-height: 94%;
   width: 70%;
   top: 3% !important;
+}
+
+.pem {
+  font: 10pt Courier New, sans-serif;
+  padding: 2px 20px
+}
+
+/*
+  The string modal is used to display PEM in front of the cert modal,
+  so it must always be in front
+*/
+.string-modal {
+  z-index: 20000 !important;
 }

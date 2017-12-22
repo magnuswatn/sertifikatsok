@@ -234,7 +234,11 @@ const loadMaterialize = function() {
     $('.tooltipped').tooltip({delay: 50});
     $('.modal').modal({
         complete: function() {
-            window.location.hash = '!';
+            // We must not change the hash when the string modal closes
+            // as it is used on top of another modal
+            if ($(this).attr('id') !== 'string-modal' ) {
+                window.location.hash = '!';
+            }
         },
       }
     );
@@ -373,10 +377,39 @@ const downloadCert = function(hash) {
     }
 };
 
+const showPEM = function(hash) {
+    // thanks https://stackoverflow.com/questions/18650168/convert-blob-to-base64
+    const blob = certificates[hash];
+    const fileReader = new window.FileReader();
+    fileReader.readAsDataURL(blob);
+    fileReader.onloadend = function(hash) {
+        b64cert = (fileReader.result)
+            .substr((fileReader.result)
+            .indexOf(',')+1);
+
+        // Homemade PEM is the best PEM
+        let pem = '-----BEGIN CERTIFICATE-----<br>';
+        for (let i = 1; i<=b64cert.length; i++) {
+            let char = b64cert.charAt(i-1);
+            if (i % 64 === 0) {
+                pem += `${char}<br>`;
+            } else {
+                pem += char;
+            }
+        }
+        pem += '<br>-----END CERTIFICATE-----';
+
+          $('#string-modal').modal('open');
+          // Should be OK to use html here, as the input is PEM encoded by us
+          $('#string-modal-string').html(`<p class="pem">${pem}</p>`);
+          selectText('string-modal-string');
+    };
+};
+
 $(document.body).on('click', '.ldap-button', function(e) {
-    $('#ldap-modal').modal('open');
-    $('#ldap-string').text($(this).attr('ldap'));
-    selectText('ldap-string');
+    $('#string-modal').modal('open');
+    $('#string-modal-string').text($(this).attr('ldap'));
+    selectText('string-modal-string');
 });
 
 $(document.body).on('click', '.download-button', function(e) {
@@ -384,6 +417,10 @@ $(document.body).on('click', '.download-button', function(e) {
     downloadCert(hash);
 });
 
+$(document.body).on('click', '.pem-button', function(e) {
+    hash = $(this).parent().parent().parent().attr('id');
+    showPEM(hash);
+});
 
 $(document.body).on('click', '.revokert', function() {
     $('#revokert-modal').modal('open');
@@ -392,6 +429,12 @@ $(document.body).on('click', '.revokert', function() {
 
 $(document.body).on('click', '.underenhet', function() {
     $('#underenhet-modal').modal('open');
+    return false;
+});
+
+// Not change the hash when the close button on the string modal is pressed
+// as it is used in front of another modal
+$(document.body).on('click', '#string-modal-close', function() {
     return false;
 });
 
@@ -418,6 +461,18 @@ $(document.body).on('click', '#search-button', function() {
 
 $(document.body).on('click', '#search-test-button', function() {
     search('test');
+});
+
+// The string modal is used on top of another modal,
+// so we need to make sure only that is closed when pressing ESC
+// and not the underlying modal
+$(document.body).on('keydown', function(key) {
+    if (key.which === 27) {
+        if ($('#string-modal').hasClass('open')) {
+            $('#string-modal').modal('close');
+            return false;
+        }
+    };
 });
 
 $(document.body).on('keyup', '.search-box', function(key) {

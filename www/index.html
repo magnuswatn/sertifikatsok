@@ -101,10 +101,10 @@
 					<p>Alle norske kvalifiserte sertifikater skal ha en en kode i seg (Policy OID) som beskriver hvilken type sertifikat det er. Disse sertifikatene hadde en ukjent kode i seg, som tyder på at det ikke er et vanlig sertifikat. Bør kun stoles på eller brukes i spesielle tilfeller.</p>
 				</div>
 			</div>
-			<div id="ldap-modal" class="modal">
+			<div id="string-modal" class="modal string-modal">
 				<div class="modal-content">
-					<div class="right"><a href="#!" class="modal-action modal-close waves-effect waves-green btn-flat modal-close-button"><i class="material-icons">close</i></a></div>
-					<p id="ldap-string"></p>
+					<div class="right"><a href="#!" id="string-modal-close" class="modal-action modal-close waves-effect waves-green btn-flat modal-close-button"><i class="material-icons">close</i></a></div>
+					<p id="string-modal-string"></p>
 				</div>
 			</div>
 		</div>
@@ -127,7 +127,8 @@
 					</table>
 					<br>
 					<div class="modal-footer">
-						<a class="btn-floating btn-small waves-effect waves-light red tooltipped hoverable download-button" data-position="left" data-tooltip="Last ned dette sertifikatet"><i class="material-icons">file_download</i></a>
+						<a class="btn-floating btn-small waves-effect waves-light red tooltipped hoverable pem-button" data-position="top" data-tooltip="Vis PEM"><i class="material-icons">content_copy</i></a>
+						<a class="btn-floating btn-small waves-effect waves-light red tooltipped hoverable download-button" data-position="top" data-tooltip="Last ned dette sertifikatet"><i class="material-icons">file_download</i></a>
 					</div>
 				</div>
 			</div>
@@ -213,7 +214,7 @@
 				<div class="divider"></div>
 				<br>
 				<div class="right-align">
-					<a class="btn-floating btn-small waves-effect waves-light red tooltipped ldap-button hoverable" data-position="left" data-tooltip="Se LDAP-string for dette settet"><i class="material-icons">content_copy</i></a>
+					<a class="btn-floating btn-small waves-effect waves-light red tooltipped ldap-button hoverable" data-position="left" data-tooltip="Se LDAP-string for dette settet"><i class="material-icons">link</i></a>
 				</div>
 			</div>
 		</div>
