@@ -189,7 +189,7 @@ class QualifiedCertificate(object):
                 return cdp.full_name[0].value
         return None
 
-    def count_keyusage(self):
+    def get_roles(self):
         """
         A set of Norwegian qualified certificates should have certificates intended for
         *) Encryption
@@ -198,17 +198,17 @@ class QualifiedCertificate(object):
 
         Several roles can be placed on one certificate (Buypass does this).
 
-        This function returns how many roles this certificate has.
+        This function returns which role(s) this certificate has.
         """
-        count = 0
+        cert_roles = []
         key_usage = self.cert.extensions.get_extension_for_oid(ExtensionOID.KEY_USAGE).value
         if key_usage.digital_signature:
-            count += 1
+            cert_roles.append('auth')
         if key_usage.content_commitment:
-            count += 1
+            cert_roles.append('sign')
         if key_usage.data_encipherment:
-            count += 1
-        return count
+            cert_roles.append('crypt')
+        return cert_roles
 
     def print_subject(self, full=False):
         """
@@ -601,40 +601,39 @@ def separate_certificate_sets(certs):
     certs from Commfides) and they should be issued at the same time
     (except encryption certificates from Commfides)... *sigh*
     """
-    cert_sets, cert_set = [], []
-    cert_type_count = counter = 0
     if not certs:
         return []
+
+    cert_sets, cert_set, cert_set_roles = [], [], []
+    counter = 0
     while counter < len(certs):
+        cert_roles = certs[counter].get_roles()
+
         if not cert_set:
-            cert_set.append(certs[counter])
-            cert_type_count += certs[counter].count_keyusage()
+            cert_set_roles = cert_roles
+        elif (
+                # Certificates in a set should have the same subject,
+                # so if they differ they are not from the same set
+                (cert_set[0].print_subject() != certs[counter].print_subject()) or
+
+                # Commfides seems to issue the Encryption certificates at a different time than
+                # the rest of the certificates in the set, but they should be issued within
+                # three days of each other
+                ((certs[counter].cert.not_valid_before - cert_set[0].cert.not_valid_before).days
+                 not in range(-3, 4)) or
+
+                # A set can't contain several certs of the same type
+                [i for i in cert_roles if i in cert_set_roles]
+            ):
+            cert_sets.append(QualifiedCertificateSet(cert_set))
+            cert_set = []
+            cert_set_roles = cert_roles
         else:
-            # Certificates in a set should have the same subject,
-            # so if they differ they are not from the same set
-            if cert_set[0].print_subject() != certs[counter].print_subject():
-                cert_sets.append(QualifiedCertificateSet(cert_set))
-                cert_set = []
-                cert_type_count = certs[counter].count_keyusage()
-            # Commfides seems to issue the Encryption certificates at a different time than the
-            # rest of the certificates in the set (maybe because they need to backup that key?).
-            # But they should be issued within three days of each other
-            elif (certs[counter].cert.not_valid_before
-                  - cert_set[0].cert.not_valid_before).days not in range(-3, 4):
-                cert_sets.append(QualifiedCertificateSet(cert_set))
-                cert_set = []
-                cert_type_count = certs[counter].count_keyusage()
-            else:
-                # There are three types of Norwegian Qualified Certificates
-                # so there can only be three roles in a set
-                if cert_type_count < 3:
-                    cert_type_count += certs[counter].count_keyusage()
-                else:
-                    cert_sets.append(QualifiedCertificateSet(cert_set))
-                    cert_set = []
-                    cert_type_count = certs[counter].count_keyusage()
-            cert_set.append(certs[counter])
+            cert_set_roles += cert_roles
+
+        cert_set.append(certs[counter])
         counter += 1
+
     cert_sets.append(QualifiedCertificateSet(cert_set))
     return cert_sets
 

@@ -131,24 +131,28 @@ def test_auth_cert():
     cert = _gen_qcert(auth=True)
     assert cert.get_display_name() == ('Autentiseringssertifikat', 'Autentisering')
     assert cert.get_key_usages() == 'Digital signature'
+    assert cert.get_roles() == ['auth']
 
 def test_sign_cert():
     """Test that an signature cert is identified as such"""
     cert = _gen_qcert(sign=True)
     assert cert.get_display_name() == ('Signeringssertifikat', 'Signering')
     assert cert.get_key_usages() == 'Non-repudiation'
+    assert cert.get_roles() == ['sign']
 
 def test_crypt_cert():
     """Test that an crypt cert is identified as such"""
     cert = _gen_qcert(crypt=True)
     assert cert.get_display_name() == ('Krypteringssertifikat', 'Kryptering')
     assert cert.get_key_usages() == 'Key encipherment, Data encipherment'
+    assert cert.get_roles() == ['crypt']
 
 def test_crypt_and_auth_cert():
     """Test that an authentication AND crypt cert is identified as such"""
     cert = _gen_qcert(crypt=True, auth=True)
     assert cert.get_display_name() == ('Krypteringssertifikat', 'Kryptering og autentisering')
     assert cert.get_key_usages() == 'Digital signature, Key encipherment, Data encipherment'
+    assert cert.get_roles() == ['auth', 'crypt']
 
 #### BEGIN CERT SET TESTS ####
 
@@ -256,3 +260,16 @@ def test_separate_certsets_serialnumber_commfides():
     cert_sets = sertifikatsok.separate_certificate_sets(qualified_certs)
 
     assert len(cert_sets) == 1
+
+def test_separate_certsets_same_keyusage():
+    """Tests that two standalone certs with the same keyusage is not placed in the same set"""
+
+    sign1 = _gen_qcert(sign=True)
+    sign2 = _gen_qcert(sign=True)
+
+    qualified_certs = [sign1, sign2]
+    cert_sets = sertifikatsok.separate_certificate_sets(qualified_certs)
+
+    assert len(cert_sets) == 2
+    assert cert_sets[0].certs == [sign1]
+    assert cert_sets[1].certs == [sign2]
