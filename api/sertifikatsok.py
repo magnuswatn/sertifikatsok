@@ -26,6 +26,9 @@ from cryptography.exceptions import InvalidSignature
 
 api = Flask(__name__)
 
+api.logger.level = logging.INFO
+api.logger.handlers.extend(logging.getLogger("gunicorn.error").handlers)
+
 ORG_NUMBER_REGEX = re.compile(r'\d{9}')
 UNDERENHET_REGEX = re.compile(r'(?<!\d)\d{9}(?!\d)')
 
