@@ -490,7 +490,7 @@ def query_buypass(search_filter, env):
         base = "dc=Buypass,dc=no,CN=Buypass Class 3"
 
     try:
-        result = do_ldap_search(server, base, search_filter)
+        result = do_ldap_search(server, base, search_filter, max_count=5)
     except ldap.SERVER_DOWN:
         g.errors.append('Kunne ikke hente sertfikater fra Buypass')
         return []
@@ -640,24 +640,51 @@ def separate_certificate_sets(certs):
     cert_sets.append(QualifiedCertificateSet(cert_set))
     return cert_sets
 
-def do_ldap_search(server, base, search_filter):
+def do_ldap_search(server, base, search_filter, max_count=1):
     """Searches the specified LDAP server after certificates"""
-    # TODO: paging for Buypass?
     conn = ldap.initialize(server)
     conn.protocol_version = 3
     # 5 seconds to connect to the ldap server, and 20 to return the response
     conn.set_option(ldap.OPT_TIMELIMIT, 20)
     conn.set_option(ldap.OPT_NETWORK_TIMEOUT, 5)
     conn.simple_bind_s('', '')
-    result = conn.search_ext_s(
-        base,
-        ldap.SCOPE_SUBTREE,
-        search_filter,
-        attrlist=['userCertificate;binary'],
-        serverctrls=None
-    )
+
+    # Buypass caps the result at 20, and doesn't support "normal" paging
+    # so to get all the certs we need to do several searches and exclude the
+    # certs we have already gotten. The queries get uglier and uglier,
+    # so this shouldn't be repeatet too many times
+    count = 0
+    all_results = []
+    org_search_filter = search_filter
+    while count < max_count:
+        api.logger.debug('Doing search with filter: %s', search_filter)
+        results = conn.search_ext_s(
+            base,
+            ldap.SCOPE_SUBTREE,
+            search_filter,
+            attrlist=['userCertificate;binary'],
+            serverctrls=None
+        )
+        all_results += results
+
+        if len(results) == 20:
+            certs_to_exclude = ''
+            for result in results:
+                certs_to_exclude += '(!({}))'.format(result[0].split(',')[0])
+            search_filter = '(&{}{})'.format(search_filter, certs_to_exclude)
+            count += 1
+        else:
+            count = max_count + 1
+
+    # If we got 20 on our last (of sevaral) search, there may be more certs out there...
+    if len(results) == 20 and max_count > 1:
+        api.logger.warning('Exceeded max count for search with filter %s against %s',
+                           org_search_filter, server)
+        g.errors.append('Det er mulig noen gamle sertifikater ikke vises, '
+                        'da søket returnerte for mange resultater')
+
     conn.unbind_s()
-    return result
+    return all_results
 
 def validate_query(env, cert_type, query):
     """Validates the query from the client"""
