@@ -1,5 +1,6 @@
 """The API behind sertifikatsok.no"""
 import re
+import os
 import base64
 import codecs
 import logging
@@ -26,7 +27,11 @@ from cryptography.exceptions import InvalidSignature
 
 api = Flask(__name__)
 
-api.logger.level = logging.INFO
+try:
+    api.logger.level = getattr(logging, os.environ['SERTIFIKATSOK_LOGLEVEL'])
+except KeyError:
+    api.logger.level = logging.INFO
+
 api.logger.handlers.extend(logging.getLogger("gunicorn.error").handlers)
 
 ORG_NUMBER_REGEX = re.compile(r'\d{9}')
