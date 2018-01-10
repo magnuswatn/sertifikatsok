@@ -397,7 +397,10 @@ const showPEM = function(hash) {
                 pem += char;
             }
         }
-        pem += '<br>-----END CERTIFICATE-----';
+        if (pem.slice(-1) !== '>') {
+            pem += '<br>';
+        }
+        pem += '-----END CERTIFICATE-----';
 
           $('#string-modal').modal('open');
           // Should be OK to use html here, as the input is PEM encoded by us
