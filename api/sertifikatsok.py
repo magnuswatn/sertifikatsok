@@ -34,7 +34,7 @@ except KeyError:
 
 api.logger.handlers.extend(logging.getLogger("gunicorn.error").handlers)
 
-ORG_NUMBER_REGEX = re.compile(r'\d{9}')
+ORG_NUMBER_REGEX = re.compile(r'(\d\s?){9}')
 UNDERENHET_REGEX = re.compile(r'(?<!\d)\d{9}(?!\d)')
 
 # Known issuer/PolicyOID combinations
