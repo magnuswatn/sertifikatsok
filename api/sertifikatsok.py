@@ -725,7 +725,7 @@ def api_endpoint():
     # If the query is an organization number we search in the serialNumber field,
     # otherwise the commonName field
     if cert_type == 'enterprise' and ORG_NUMBER_REGEX.fullmatch(query):
-        search_filter = r'(serialNumber=%s)' % query
+        search_filter = r'(serialNumber=%s)' % query.replace(' ', '')
         org_number_search = True
     else:
         search_filter = r'(cn=%s)' % ldap.filter.escape_filter_chars(query)
