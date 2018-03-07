@@ -3,6 +3,14 @@
 SERVICE_USER=caddy
 SERVICE_GROUP=caddy
 
+# On RHEL with Python3.6 installed from EPEL it is currently
+# only known as python36, not python3
+export PYTHON=$(type -P python36 || type -P python3)
+if [ -z "$PYTHON" ]; then
+  echo "python3(6) was not found. Exiting"
+  exit 1
+fi
+
 if [ "$(whoami)" != "root" ]; then
   echo "Must be root."
   exit 1
@@ -35,7 +43,7 @@ systemctl enable sertifikatsok
 chown $SERVICE_USER:$SERVICE_GROUP $BIN_DIR -R
 
 cd $BIN_DIR
-su $SERVICE_USER -c "python3 -m venv venv"
+su $SERVICE_USER -c "$PYTHON -m venv venv"
 su $SERVICE_USER -c "venv/bin/pip install --upgrade pip"
 su $SERVICE_USER -c "venv/bin/pip install -r $APP_DIR/requirements.txt"
 

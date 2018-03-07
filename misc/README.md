@@ -2,8 +2,8 @@
 ### Prerequisites
 * brotli
 * nodejs
-* python3.4+
-* python3-devel
+* python3.6
+* python36-devel
 * openldap-devel
 
 ### Installation
