@@ -262,9 +262,12 @@ const loadResultGUI = function(response) {
     $('#body-container').empty();
     handleWarnings(response.errors);
 
+    const env = window.location.search.includes('test') ? ' i test' : '';
+
     $amountMessage = $('<h5/>', {'class': 'center-align'});
     $amountMessage.text(`Fant ${response.certificate_sets.length} `+
-                        `sett med sertifikater for ${response.subject}:`);
+                        `sett med sertifikater for ${response.subject}`+
+                        `${env}:`);
     $('#body-container').append($amountMessage);
     $('#body-container').append('<br>');
 
