@@ -214,6 +214,16 @@ const showCertificateSets = function(certificateSets) {
                 .attr('ldap', certificateSet.ldap);
             $collapsibleBodySpan.append($thisLdapMessage);
 
+            $brregButton = $thisLdapMessage.find('.brreg-button');
+
+            const re = /serialNumber=(\d{9})/;
+            reResult = re.exec(certificateSet.subject);
+            if (reResult) {
+                $brregButton.attr('orgnr', reResult[1]);
+            } else {
+                $brregButton.remove();
+            }
+
             const $collapsibleBody = $('<div/>', {class: 'collapsible-body'})
                 .append($collapsibleBodySpan);
 
@@ -416,6 +426,11 @@ $(document.body).on('click', '.ldap-button', function(e) {
     $('#string-modal').modal('open');
     $('#string-modal-string').text($(this).attr('ldap'));
     selectText('string-modal-string');
+});
+
+$(document.body).on('click', '.brreg-button', function(e) {
+    const orgNumber = $(this).attr('orgnr');
+    window.open(`https://w2.brreg.no/enhet/sok/detalj.jsp?orgnr=${orgNumber}`);
 });
 
 $(document.body).on('click', '.download-button', function(e) {
