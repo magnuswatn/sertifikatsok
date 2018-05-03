@@ -36,6 +36,7 @@ api.logger.handlers.extend(logging.getLogger("gunicorn.error").handlers)
 
 ORG_NUMBER_REGEX = re.compile(r'(\d\s?){9}')
 UNDERENHET_REGEX = re.compile(r'(?<!\d)\d{9}(?!\d)')
+PERSONAL_SERIAL_REGEX = re.compile(r'9578-(4505|4050|4510)-[A-z0-9]+')
 
 # Known issuer/PolicyOID combinations
 KNOWN_CERT_TYPES = {
@@ -722,11 +723,14 @@ def api_endpoint():
     env, cert_type, query = [request.args.get(key) for key in ['env', 'type', 'query']]
     validate_query(env, cert_type, query)
 
-    # If the query is an organization number we search in the serialNumber field,
-    # otherwise the commonName field
+    # If the query is an organization number, or an norwegian personal serial number,
+    # we search in the serialNumber field, otherwise the commonName field
     if cert_type == 'enterprise' and ORG_NUMBER_REGEX.fullmatch(query):
         search_filter = r'(serialNumber=%s)' % query.replace(' ', '')
         org_number_search = True
+    elif cert_type == 'person' and PERSONAL_SERIAL_REGEX.fullmatch(query):
+        search_filter = f'(serialNumber={query})'
+        org_number_search = False
     else:
         search_filter = r'(cn=%s)' % ldap.filter.escape_filter_chars(query)
         org_number_search = False
