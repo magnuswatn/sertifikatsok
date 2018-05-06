@@ -361,7 +361,7 @@ const search = function(env) {
         return false;
     }
     const queryParams = [
-        {name: 'query', value: inputValue},
+        {name: 'query', value: inputValue.trim()},
         {name: 'env', value: env},
         {name: 'type', value: type},
     ];
