@@ -7,6 +7,7 @@ import logging
 import urllib.parse
 from datetime import datetime
 from operator import itemgetter
+from typing import Optional, List, Dict
 
 import ldap
 import ldap.filter
@@ -24,6 +25,8 @@ from cryptography.hazmat.primitives.serialization import Encoding
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.exceptions import InvalidSignature
 
+# black and pylint doesn't agree on everything
+# pylint: disable=C0330
 
 api = Flask(__name__)
 
@@ -373,7 +376,95 @@ class QualifiedCertificateSet(object):
         return ldap_url
 
 
-def subject_order(field):
+class CRL:
+    """Represents a Certificate Revocation List"""
+
+    def __init__(self, url: str, valid_issuers: dict) -> None:
+        self.url = url
+
+        try:
+            self.crl = self._get_from_file(valid_issuers)
+        except CouldNotGetValidCRLError:
+            self.crl = self._download(valid_issuers)
+
+        self.revoked_certs: Dict[int, datetime] = {}
+        for revoked_cert in self.crl:
+            self.revoked_certs.update({revoked_cert.serial_number: revoked_cert.revocation_date})
+
+    def get_revoked_date(self, cert: x509.Certificate) -> Optional[str]:
+        """Get the revoke date from a cert"""
+        try:
+            return str(self.revoked_certs[cert.serial_number])
+        except KeyError:
+            return None
+
+    def _get_from_file(self, valid_issuers: dict) -> x509.CertificateRevocationList:
+        """Retrieves the CRl from disk"""
+        filename = "./crls/{}".format(urllib.parse.quote_plus(self.url))
+        try:
+            with open(filename, "rb") as open_file:
+                crl_bytes = open_file.read()
+        except FileNotFoundError:
+            raise CouldNotGetValidCRLError
+
+        crl = x509.load_der_x509_crl(crl_bytes, default_backend())
+
+        if not self._validate(crl, valid_issuers):
+            raise CouldNotGetValidCRLError
+        return crl
+
+    def _download(self, valid_issuers: dict) -> x509.CertificateRevocationList:
+        """Downloads the crl from the specified url"""
+        headers = {"user-agent": "sertifikatsok.no"}
+
+        api.logger.info("Downloading CRL %s", self.url)
+        try:
+            resp = requests.get(self.url, headers=headers, timeout=5)
+        except requests.exceptions.ConnectionError as error:
+            raise CouldNotGetValidCRLError(f"Could not retrieve CRL: {error}")
+
+        if resp.status_code != 200:
+            raise CouldNotGetValidCRLError(f"Got status code {resp.status_code} for url {self.url}")
+
+        if resp.headers["Content-Type"] not in ("application/pkix-crl", "application/x-pkcs7-crl"):
+            raise CouldNotGetValidCRLError(
+                f"Got content type: {resp.headers['Content-Type']} for url {self.url}"
+            )
+
+        crl = x509.load_der_x509_crl(resp.content, default_backend())
+
+        if not self._validate(crl, valid_issuers):
+            raise CouldNotGetValidCRLError
+
+        filename = f"./crls/{urllib.parse.quote_plus(self.url)}"
+        with open(filename, "wb") as open_file:
+            open_file.write(resp.content)
+
+        return crl
+
+    @staticmethod
+    def _validate(crl: x509.CertificateRevocationList, valid_issuers: dict) -> bool:
+        """Validates a crl against a issuer certificate"""
+        try:
+            issuer = valid_issuers[crl.issuer]
+        except KeyError:
+            # We don't trust the issuer for this crl
+            return False
+
+        if not (crl.next_update > datetime.utcnow() and crl.last_update < datetime.utcnow()):
+            return False
+        if not crl.issuer == issuer.subject:
+            return False
+        try:
+            issuer.public_key().verify(
+                crl.signature, crl.tbs_certlist_bytes, PKCS1v15(), crl.signature_hash_algorithm
+            )
+        except InvalidSignature:
+            return False
+        return True
+
+
+def subject_order(field: str) -> int:
     """Returns the order of the subject element, for pretty printing"""
     order = {"serialNumber": 0, "email": 1, "CN": 2, "OU": 3, "O": 4, "L": 5, "ST": 6, "C": 7}
     field_name = field.split("=")[0]
@@ -383,7 +474,7 @@ def subject_order(field):
         return 8
 
 
-def get_issuer_cert(issuer, env):
+def get_issuer_cert(issuer: str, env: str) -> x509.Certificate:
     """Retrieves the issuer certificate from file, if we have it"""
     filename = "./certs/{}/{}.pem".format(env, urllib.parse.quote_plus(issuer))
     try:
@@ -395,77 +486,7 @@ def get_issuer_cert(issuer, env):
     return x509.load_pem_x509_certificate(issuer_bytes, default_backend())
 
 
-def get_crl(url, valid_issuers):
-    """Retrieves the CRl from disk, or optionally, downloads it"""
-    filename = "./crls/{}".format(urllib.parse.quote_plus(url))
-    try:
-        with open(filename, "rb") as open_file:
-            crl_bytes = open_file.read()
-        fresh = False
-    except FileNotFoundError:
-        crl_bytes = download_crl(url)
-        fresh = True
-
-    crl = x509.load_der_x509_crl(crl_bytes, default_backend())
-
-    if not validate_crl(crl, valid_issuers):
-        if fresh:
-            raise CouldNotGetValidCRLError
-        else:
-            # Our copy on disk was not valid. Try to download it again
-            crl_bytes = download_crl(url)
-            crl = x509.load_der_x509_crl(crl_bytes, default_backend())
-            if not validate_crl(crl, valid_issuers):
-                raise CouldNotGetValidCRLError
-    return crl
-
-
-def validate_crl(crl, valid_issuers):
-    """Validates a crl against a issuer certificate"""
-    try:
-        issuer = valid_issuers[crl.issuer]
-    except KeyError:
-        # We don't trust the issuer for this crl
-        return False
-
-    if not (crl.next_update > datetime.utcnow() and crl.last_update < datetime.utcnow()):
-        return False
-    if not crl.issuer == issuer.subject:
-        return False
-    try:
-        issuer.public_key().verify(
-            crl.signature, crl.tbs_certlist_bytes, PKCS1v15(), crl.signature_hash_algorithm
-        )
-    except InvalidSignature:
-        return False
-    return True
-
-
-def download_crl(url):
-    """Downloads a crl from the specified url"""
-    headers = {"user-agent": "sertifikatsok.no"}
-    filename = "./crls/{}".format(urllib.parse.quote_plus(url))
-    api.logger.info("Downloading CRL %s", url)
-    try:
-        r = requests.get(url, headers=headers, timeout=5)
-    except requests.exceptions.ConnectionError as error:
-        raise CouldNotGetValidCRLError("Could not retrieve CRL: {}".format(error))
-
-    if r.status_code != 200:
-        raise CouldNotGetValidCRLError("Got status code {} for url {}".format(r.status_code, url))
-
-    if r.headers["Content-Type"] not in ("application/pkix-crl", "application/x-pkcs7-crl"):
-        raise CouldNotGetValidCRLError(
-            "Got content type: {} for url {}".format(r.headers["Content-Type"], url)
-        )
-
-    with open(filename, "wb") as open_file:
-        open_file.write(r.content)
-
-    return r.content
-
-
-def get_cert_status(certs, env):
+def get_cert_status(certs: List[QualifiedCertificate], env: str) -> None:
     """
     Checks the trust status of the certificates against the trusted issuers
     """
@@ -484,17 +505,12 @@ def get_cert_status(certs, env):
     crls = {}
     for url in urls:
         try:
-            crls[url] = get_crl(url, loaded_issuers)
+            crls[url] = CRL(url, loaded_issuers)
         except CouldNotGetValidCRLError:
             g.errors.append(
-                "Kunne ikke hente ned gyldig CRL fra {}. "
-                "Revokeringsstatus er derfor ukjent for noen sertifikater.".format(url)
+                f"Kunne ikke hente ned gyldig CRL fra {url}. "
+                f"Revokeringsstatus er derfor ukjent for noen sertifikater."
             )
-
-    # retrieve all the revoked certificates from the crls
-    revoked_certs = {}
-    for crl in crls:
-        revoked_certs[crl] = [revoked_cert.serial_number for revoked_cert in crls[crl]]
 
     # validate all the certs against the issuers and the crls
     for cert in certs:
@@ -512,9 +528,10 @@ def get_cert_status(certs, env):
 
         try:
             if not cert.status == "Utgått":
-                if cert.cert.serial in revoked_certs[cert.cdp]:
-                    cert.status = "Revokert"
-                if cert.cert.issuer != crls[cert.cdp].issuer:
+                revoked_date = crls[cert.cdp].get_revoked_date(cert.cert)
+                if revoked_date:
+                    cert.status = f"Revokert ({revoked_date})"
+                if cert.cert.issuer != crls[cert.cdp].crl.issuer:
                     # If the issuer from the crl is not the issuer of the cert, we have a problem
                     cert.status = "Ukjent"
         except KeyError:
@@ -651,7 +668,7 @@ def create_cert_response(cert_sets, issuer):
             ).decode("ascii")
             cert_set["certificates"].append(cert_element)
 
-            if cert.status == "Revokert":
+            if "Revokert" in cert.status:
                 cert_set["status"] = "Revokert"
 
         new_cert_sets.append(cert_set)
