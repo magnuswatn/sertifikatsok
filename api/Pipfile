@@ -11,6 +11,7 @@ gunicorn = "*"
 requests = "*"
 cryptography = "*"
 black = "*"
+mypy = "*"
 
 [dev-packages]
 pytest = "*"
