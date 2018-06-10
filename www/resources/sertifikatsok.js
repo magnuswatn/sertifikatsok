@@ -216,10 +216,8 @@ const showCertificateSets = function(certificateSets) {
 
             $brregButton = $thisLdapMessage.find('.brreg-button');
 
-            const re = /serialNumber=(\d{9})/;
-            reResult = re.exec(certificateSet.subject);
-            if (reResult) {
-                $brregButton.attr('orgnr', reResult[1]);
+            if (certificateSet.org_number) {
+                $brregButton.attr('orgnr', certificateSet.org_number);
             } else {
                 $brregButton.remove();
             }

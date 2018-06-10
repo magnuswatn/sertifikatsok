@@ -7,7 +7,7 @@ import logging
 import urllib.parse
 from datetime import datetime
 from operator import itemgetter
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple
 
 import ldap
 import ldap.filter
@@ -300,21 +300,30 @@ class QualifiedCertificate(object):
                 subject.append("{}={}".format(field.oid.dotted_string, field.value))
         return ", ".join(list(subject))
 
-    def is_issued_to_underenhet(self):
+    def get_orgnumber(self) -> Tuple[Optional[str], bool]:
         """
-        Checks if the certificate is issued to an 'underenhet'
+        Gets the organization number from the cert,
+        and returns the organization number + if it's and "underenhet"
+        """
+        serial_number = self.cert.subject.get_attributes_for_oid(NameOID.SERIAL_NUMBER)[0].value
 
-        This is indicated by the presence of an nine-digit number in the OU field
-        (this is not in the Norwegian Qualified certificate standard,
-        but has become a common practice for Buypass)
-        """
+        if not ORG_NUMBER_REGEX.fullmatch(serial_number):
+            # personal cert
+            return None, False
+
         try:
             ou_field = self.cert.subject.get_attributes_for_oid(NameOID.ORGANIZATIONAL_UNIT_NAME)[
                 0
             ].value
         except IndexError:
-            return False
-        return bool(UNDERENHET_REGEX.search(ou_field))
+            return serial_number, False
+
+        ou_number = UNDERENHET_REGEX.search(ou_field)
+
+        if ou_number and serial_number != ou_number[0]:
+            return ou_number[0], True
+
+        return serial_number, False
 
     def get_display_name(self):
         """
@@ -625,7 +634,8 @@ def create_cert_response(cert_sets, issuer):
         main_cert = certs.get_non_encryption_cert()
         notices = []
 
-        if main_cert.is_issued_to_underenhet():
+        org_number, underenhet = main_cert.get_orgnumber()
+        if underenhet:
             notices.append("underenhet")
         if "Ukjent" in main_cert.type:
             notices.append("ukjent")
@@ -638,6 +648,7 @@ def create_cert_response(cert_sets, issuer):
         # This will be overridden later, if some of the certs are revoked or expired
         cert_set["status"] = main_cert.status
 
+        cert_set["org_number"] = org_number
         cert_set["subject"] = main_cert.print_subject()
         cert_set["notices"] = notices
         cert_set["ldap"] = certs.create_ldap_url()
