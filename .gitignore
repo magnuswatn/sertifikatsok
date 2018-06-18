@@ -8,3 +8,4 @@ www/Caddyfile
 www/api
 TODO
 api/.cache/
+.mypy_cache/
