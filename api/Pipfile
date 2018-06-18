@@ -5,7 +5,7 @@ name = "pypi"
 
 [packages]
 flask = "*"
-pyldap = "*"
+bonsai = "*"
 gevent = "*"
 gunicorn = "*"
 requests = "*"

@@ -9,8 +9,7 @@ from datetime import datetime
 from operator import itemgetter
 from typing import Optional, List, Dict, Tuple
 
-import ldap
-import ldap.filter
+import bonsai
 import requests
 
 from flask import g
@@ -576,7 +575,8 @@ def query_buypass(search_filter, env):
 
     try:
         result = do_ldap_search(server, base, search_filter, max_count=5)
-    except ldap.SERVER_DOWN:
+    except bonsai.LDAPError:
+        api.logger.exception("Kunne ikke hente sertfikater fra Buypass")
         g.errors.append("Kunne ikke hente sertfikater fra Buypass")
         return []
     else:
@@ -598,7 +598,8 @@ def query_commfides(search_filter, env, cert_type):
 
     try:
         result = do_ldap_search(server, base, search_filter)
-    except ldap.SERVER_DOWN:
+    except bonsai.LDAPError:
+        api.logger.exception("Kunne ikke hente sertfikater fra Commfides")
         g.errors.append("Kunne ikke hente sertfikater fra Commfides")
         return []
     else:
@@ -611,7 +612,7 @@ def create_certificate_sets(search_results, ldap_params, env, issuer):
     for result in search_results:
         try:
             qualified_cert = QualifiedCertificate(
-                result[1]["userCertificate;binary"][0], result[0], ldap_params
+                result["userCertificate;binary"][0], str(result.dn), ldap_params
             )
         except KeyError:
             # Commfides have entries in their LDAP without a cert...
@@ -735,14 +736,21 @@ def separate_certificate_sets(certs):
     return cert_sets
 
 
+def escape_ldap_query(query):
+    """Escapes an ldap query as described in RFC 4515"""
+    return (
+        query.replace("\\", r"\5c")
+        .replace(r"*", r"\2a")
+        .replace(r"(", r"\28")
+        .replace(r")", r"\29")
+        .replace("\x00", r"\00")
+    )
+
+
 def do_ldap_search(server, base, search_filter, max_count=1):
     """Searches the specified LDAP server after certificates"""
-    conn = ldap.initialize(server)
-    conn.protocol_version = 3
-    # 5 seconds to connect to the ldap server, and 20 to return the response
-    conn.set_option(ldap.OPT_TIMELIMIT, 20)
-    conn.set_option(ldap.OPT_NETWORK_TIMEOUT, 5)
-    conn.simple_bind_s("", "")
+    client = bonsai.LDAPClient(server)
+    client.set_credentials("SIMPLE", ("", ""))
 
     # Buypass caps the result at 20, and doesn't support "normal" paging
     # so to get all the certs we need to do several searches and exclude the
@@ -751,37 +759,36 @@ def do_ldap_search(server, base, search_filter, max_count=1):
     count = 0
     all_results = []
     org_search_filter = search_filter
-    while count < max_count:
-        api.logger.debug("Doing search with filter: %s", search_filter)
-        results = conn.search_ext_s(
-            base,
-            ldap.SCOPE_SUBTREE,
-            search_filter,
-            attrlist=["userCertificate;binary"],
-            serverctrls=None,
-        )
-        all_results += results
+    with (client.connect(timeout=20)) as conn:
+        while count < max_count:
+            api.logger.debug("Doing search with filter: %s", search_filter)
+            results = conn.search(
+                base,
+                bonsai.LDAPSearchScope.SUBTREE,
+                search_filter,
+                attrlist=["userCertificate;binary"],
+            )
+            all_results += results
 
-        if len(results) == 20:
-            certs_to_exclude = ""
-            for result in results:
-                certs_to_exclude += "(!({}))".format(result[0].split(",")[0])
-            search_filter = "(&{}{})".format(search_filter, certs_to_exclude)
-            count += 1
-        else:
-            count = max_count + 1
+            if len(results) == 20:
+                certs_to_exclude = ""
+                for result in results:
+                    certs_to_exclude += f"(!({str(result.dn).split(',')[0]}))"
+                search_filter = "(&{}{})".format(search_filter, certs_to_exclude)
+                count += 1
+            else:
+                count = max_count + 1
 
-    # If we got 20 on our last (of sevaral) search, there may be more certs out there...
-    if len(results) == 20 and max_count > 1:
-        api.logger.warning(
-            "Exceeded max count for search with filter %s against %s", org_search_filter, server
-        )
-        g.errors.append(
-            "Det er mulig noen gamle sertifikater ikke vises, "
-            "da søket returnerte for mange resultater"
-        )
+        # If we got 20 on our last (of sevaral) search, there may be more certs out there...
+        if len(results) == 20 and max_count > 1:
+            api.logger.warning(
+                "Exceeded max count for search with filter %s against %s", org_search_filter, server
+            )
+            g.errors.append(
+                "Det er mulig noen gamle sertifikater ikke vises, "
+                "da søket returnerte for mange resultater"
+            )
 
-    conn.unbind_s()
     return all_results
 
 
@@ -828,7 +835,7 @@ def api_endpoint():
         search_filter = f"(serialNumber={query})"
         org_number_search = False
     else:
-        search_filter = r"(cn=%s)" % ldap.filter.escape_filter_chars(query)
+        search_filter = r"(cn=%s)" % escape_ldap_query(query)
         org_number_search = False
 
     # TODO: do the searches in paralell?
