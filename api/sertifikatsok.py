@@ -12,10 +12,10 @@ from typing import Optional, List, Dict, Tuple
 import bonsai
 import requests
 
-from flask import g
-from flask import Flask
-from flask import jsonify
-from flask import request
+from quart import g
+from quart import Quart
+from quart import jsonify
+from quart import request
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.x509.oid import ExtensionOID, NameOID
@@ -27,7 +27,7 @@ from cryptography.exceptions import InvalidSignature
 # black and pylint doesn't agree on everything
 # pylint: disable=C0330
 
-api = Flask(__name__)
+api = Quart(__name__)
 
 try:
     api.logger.level = getattr(logging, os.environ["SERTIFIKATSOK_LOGLEVEL"])
