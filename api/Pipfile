@@ -8,7 +8,7 @@ quart = "*"
 bonsai = "*"
 gevent = "*"
 gunicorn = "*"
-requests = "*"
+aiohttp = "*"
 cryptography = "*"
 
 [dev-packages]

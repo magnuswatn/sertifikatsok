@@ -11,7 +11,7 @@ from operator import itemgetter
 from typing import Optional, List, Dict, Tuple
 
 import bonsai
-import requests
+import aiohttp
 
 from quart import g
 from quart import Quart
@@ -388,17 +388,28 @@ class QualifiedCertificateSet(object):
 class CRL:
     """Represents a Certificate Revocation List"""
 
-    def __init__(self, url: str, valid_issuers: dict) -> None:
+    def __init__(self, url: str) -> None:
         self.url = url
-
-        try:
-            self.crl = self._get_from_file(valid_issuers)
-        except CouldNotGetValidCRLError:
-            self.crl = self._download(valid_issuers)
-
+        self.crl: Optional[x509.CertificateRevocationList] = None
         self.revoked_certs: Dict[int, datetime] = {}
-        for revoked_cert in self.crl:
-            self.revoked_certs.update({revoked_cert.serial_number: revoked_cert.revocation_date})
+
+    @classmethod
+    async def create(cls, url: str, valid_issuers: dict) -> "CRL":
+        """
+        Creates, and returns, a CRL object.
+
+        Needed to be able to do the async stuff
+        """
+        crl = cls(url)
+        try:
+            crl.crl = crl.get_from_file(valid_issuers)
+        except CouldNotGetValidCRLError:
+            crl.crl = await crl.download(valid_issuers)
+
+        for revoked_cert in crl.crl:
+            crl.revoked_certs.update({revoked_cert.serial_number: revoked_cert.revocation_date})
+
+        return crl
 
     def get_revoked_date(self, cert: x509.Certificate) -> Optional[str]:
         """Get the revoke date from a cert"""
@@ -407,7 +418,7 @@ class CRL:
         except KeyError:
             return None
 
-    def _get_from_file(self, valid_issuers: dict) -> x509.CertificateRevocationList:
+    def get_from_file(self, valid_issuers: dict) -> x509.CertificateRevocationList:
         """Retrieves the CRl from disk"""
         filename = "./crls/{}".format(urllib.parse.quote_plus(self.url))
         try:
@@ -422,17 +433,22 @@ class CRL:
             raise CouldNotGetValidCRLError
         return crl
 
-    def _download(self, valid_issuers: dict) -> x509.CertificateRevocationList:
+    async def download(self, valid_issuers: dict) -> x509.CertificateRevocationList:
         """Downloads the crl from the specified url"""
         headers = {"user-agent": "sertifikatsok.no"}
+        crl_timeout = aiohttp.ClientTimeout(total=5)
 
         api.logger.info("Downloading CRL %s", self.url)
-        try:
-            resp = requests.get(self.url, headers=headers, timeout=5)
-        except requests.exceptions.ConnectionError as error:
-            raise CouldNotGetValidCRLError(f"Could not retrieve CRL: {error}")
+        async with aiohttp.ClientSession(timeout=crl_timeout) as session:
+            try:
+                resp = await session.get(self.url, headers=headers)
+                crl_bytes = await resp.read()
+            except (aiohttp.ClientError, asyncio.TimeoutError) as error:
+                raise CouldNotGetValidCRLError(f"Could not retrieve CRL: {error}")
 
-        if resp.status_code != 200:
+        api.logger.debug("Finishined downloading CRL %s", self.url)
+
+        if resp.status != 200:
             raise CouldNotGetValidCRLError(f"Got status code {resp.status_code} for url {self.url}")
 
         if resp.headers["Content-Type"] not in ("application/pkix-crl", "application/x-pkcs7-crl"):
@@ -440,14 +456,14 @@ class CRL:
                 f"Got content type: {resp.headers['Content-Type']} for url {self.url}"
             )
 
-        crl = x509.load_der_x509_crl(resp.content, default_backend())
+        crl = x509.load_der_x509_crl(crl_bytes, default_backend())
 
         if not self._validate(crl, valid_issuers):
             raise CouldNotGetValidCRLError
 
         filename = f"./crls/{urllib.parse.quote_plus(self.url)}"
         with open(filename, "wb") as open_file:
-            open_file.write(resp.content)
+            open_file.write(crl_bytes)
 
         return crl
 
@@ -495,7 +511,7 @@ def get_issuer_cert(issuer: str, env: str) -> x509.Certificate:
     return x509.load_pem_x509_certificate(issuer_bytes, default_backend())
 
 
-def get_cert_status(certs: List[QualifiedCertificate], env: str) -> None:
+async def get_cert_status(certs: List[QualifiedCertificate], env: str) -> None:
     """
     Checks the trust status of the certificates against the trusted issuers
     """
@@ -514,7 +530,7 @@ def get_cert_status(certs: List[QualifiedCertificate], env: str) -> None:
     crls = {}
     for url in urls:
         try:
-            crls[url] = CRL(url, loaded_issuers)
+            crls[url] = await CRL.create(url, loaded_issuers)
         except CouldNotGetValidCRLError:
             g.errors.append(
                 f"Kunne ikke hente ned gyldig CRL fra {url}. "
@@ -583,7 +599,7 @@ async def query_buypass(search_filter, env):
         return []
     else:
         api.logger.debug("Ending: Buypass query")
-        return create_certificate_sets(result, (server, base), env, "Buypass")
+        return await create_certificate_sets(result, (server, base), env, "Buypass")
 
 
 async def query_commfides(search_filter, env, cert_type):
@@ -608,10 +624,10 @@ async def query_commfides(search_filter, env, cert_type):
         return []
     else:
         api.logger.debug("Ending: Commfides query")
-        return create_certificate_sets(result, (server, base), env, "Commfides")
+        return await create_certificate_sets(result, (server, base), env, "Commfides")
 
 
-def create_certificate_sets(search_results, ldap_params, env, issuer):
+async def create_certificate_sets(search_results, ldap_params, env, issuer):
     """Takes a ldap response and creates a list of QualifiedCertificateSet"""
     qualified_certs = []
     for result in search_results:
@@ -624,7 +640,7 @@ def create_certificate_sets(search_results, ldap_params, env, issuer):
             continue
         qualified_certs.append(qualified_cert)
 
-    get_cert_status(qualified_certs, env)
+    await get_cert_status(qualified_certs, env)
 
     cert_sets = separate_certificate_sets(qualified_certs)
     return create_cert_response(cert_sets, issuer)
