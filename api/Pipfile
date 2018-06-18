@@ -10,9 +10,9 @@ gevent = "*"
 gunicorn = "*"
 requests = "*"
 cryptography = "*"
-black = "*"
-mypy = "*"
 
 [dev-packages]
 pytest = "*"
 pylint = "*"
+black = "*"
+mypy = "*"
