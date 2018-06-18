@@ -660,8 +660,8 @@ def create_cert_response(cert_sets, issuer):
             cert_element["name"] = name
             cert_info = {}
             cert_info["Bruksområde(r)"] = usage
-            cert_info["Serienummer (hex)"] = format(cert.cert.serial, "x")
-            cert_info["Serienummer (int)"] = str(cert.cert.serial)
+            cert_info["Serienummer (hex)"] = format(cert.cert.serial_number, "x")
+            cert_info["Serienummer (int)"] = str(cert.cert.serial_number)
             # We use SHA1 here since thats what Windows uses
             cert_info["Avtrykk (SHA-1)"] = codecs.encode(
                 cert.cert.fingerprint(hashes.SHA1()), "hex"
