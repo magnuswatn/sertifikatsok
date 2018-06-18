@@ -3,6 +3,7 @@ import re
 import os
 import base64
 import codecs
+import asyncio
 import logging
 import urllib.parse
 from datetime import datetime
@@ -564,8 +565,9 @@ def validate_cert_against_issuer(cert, issuer):
         return True
 
 
-def query_buypass(search_filter, env):
+async def query_buypass(search_filter, env):
     """Query Buypass' LDAP server for certificates"""
+    api.logger.debug("Starting: Buypass query")
     if env == "test":
         server = "ldap://ldap.test4.buypass.no"
         base = "dc=Buypass,dc=no,CN=Buypass Class 3 Test4"
@@ -574,17 +576,19 @@ def query_buypass(search_filter, env):
         base = "dc=Buypass,dc=no,CN=Buypass Class 3"
 
     try:
-        result = do_ldap_search(server, base, search_filter, max_count=5)
+        result = await do_ldap_search(server, base, search_filter, max_count=5)
     except bonsai.LDAPError:
         api.logger.exception("Kunne ikke hente sertfikater fra Buypass")
         g.errors.append("Kunne ikke hente sertfikater fra Buypass")
         return []
     else:
+        api.logger.debug("Ending: Buypass query")
         return create_certificate_sets(result, (server, base), env, "Buypass")
 
 
-def query_commfides(search_filter, env, cert_type):
+async def query_commfides(search_filter, env, cert_type):
     """Query Commfides' LDAP server for certificates"""
+    api.logger.debug("Starting: Commfides query")
     if env == "test":
         server = "ldap://ldap.test.commfides.com"
     else:
@@ -597,12 +601,13 @@ def query_commfides(search_filter, env, cert_type):
         base = "ou=Enterprise,dc=commfides,dc=com"
 
     try:
-        result = do_ldap_search(server, base, search_filter)
+        result = await do_ldap_search(server, base, search_filter)
     except bonsai.LDAPError:
         api.logger.exception("Kunne ikke hente sertfikater fra Commfides")
         g.errors.append("Kunne ikke hente sertfikater fra Commfides")
         return []
     else:
+        api.logger.debug("Ending: Commfides query")
         return create_certificate_sets(result, (server, base), env, "Commfides")
 
 
@@ -747,7 +752,7 @@ def escape_ldap_query(query):
     )
 
 
-def do_ldap_search(server, base, search_filter, max_count=1):
+async def do_ldap_search(server, base, search_filter, max_count=1):
     """Searches the specified LDAP server after certificates"""
     client = bonsai.LDAPClient(server)
     client.set_credentials("SIMPLE", ("", ""))
@@ -759,10 +764,10 @@ def do_ldap_search(server, base, search_filter, max_count=1):
     count = 0
     all_results = []
     org_search_filter = search_filter
-    with (client.connect(timeout=20)) as conn:
+    with (await client.connect(is_async=True, timeout=20)) as conn:
         while count < max_count:
-            api.logger.debug("Doing search with filter: %s", search_filter)
-            results = conn.search(
+            api.logger.debug('Doing search with filter "%s" against "%s"', search_filter, server)
+            results = await conn.search(
                 base,
                 bonsai.LDAPSearchScope.SUBTREE,
                 search_filter,
@@ -820,7 +825,7 @@ def handle_unexpected_error(_):
 
 
 @api.route("/api", methods=["GET"])
-def api_endpoint():
+async def api_endpoint():
     """Handles requests to /api"""
     g.errors = []
     env, cert_type, query = [request.args.get(key) for key in ["env", "type", "query"]]
@@ -838,10 +843,14 @@ def api_endpoint():
         search_filter = r"(cn=%s)" % escape_ldap_query(query)
         org_number_search = False
 
-    # TODO: do the searches in paralell?
     certificate_sets = []
-    certificate_sets.extend(query_buypass(search_filter, env))
-    certificate_sets.extend(query_commfides(search_filter, env, cert_type))
+    ldap_responses = await asyncio.gather(
+        query_buypass(search_filter, env), query_commfides(search_filter, env, cert_type)
+    )
+
+    for finsihed_task in ldap_responses:
+        certificate_sets.extend(finsihed_task)
+
     certificate_sets.sort(key=itemgetter("valid_from"), reverse=True)
 
     response_content = {}
