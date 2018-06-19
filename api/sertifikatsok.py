@@ -516,6 +516,7 @@ def get_cert_status(certs: List[QualifiedCertificate], env: str) -> None:
         try:
             crls[url] = CRL(url, loaded_issuers)
         except CouldNotGetValidCRLError:
+            api.logger.exception("Could not get retrieve CRL")
             g.errors.append(
                 f"Kunne ikke hente ned gyldig CRL fra {url}. "
                 f"Revokeringsstatus er derfor ukjent for noen sertifikater."
@@ -577,6 +578,7 @@ def query_buypass(search_filter, env):
     try:
         result = do_ldap_search(server, base, search_filter, max_count=5)
     except ldap.SERVER_DOWN:
+        api.logger.exception("Could not retrieve certificates from Buypass")
         g.errors.append("Kunne ikke hente sertfikater fra Buypass")
         return []
     else:
@@ -599,6 +601,7 @@ def query_commfides(search_filter, env, cert_type):
     try:
         result = do_ldap_search(server, base, search_filter)
     except ldap.SERVER_DOWN:
+        api.logger.exception("Could not retrieve certificates from Commfides")
         g.errors.append("Kunne ikke hente sertfikater fra Commfides")
         return []
     else:
