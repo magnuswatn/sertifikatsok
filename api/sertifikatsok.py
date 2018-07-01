@@ -391,7 +391,7 @@ class CRL:
     def __init__(self, url: str) -> None:
         self.url = url
         self.crl: Optional[x509.CertificateRevocationList] = None
-        self.revoked_certs: Dict[int, datetime] = {}
+        self.revoked_certs: Dict[int, x509.RevokedCertificate] = {}
 
     @classmethod
     async def create(cls, url: str, valid_issuers: dict) -> "CRL":
@@ -407,14 +407,14 @@ class CRL:
             crl.crl = await crl.download(valid_issuers)
 
         for revoked_cert in crl.crl:
-            crl.revoked_certs.update({revoked_cert.serial_number: revoked_cert.revocation_date})
+            crl.revoked_certs.update({revoked_cert.serial_number: revoked_cert})
 
         return crl
 
     def get_revoked_date(self, cert: x509.Certificate) -> Optional[str]:
-        """Get the revoke date from a cert"""
+        """Get the revocation date for a cert"""
         try:
-            return str(self.revoked_certs[cert.serial_number])
+            return str(self.revoked_certs[cert.serial_number].revocation_date)
         except KeyError:
             return None
 
@@ -532,6 +532,7 @@ async def get_cert_status(certs: List[QualifiedCertificate], env: str) -> None:
         try:
             crls[url] = await CRL.create(url, loaded_issuers)
         except CouldNotGetValidCRLError:
+            api.logger.exception("Could not get retrieve CRL")
             g.errors.append(
                 f"Kunne ikke hente ned gyldig CRL fra {url}. "
                 f"Revokeringsstatus er derfor ukjent for noen sertifikater."
@@ -594,7 +595,7 @@ async def query_buypass(search_filter, env):
     try:
         result = await do_ldap_search(server, base, search_filter, max_count=5)
     except bonsai.LDAPError:
-        api.logger.exception("Kunne ikke hente sertfikater fra Buypass")
+        api.logger.exception("Could not retrieve certificates from Buypass")
         g.errors.append("Kunne ikke hente sertfikater fra Buypass")
         return []
     else:
@@ -619,7 +620,7 @@ async def query_commfides(search_filter, env, cert_type):
     try:
         result = await do_ldap_search(server, base, search_filter)
     except bonsai.LDAPError:
-        api.logger.exception("Kunne ikke hente sertfikater fra Commfides")
+        api.logger.exception("Could not retrieve certificates from Commfides")        
         g.errors.append("Kunne ikke hente sertfikater fra Commfides")
         return []
     else:
