@@ -391,7 +391,6 @@ class CRL:
     def __init__(self, url: str) -> None:
         self.url = url
         self.crl: Optional[x509.CertificateRevocationList] = None
-        self.revoked_certs: Dict[int, x509.RevokedCertificate] = {}
 
     @classmethod
     async def create(cls, url: str, valid_issuers: dict) -> "CRL":
@@ -406,17 +405,14 @@ class CRL:
         except CouldNotGetValidCRLError:
             crl.crl = await crl.download(valid_issuers)
 
-        for revoked_cert in crl.crl:
-            crl.revoked_certs.update({revoked_cert.serial_number: revoked_cert})
-
         return crl
 
     def get_revoked_date(self, cert: x509.Certificate) -> Optional[str]:
         """Get the revocation date for a cert"""
-        try:
-            return str(self.revoked_certs[cert.serial_number].revocation_date)
-        except KeyError:
-            return None
+        revoked_cert = self.crl.get_revoked_certificate_by_serial_number(cert.serial_number)
+        if revoked_cert:
+            return str(revoked_cert.revocation_date)
+        return None
 
     def get_from_file(self, valid_issuers: dict) -> x509.CertificateRevocationList:
         """Retrieves the CRl from disk"""
@@ -620,7 +616,7 @@ async def query_commfides(search_filter, env, cert_type):
     try:
         result = await do_ldap_search(server, base, search_filter)
     except bonsai.LDAPError:
-        api.logger.exception("Could not retrieve certificates from Commfides")        
+        api.logger.exception("Could not retrieve certificates from Commfides")
         g.errors.append("Kunne ikke hente sertfikater fra Commfides")
         return []
     else:

@@ -9,7 +9,7 @@ bonsai = "*"
 gevent = "*"
 gunicorn = "*"
 aiohttp = "*"
-cryptography = "*"
+cryptography = ">=2.3"
 
 [dev-packages]
 pytest = "*"
