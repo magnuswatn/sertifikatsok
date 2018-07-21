@@ -396,16 +396,12 @@ class CRL:
         except CouldNotGetValidCRLError:
             self.crl = self._download(valid_issuers)
 
-        self.revoked_certs: Dict[int, x509.RevokedCertificate] = {}
-        for revoked_cert in self.crl:
-            self.revoked_certs.update({revoked_cert.serial_number: revoked_cert})
-
     def get_revoked_date(self, cert: x509.Certificate) -> Optional[str]:
         """Get the revocation date for a cert"""
-        try:
-            return str(self.revoked_certs[cert.serial_number].revocation_date)
-        except KeyError:
-            return None
+        revoked_cert = self.crl.get_revoked_certificate_by_serial_number(cert.serial_number)
+        if revoked_cert:
+            return str(revoked_cert.revocation_date)
+        return None
 
     def _get_from_file(self, valid_issuers: dict) -> x509.CertificateRevocationList:
         """Retrieves the CRl from disk"""

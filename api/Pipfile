@@ -9,7 +9,7 @@ pyldap = "*"
 gevent = "*"
 gunicorn = "*"
 requests = "*"
-cryptography = "*"
+cryptography = ">=2.3"
 
 [dev-packages]
 pytest = "*"
