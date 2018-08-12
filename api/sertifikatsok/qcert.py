@@ -15,8 +15,8 @@ from cryptography.exceptions import InvalidSignature
 
 from .utils import get_subject_order, stringify_x509_name
 from .constants import (
+    CertType,
     KNOWN_CERT_TYPES,
-    ORG_NUMBER_REGEX,
     UNDERENHET_REGEX,
     SUBJECT_FIELDS,
     KEY_USAGES,
@@ -30,7 +30,7 @@ class QualifiedCertificate:
         self.cert = x509.load_der_x509_certificate(cert, default_backend())
 
         self.issuer = stringify_x509_name(self.cert.issuer)
-        self.type = self._get_type()
+        self.type, self.description = self._get_type()
         self.dn = dn
         self.ldap_params = ldap_params
         self.status = "Ukjent"
@@ -85,7 +85,7 @@ class QualifiedCertificate:
         else:
             return True
 
-    def _get_type(self) -> str:
+    def _get_type(self) -> Tuple[CertType, str]:
         """Returns the type of certificate, based on issuer and Policy OID"""
         cert_policies = self.cert.extensions.get_extension_for_oid(
             x509.ObjectIdentifier("2.5.29.32")
@@ -94,12 +94,12 @@ class QualifiedCertificate:
         for policy in cert_policies:
             try:
                 oid = policy.policy_identifier.dotted_string
-                return KNOWN_CERT_TYPES[(self.issuer, oid)][1]
+                return KNOWN_CERT_TYPES[(self.issuer, oid)]
             except KeyError:
                 pass
 
         # This will only display the last OID, out of potentially several, but good enough
-        return "Ukjent (oid: {})".format(oid)
+        return (CertType.UNKNOWN, "Ukjent (oid: {})".format(oid))
 
     def _get_http_cdp(self) -> Optional[str]:
         """Returns the first CRL Distribution Point from the cert with http scheme, if any"""
@@ -148,9 +148,7 @@ class QualifiedCertificate:
         for field in self.cert.subject:
             if field.oid.dotted_string == "2.5.4.5" and not full:
                 # Skip serialNumber if non-Enterprise cert from Commfides
-                if "Commfides" in self.issuer and not ORG_NUMBER_REGEX.fullmatch(
-                    field.value
-                ):
+                if "Commfides" in self.issuer and self.type != CertType.ENTERPRISE:
                     continue
             try:
                 subject.append(
@@ -170,13 +168,12 @@ class QualifiedCertificate:
         Gets the organization number from the cert,
         and returns the organization number + if it's an "underenhet"
         """
+        if self.type != CertType.ENTERPRISE:
+            return None, False
+
         serial_number = self.cert.subject.get_attributes_for_oid(NameOID.SERIAL_NUMBER)[
             0
         ].value
-
-        if not ORG_NUMBER_REGEX.fullmatch(serial_number):
-            # personal cert
-            return None, False
 
         try:
             ou_field = self.cert.subject.get_attributes_for_oid(
@@ -242,7 +239,7 @@ class QualifiedCertificate:
         info["Gyldig fra"] = self.cert.not_valid_before.isoformat()
         info["Gyldig til"] = self.cert.not_valid_after.isoformat()
         info["Nøkkelbruk"] = self.get_key_usages()
-        info["Type"] = self.type
+        info["Type"] = self.description
         info["Status"] = self.status
         dumped["info"] = info
         dumped["certificate"] = base64.b64encode(
@@ -356,7 +353,7 @@ class QualifiedCertificateSet(object):
         dumped["notices"] = []
         if underenhet:
             dumped["notices"].append("underenhet")
-        if "Ukjent" in main_cert.type:
+        if main_cert.type == CertType.UNKNOWN:
             dumped["notices"].append("ukjent")
 
         if "Buypass" in main_cert.issuer:
