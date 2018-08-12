@@ -5,7 +5,8 @@ node_modules/
 api/__pycache__/*
 api/.env
 www/Caddyfile
-www/api
+www/public/api
 TODO
 api/.cache/
 .mypy_cache/
+www/build
