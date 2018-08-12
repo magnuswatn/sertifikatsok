@@ -11,7 +11,6 @@ from .constants import (
     LDAP_TIMEOUT,
 )
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
-from .crypto import CertRetriever
 
 # black and pylint doesn't agree on everything
 # pylint: disable=C0330
@@ -26,7 +25,7 @@ class CertificateSearch:
         self.org_number_search = False
         self.results = []
         self.errors = []
-        self.cert_retriever = CertRetriever(self.env)
+        self.cert_retriever = request.app["CertRetrievers"][self.env]
         self.crl_retriever = request.app["CrlRetriever"]
 
         query = request.query.get("query")

@@ -1,3 +1,7 @@
+from cryptography.x509 import Name
+from .constants import SUBJECT_FIELDS
+
+
 def escape_ldap_query(query: str) -> str:
     """Escapes an ldap query as described in RFC 4515"""
     return (
@@ -26,3 +30,16 @@ def get_subject_order(field: str) -> int:
         return order[field_name]
     except KeyError:
         return 8
+
+
+def stringify_x509_name(name: Name) -> str:
+    subject = []
+    for field in name:
+        try:
+            subject.append(
+                "{}={}".format(SUBJECT_FIELDS[field.oid.dotted_string], field.value)
+            )
+        except KeyError:
+            # If we don't recognize the field, we just print the dotted string
+            subject.append("{}={}".format(field.oid.dotted_string, field.value))
+    return ", ".join(list(subject))

@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.exceptions import InvalidSignature
 
 
-from .utils import get_subject_order
+from .utils import get_subject_order, stringify_x509_name
 from .constants import (
     KNOWN_CERT_TYPES,
     ORG_NUMBER_REGEX,
@@ -22,13 +22,14 @@ from .constants import (
     KEY_USAGES,
 )
 
+
 class QualifiedCertificate:
     """Represents a Norwegian Qualified Certificate"""
 
     def __init__(self, cert, dn, ldap_params):
         self.cert = x509.load_der_x509_certificate(cert, default_backend())
 
-        self.issuer = self._print_issuer()
+        self.issuer = stringify_x509_name(self.cert.issuer)
         self.type = self._get_type()
         self.dn = dn
         self.ldap_params = ldap_params
@@ -162,21 +163,6 @@ class QualifiedCertificate:
         # If not full (e.g. used for pretty printing), we order the fields in an uniform order
         if not full:
             subject.sort(key=get_subject_order)
-        return ", ".join(list(subject))
-
-    def _print_issuer(self) -> str:
-        """
-        Returns the issuer of the cert as a string.
-        """
-        subject = []
-        for field in self.cert.issuer:
-            try:
-                subject.append(
-                    "{}={}".format(SUBJECT_FIELDS[field.oid.dotted_string], field.value)
-                )
-            except KeyError:
-                # If we don't recognize the field, we just print the dotted string
-                subject.append("{}={}".format(field.oid.dotted_string, field.value))
         return ", ".join(list(subject))
 
     def get_orgnumber(self) -> Tuple[Optional[str], bool]:

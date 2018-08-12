@@ -1,3 +1,4 @@
+import os
 import asyncio
 import logging
 import urllib.parse
@@ -12,6 +13,7 @@ from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.exceptions import InvalidSignature
 
 from .errors import CouldNotGetValidCRLError
+from .utils import stringify_x509_name
 
 logger = logging.getLogger(__name__)
 
@@ -134,30 +136,37 @@ class CrlRetriever:
 
 class CertRetriever:
     def __init__(self, env: str) -> None:
-        self.env = env
         self.certs: Dict[str, x509.Certificate] = {}
+        self._load_all_certs(env)
 
     def retrieve(self, name: str) -> x509.Certificate:
         """
-        Retrieves the CA certificates with the specified nam
-
-        The retrieved certs are cached on the object.
+        Retrieves the CA certificate with the specified name
         """
         try:
             return self.certs[name]
         except KeyError:
-            cert = self._get_cert_from_disk(name)
-            if cert:
-                self.certs[name] = cert
-            return cert
-
-    def _get_cert_from_disk(self, name) -> x509.Certificate:
-        """Retrieves the certificate from file, if we have it"""
-        filename = f"./certs/{self.env}/{urllib.parse.quote_plus(name)}.pem"
-        try:
-            with open(filename, "rb") as open_file:
-                cert_bytes = open_file.read()
-        except FileNotFoundError:
-            logger.warning("Could not find cert %s on disk", name)
             return None
-        return x509.load_pem_x509_certificate(cert_bytes, default_backend())
+
+    def _load_certificate(self, filename: str):
+        with open(filename, "rb") as open_file:
+            cert_bytes = open_file.read()
+        cert = x509.load_pem_x509_certificate(cert_bytes, default_backend())
+
+        cert_name = stringify_x509_name(cert.subject)
+        self.certs[cert_name] = cert
+        logger.debug("Loaded trusted certificate %s from %s", cert_name, filename)
+
+    def _load_all_certs(self, env: str):
+        count = 0
+        for file in os.scandir(f"certs/{env}"):
+            if file.is_file():
+                try:
+                    self._load_certificate(file.path)
+                except (IOError, ValueError):
+                    logger.exception(
+                        "Could not load %s as a trusted certificate", file.path
+                    )
+                finally:
+                    count += 1
+        logger.info("Loaded %d trusted certificates from file for env %s", count, env)
