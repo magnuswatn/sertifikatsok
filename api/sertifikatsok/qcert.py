@@ -48,13 +48,16 @@ class QualifiedCertificate:
             cert.status = "Utgått"
         else:
             crl = await crl_retriever.retrieve(cert._get_http_cdp(), issuer)
-            revoked_cert = crl.get_revoked_certificate_by_serial_number(
-                cert.cert.serial_number
-            )
-            if revoked_cert:
-                cert.status = f"Revokert ({revoked_cert.revocation_date})"
+            if not crl:
+                cert.status = "Ukjent"
             else:
-                cert.status = "OK"
+                revoked_cert = crl.get_revoked_certificate_by_serial_number(
+                    cert.cert.serial_number
+                )
+                if revoked_cert:
+                    cert.status = f"Revokert ({revoked_cert.revocation_date})"
+                else:
+                    cert.status = "OK"
         return cert
 
     def _check_date(self):

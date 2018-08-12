@@ -160,6 +160,8 @@ class CertificateSearch:
 
     def get_result(self):
 
+        self.errors.extend(self.crl_retriever.errors)
+
         cert_sets = QualifiedCertificateSet.create_sets_from_certs(self.results)
 
         result = {}

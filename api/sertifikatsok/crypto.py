@@ -21,6 +21,7 @@ class CrlRetriever:
 
     def __init__(self) -> None:
         self.crls: Dict[str, x509.CertificateRevocationList] = {}
+        self.errors = []
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
@@ -36,7 +37,15 @@ class CrlRetriever:
             try:
                 crl = self._get_from_file(url, issuer)
             except CouldNotGetValidCRLError:
-                crl = await self._download(url, issuer)
+                try:
+                    crl = await self._download(url, issuer)
+                except CouldNotGetValidCRLError:
+                    logger.exception("Could not download CRL %s", url)
+                    self.errors.append(
+                        f"Kunne ikke hente ned CRL fra {url}. "
+                        f"Revokeringsstatus er derfor ukjent for noen sertifikater."
+                    )
+                    crl = None
 
             self.crls[url] = crl
             return crl
