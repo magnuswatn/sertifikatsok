@@ -2,6 +2,7 @@ import os
 import asyncio
 import logging
 import json
+import argparse
 import uvloop
 from aiohttp import web
 from .search import CertificateSearch
@@ -100,20 +101,30 @@ async def api_endpoint(request):
 
 def run():
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    try:
-        log_level = getattr(logging, os.environ["SERTIFIKATSOK_LOGLEVEL"])
-    except KeyError:
-        log_level = logging.INFO
 
-    # TODO: port and address should be adjustable from the "outside"
+    parser = argparse.ArgumentParser(description="Sertifikatsok API")
+    parser.add_argument("--host")
+    parser.add_argument("--path")
+    parser.add_argument("--port")
+    parser.add_argument("--log-level")
+    parser.add_argument("--dev", action="store_true")
+
+    args = parser.parse_args()
+
+    if args.log_level:
+        log_level = getattr(logging, args.log_level)
+    elif args.dev:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
     logging.basicConfig(level=log_level)
 
     app = web.Application(middlewares=[error_middleware])
     app.router.add_get("/api", api_endpoint)
 
-    if os.getenv("SERTIFIKATSOK_DEV"):
+    if args.dev:
         from aiohttp_swagger import setup_swagger
 
         setup_swagger(app)
 
-    web.run_app(app, port=7000)
+    web.run_app(app, port=args.port, host=args.host, path=args.path)
