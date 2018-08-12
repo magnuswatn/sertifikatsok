@@ -4,7 +4,6 @@ import logging
 import json
 import uvloop
 from aiohttp import web
-
 from .search import CertificateSearch
 from .errors import ClientError
 
@@ -48,6 +47,36 @@ def validate_query(query):
 
 
 async def api_endpoint(request):
+    """
+    ---
+    description: Search after certificates.
+    parameters:
+        - in: query
+          name: env
+          type: string
+          enum: [test, prod]
+          description: The environment to search in
+        - in: query
+          name: type
+          type: string
+          enum: [person, enterprise]
+          description: The type of certificate
+        - in: query
+          name: query
+          type: string
+          description: The search query
+
+    produces:
+        - application/json
+    responses:
+        "200":
+            description: Search OK.
+        "400":
+            description: Invalid parameters.
+        "500":
+            description: Technical error in the API.
+    """
+
     validate_query(request.query)
 
     certificate_search = CertificateSearch(request.query)
@@ -81,4 +110,10 @@ def run():
 
     app = web.Application(middlewares=[error_middleware])
     app.router.add_get("/api", api_endpoint)
+
+    if os.getenv("SERTIFIKATSOK_DEV"):
+        from aiohttp_swagger import setup_swagger
+
+        setup_swagger(app)
+
     web.run_app(app, port=7000)

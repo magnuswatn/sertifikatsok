@@ -14,6 +14,7 @@ pytest = "*"
 pylint = "*"
 black = "*"
 mypy = "*"
+aiohttp-swagger = "*"
 
 [pipenv]
 allow_prereleases = true
