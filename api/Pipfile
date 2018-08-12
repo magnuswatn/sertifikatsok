@@ -4,15 +4,16 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-quart = "*"
 bonsai = "*"
-gevent = "*"
-gunicorn = "*"
 aiohttp = "*"
 cryptography = ">=2.3"
+uvloop = "*"
 
 [dev-packages]
 pytest = "*"
 pylint = "*"
 black = "*"
 mypy = "*"
+
+[pipenv]
+allow_prereleases = true
