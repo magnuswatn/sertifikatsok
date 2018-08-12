@@ -6,6 +6,7 @@ import uvloop
 from aiohttp import web
 from .search import CertificateSearch
 from .errors import ClientError
+from .crypto import CrlRetriever
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,10 @@ async def error_middleware(request, handler):
             status=500,
             content_type="application/json",
         )
+
+
+async def init_app(app):
+    app["CrlRetriever"] = CrlRetriever()
 
 
 def validate_query(query):
@@ -79,7 +84,7 @@ async def api_endpoint(request):
 
     validate_query(request.query)
 
-    certificate_search = CertificateSearch(request.query)
+    certificate_search = CertificateSearch(request)
 
     await asyncio.gather(*certificate_search.get_tasks())
 
@@ -120,6 +125,7 @@ def run():
 
     app = web.Application(middlewares=[error_middleware])
     app.router.add_get("/api", api_endpoint)
+    app.on_startup.append(init_app)
 
     if args.dev:
         from aiohttp_swagger import setup_swagger

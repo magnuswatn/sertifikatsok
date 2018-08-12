@@ -11,7 +11,7 @@ from .constants import (
     LDAP_TIMEOUT,
 )
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
-from .crypto import CrlRetriever, CertRetriever
+from .crypto import CertRetriever
 
 # black and pylint doesn't agree on everything
 # pylint: disable=C0330
@@ -20,16 +20,16 @@ logger = logging.getLogger(__name__)
 
 
 class CertificateSearch:
-    def __init__(self, params):
-        self.env = params.get("env")
-        self.cert_type = params.get("type")
+    def __init__(self, request):
+        self.env = request.query.get("env")
+        self.cert_type = request.query.get("type")
         self.org_number_search = False
         self.results = []
         self.errors = []
         self.cert_retriever = CertRetriever(self.env)
-        self.crl_retriever = CrlRetriever()
+        self.crl_retriever = request.app["CrlRetriever"]
 
-        query = params.get("query")
+        query = request.query.get("query")
 
         # If the query is an organization number, or an norwegian personal serial number,
         # we search in the serialNumber field, otherwise the commonName field

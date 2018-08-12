@@ -27,7 +27,7 @@ class CrlRetriever:
         self, url: str, issuer: x509.Certificate
     ) -> x509.CertificateRevocationList:
         """
-        Retrieves the CRl from the specified url
+        Retrieves the CRL from the specified url
 
         The retrieved CRLs are cached on the object.
         """
