@@ -38,9 +38,7 @@ class CertificateSearch:
         if self.typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
             self.search_filter = f"(serialNumber={query.replace(' ', '')})"
             self.org_number_search = True
-        elif self.typ == CertType.PERSONAL and PERSONAL_SERIAL_REGEX.fullmatch(
-            query
-        ):
+        elif self.typ == CertType.PERSONAL and PERSONAL_SERIAL_REGEX.fullmatch(query):
             self.search_filter = f"(serialNumber={query})"
         else:
             self.search_filter = f"(cn={escape_ldap_query(query)})"
@@ -184,7 +182,9 @@ class CertificateSearch:
             except KeyError:
                 # Commfides have entries in their LDAP without a cert...
                 continue
-            qualified_certs.append(qualified_cert)
+
+            if qualified_cert.type in (self.typ, CertType.UNKNOWN):
+                qualified_certs.append(qualified_cert)
 
         logger.debug("End: parsing certificates from %s", server)
         return qualified_certs
