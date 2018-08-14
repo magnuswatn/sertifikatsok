@@ -18,6 +18,10 @@ class CertType(Enum):
     ENTERPRISE = 2
     UNKNOWN = 3
 
+class Environemnt(Enum):
+    TEST = 1
+    PROD = 2
+
 SUBJECT_FIELDS = {
     "2.5.4.3": "CN",
     "2.5.4.5": "serialNumber",

@@ -43,18 +43,6 @@ async def init_app(app):
     }
 
 
-def validate_query(query):
-
-    if query.get("env") not in ["prod", "test"]:
-        raise ClientError("Unknown environment")
-
-    if query.get("type") not in ["enterprise", "person"]:
-        raise ClientError("Unknown certificate type")
-
-    if not query.get("query"):
-        raise ClientError("Missing query parameter)")
-
-
 async def api_endpoint(request):
     """
     ---
@@ -68,7 +56,7 @@ async def api_endpoint(request):
         - in: query
           name: type
           type: string
-          enum: [person, enterprise]
+          enum: [personal, enterprise]
           description: The type of certificate
         - in: query
           name: query
@@ -86,9 +74,7 @@ async def api_endpoint(request):
             description: Technical error in the API.
     """
 
-    validate_query(request.query)
-
-    certificate_search = CertificateSearch(request)
+    certificate_search = CertificateSearch.create_from_request(request)
 
     await asyncio.gather(*certificate_search.get_tasks())
 

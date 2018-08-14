@@ -5,12 +5,15 @@ import bonsai
 
 from .utils import escape_ldap_query
 from .constants import (
+    CertType,
+    Environemnt,
     ORG_NUMBER_REGEX,
     PERSONAL_SERIAL_REGEX,
     LDAP_RETRIES,
     LDAP_TIMEOUT,
 )
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
+from .errors import ClientError
 
 # black and pylint doesn't agree on everything
 # pylint: disable=C0330
@@ -19,26 +22,60 @@ logger = logging.getLogger(__name__)
 
 
 class CertificateSearch:
-    def __init__(self, request):
-        self.env = request.query.get("env")
-        self.cert_type = request.query.get("type")
+    def __init__(self, env, typ, query, crl_retriever, cert_retriever):
+        self.env = env
+        self.typ = typ
         self.org_number_search = False
         self.results = []
         self.errors = []
-        self.cert_retriever = request.app["CertRetrievers"][self.env]
-        self.crl_retriever = request.app["CrlRetriever"]
+        self.cert_retriever = cert_retriever
+        self.crl_retriever = crl_retriever
 
-        query = request.query.get("query")
+        query = query
 
         # If the query is an organization number, or an norwegian personal serial number,
         # we search in the serialNumber field, otherwise the commonName field
-        if self.cert_type == "enterprise" and ORG_NUMBER_REGEX.fullmatch(query):
+        if self.typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
             self.search_filter = f"(serialNumber={query.replace(' ', '')})"
             self.org_number_search = True
-        elif self.cert_type == "person" and PERSONAL_SERIAL_REGEX.fullmatch(query):
+        elif self.typ == CertType.PERSONAL and PERSONAL_SERIAL_REGEX.fullmatch(
+            query
+        ):
             self.search_filter = f"(serialNumber={query})"
         else:
             self.search_filter = f"(cn={escape_ldap_query(query)})"
+
+    @classmethod
+    def create_from_request(cls, request):
+
+        org_env = request.query.get("env")
+        if org_env == "prod":
+            env = Environemnt.PROD
+        elif org_env == "test":
+            env = Environemnt.TEST
+        else:
+            raise ClientError("Unknown environment")
+
+        raw_type = request.query.get("type")
+        if raw_type == "enterprise":
+            typ = CertType.ENTERPRISE
+        # Accept both for backward compatibility
+        elif raw_type in ["personal", "person"]:
+            typ = CertType.PERSONAL
+        else:
+            raise ClientError("Unknown certificate type")
+
+        query = request.query.get("query")
+        if not query:
+            raise ClientError("Missing query parameter")
+
+        return cls(
+            env,
+            typ,
+            query,
+            request.app["CrlRetriever"],
+            request.app["CertRetrievers"][org_env],
+        )
 
     async def query_buypass(self):
         logger.debug("Starting: Buypass query")
@@ -64,7 +101,7 @@ class CertificateSearch:
         else:
             server = "ldap://ldap.commfides.com"
 
-        if self.cert_type == "person":
+        if self.typ == CertType.PERSONAL:
             # We only search for Person-High
             # because Person-Normal certs just doesn't exist
             base = "ou=Person-High,dc=commfides,dc=com"
