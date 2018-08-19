@@ -11,12 +11,12 @@ from cryptography.exceptions import InvalidSignature
 
 from .utils import get_subject_order, stringify_x509_name
 from .constants import (
-    CertType,
     KNOWN_CERT_TYPES,
     UNDERENHET_REGEX,
     SUBJECT_FIELDS,
     KEY_USAGES,
 )
+from .enums import CertType
 
 
 class QualifiedCertificate:

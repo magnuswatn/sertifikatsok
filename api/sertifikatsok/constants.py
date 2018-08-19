@@ -1,5 +1,5 @@
 import re
-from enum import Enum
+from .enums import CertType
 
 # turn off black, so that we can have loooong lines
 # fmt: off
@@ -11,16 +11,6 @@ LDAP_RETRIES = 5
 ORG_NUMBER_REGEX = re.compile(r"(\d\s?){9}")
 UNDERENHET_REGEX = re.compile(r"(?<!\d)\d{9}(?!\d)")
 PERSONAL_SERIAL_REGEX = re.compile(r"9578-(4505|4050|4510)-[A-z0-9]+")
-
-
-class CertType(Enum):
-    PERSONAL = 1
-    ENTERPRISE = 2
-    UNKNOWN = 3
-
-class Environemnt(Enum):
-    TEST = 1
-    PROD = 2
 
 SUBJECT_FIELDS = {
     "2.5.4.3": "CN",

@@ -6,7 +6,7 @@ from operator import attrgetter
 from functools import singledispatch
 
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
-from .constants import CertType
+from .enums import CertType
 from .search import CertificateSearch
 
 from cryptography.hazmat.primitives import hashes

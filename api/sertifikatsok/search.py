@@ -4,13 +4,12 @@ import bonsai
 
 from .utils import escape_ldap_query
 from .constants import (
-    CertType,
-    Environemnt,
     ORG_NUMBER_REGEX,
     PERSONAL_SERIAL_REGEX,
     LDAP_RETRIES,
     LDAP_TIMEOUT,
 )
+from .enums import CertType, Environemnt
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
 from .errors import ClientError
 
