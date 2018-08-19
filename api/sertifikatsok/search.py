@@ -76,7 +76,7 @@ class CertificateSearch:
 
     async def query_buypass(self):
         logger.debug("Starting: Buypass query")
-        if self.env == "test":
+        if self.env == Environemnt.TEST:
             server = "ldap://ldap.test4.buypass.no"
             base = "dc=Buypass,dc=no,CN=Buypass Class 3 Test4"
         else:
@@ -93,7 +93,7 @@ class CertificateSearch:
 
     async def query_commfides(self):
         logger.debug("Starting: Commfides query")
-        if self.env == "test":
+        if self.env == Environemnt.TEST:
             server = "ldap://ldap.test.commfides.com"
         else:
             server = "ldap://ldap.commfides.com"
