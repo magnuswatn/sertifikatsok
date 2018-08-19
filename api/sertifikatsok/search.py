@@ -1,5 +1,4 @@
 import logging
-from operator import itemgetter
 
 import bonsai
 
@@ -194,20 +193,6 @@ class CertificateSearch:
         tasks = [self.query_buypass(), self.query_commfides()]
         return tasks
 
-    def get_result(self):
-
+    def finish(self):
         self.errors.extend(self.crl_retriever.errors)
-
-        cert_sets = QualifiedCertificateSet.create_sets_from_certs(self.results)
-
-        result = {}
-
-        result["subject"] = self.search_filter
-        result["errors"] = self.errors
-        result["certificate_sets"] = []
-        for cert_set in cert_sets:
-            result["certificate_sets"].append(cert_set.dump())
-
-        result["certificate_sets"].sort(key=itemgetter("valid_from"), reverse=True)
-
-        return result
+        self.cert_sets = QualifiedCertificateSet.create_sets_from_certs(self.results)

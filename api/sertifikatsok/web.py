@@ -7,6 +7,7 @@ from aiohttp import web
 from .search import CertificateSearch
 from .errors import ClientError
 from .crypto import CrlRetriever, CertRetriever
+from .serialization import sertifikatsok_serialization
 
 logger = logging.getLogger(__name__)
 
@@ -78,10 +79,14 @@ async def api_endpoint(request):
 
     await asyncio.gather(*certificate_search.get_tasks())
 
+    certificate_search.finish()
+
     # web.json_response() doesn't set ensure_ascii = False
     # so the æøås get messed up
     response = web.Response(
-        text=json.dumps(certificate_search.get_result(), ensure_ascii=False),
+        text=json.dumps(
+            certificate_search, ensure_ascii=False, default=sertifikatsok_serialization
+        ),
         status=200,
         content_type="application/json",
     )
