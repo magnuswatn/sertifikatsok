@@ -2,12 +2,12 @@
 import base64
 import codecs
 from datetime import datetime
-from typing import Dict, Union
+from typing import Dict, Union, Tuple
 from operator import attrgetter
 from functools import singledispatch
 
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
-from .enums import CertType, CertificateStatus
+from .enums import CertType, CertificateStatus, CertificateRoles
 from .search import CertificateSearch
 
 from cryptography.hazmat.primitives import hashes
@@ -24,7 +24,7 @@ def sertifikatsok_serialization(val):
 def qualified_certificate(val):
 
     dumped: Dict[str, Union[str, Dict[str, str]]] = {}
-    name, usage = val.get_display_name()
+    name, usage = _get_norwegian_display_name(val)
     dumped["name"] = name
     info = {}
     info["Bruksområde(r)"] = usage
@@ -112,3 +112,18 @@ def _get_norwegian_cert_status(
     elif cert_status == CertificateStatus.INVALID:
         return "Ugyldig"
     return "Ukjent"
+
+
+def _get_norwegian_display_name(cert: QualifiedCertificate) -> Tuple[str, str]:
+    """
+    Returns the appropriate Norwegian name and application for it
+    """
+    if CertificateRoles.SIGN in cert.roles:
+        return "Signeringssertifikat", "Signering"
+    elif CertificateRoles.CRYPT in cert.roles and CertificateRoles.AUTH in cert.roles:
+        return "Krypteringssertifikat", "Kryptering og autentisering"
+    elif CertificateRoles.CRYPT in cert.roles:
+        return "Krypteringssertifikat", "Kryptering"
+    elif CertificateRoles.AUTH in cert.roles:
+        return "Autentiseringssertifikat", "Autentisering"
+    return "Ukjent", "Ukjent"

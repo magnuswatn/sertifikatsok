@@ -188,24 +188,6 @@ class QualifiedCertificate:
 
         return serial_number, False
 
-    def get_display_name(self) -> Tuple[str, str]:
-        """
-        Examines the key usage bits in the certificate
-        and returns the appropriate Norwegian name and application for it
-        """
-        key_usage = self.cert.extensions.get_extension_for_oid(
-            ExtensionOID.KEY_USAGE
-        ).value
-        if key_usage.content_commitment:
-            return "Signeringssertifikat", "Signering"
-        elif key_usage.data_encipherment and key_usage.digital_signature:
-            return "Krypteringssertifikat", "Kryptering og autentisering"
-        elif key_usage.data_encipherment:
-            return "Krypteringssertifikat", "Kryptering"
-        elif key_usage.digital_signature:
-            return "Autentiseringssertifikat", "Autentisering"
-        return "Ukjent", "Ukjent"
-
     def get_key_usages(self) -> str:
         """Returns a string with the key usages from the cert"""
         key_usages = []
