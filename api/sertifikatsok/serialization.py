@@ -1,12 +1,13 @@
 """Serialization for the different sertifikatsok classes"""
 import base64
 import codecs
+from datetime import datetime
 from typing import Dict, Union
 from operator import attrgetter
 from functools import singledispatch
 
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
-from .enums import CertType
+from .enums import CertType, CertificateStatus
 from .search import CertificateSearch
 
 from cryptography.hazmat.primitives import hashes
@@ -40,7 +41,9 @@ def qualified_certificate(val):
     info["Gyldig til"] = val.cert.not_valid_after.isoformat()
     info["Nøkkelbruk"] = val.get_key_usages()
     info["Type"] = val.description
-    info["Status"] = val.status
+
+    info["Status"] = _get_norwegian_cert_status(val.status, val.revocation_date)
+
     dumped["info"] = info
     dumped["certificate"] = base64.b64encode(
         val.cert.public_bytes(Encoding.DER)
@@ -66,7 +69,7 @@ def qualified_certificate_set(val):
     elif "Commfides" in val.issuer:
         dumped["issuer"] = "Commfides"
 
-    dumped["status"] = val.status
+    dumped["status"] = _get_norwegian_cert_status(val.status, None)
 
     dumped["org_number"] = val.org_number
     dumped["subject"] = val.subject
@@ -93,3 +96,19 @@ def certificate_search(val):
     result["certificate_sets"].sort(key=attrgetter("valid_from"), reverse=True)
 
     return result
+
+
+def _get_norwegian_cert_status(
+    cert_status: CertificateStatus, revocation_date: datetime
+):
+    if cert_status == CertificateStatus.OK:
+        return "OK"
+    elif cert_status == CertificateStatus.EXPIRED:
+        return "Utgått"
+    elif cert_status == CertificateStatus.REVOKED:
+        if revocation_date:
+            return f"Revokert ({revocation_date})"
+        return "Revokert"
+    elif cert_status == CertificateStatus.INVALID:
+        return "Ugyldig"
+    return "Ukjent"

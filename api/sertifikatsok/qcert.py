@@ -16,7 +16,7 @@ from .constants import (
     SUBJECT_FIELDS,
     KEY_USAGES,
 )
-from .enums import CertType
+from .enums import CertType, CertificateStatus
 
 
 class QualifiedCertificate:
@@ -29,7 +29,8 @@ class QualifiedCertificate:
         self.type, self.description = self._get_type()
         self.dn = dn
         self.ldap_params = ldap_params
-        self.status = "Ukjent"
+        self.status = CertificateStatus.UNKNOWN
+        self.revocation_date = None
 
     @classmethod
     async def create(cls, raw_cert, dn, ldap_params, crl_retriever, cert_retriever):
@@ -38,23 +39,24 @@ class QualifiedCertificate:
 
         issuer = cert_retriever.retrieve(cert.issuer)
         if not issuer:
-            cert.status = "Ukjent"
+            cert.status = CertificateStatus.UNKNOWN
         elif not cert._validate_against_issuer(issuer):
-            cert.status = "Ugyldig"
+            cert.status = CertificateStatus.INVALID
         elif not cert._check_date():
-            cert.status = "Utgått"
+            cert.status = CertificateStatus.EXPIRED
         else:
             crl = await crl_retriever.retrieve(cert._get_http_cdp(), issuer)
             if not crl:
-                cert.status = "Ukjent"
+                cert.status = CertificateStatus.UNKNOWN
             else:
                 revoked_cert = crl.get_revoked_certificate_by_serial_number(
                     cert.cert.serial_number
                 )
                 if revoked_cert:
-                    cert.status = f"Revokert ({revoked_cert.revocation_date})"
+                    cert.status = CertificateStatus.REVOKED
+                    cert.revocation_date = revoked_cert.revocation_date
                 else:
-                    cert.status = "OK"
+                    cert.status = CertificateStatus.OK
         return cert
 
     def _check_date(self):
@@ -228,12 +230,13 @@ class QualifiedCertificateSet(object):
         # Therefore we try to find a non-encryption cert to use as the "main cert" of the set
         self.main_cert = self._get_non_encryption_cert()
 
+        self.status = self.main_cert.status
+        self.revocation_date = None
         # Just to be sure we don't label a set with a revoked cert in it as OK
         for cert in self.certs:
-            if "Revokert" in cert.status:
-                self.status = "Revokert"
-            else:
-                self.status = self.main_cert.status
+            if cert.status == CertificateStatus.REVOKED:
+                self.status = cert.status
+                self.revocation_date = cert.revocation_date
 
         self.org_number, self.underenhet = self.main_cert.get_orgnumber()
 
