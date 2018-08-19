@@ -268,7 +268,7 @@ class QualifiedCertificateSet(object):
             cert = certs[counter]
 
             if not cert_set:
-                cert_set_roles = cert.roles
+                cert_set_roles = cert.roles.copy()
             elif (
                 # Certificates in a set should have the same subject,
                 # so if they differ they are not from the same set
@@ -289,7 +289,7 @@ class QualifiedCertificateSet(object):
             ):
                 cert_sets.append(cls(cert_set))
                 cert_set = []
-                cert_set_roles = cert.roles
+                cert_set_roles = cert.roles.copy()
             else:
                 cert_set_roles += cert.roles
 
