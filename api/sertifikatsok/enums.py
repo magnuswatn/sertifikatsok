@@ -18,3 +18,9 @@ class CertificateStatus(Enum):
     REVOKED = 3
     INVALID = 4
     UNKNOWN = 5
+
+
+class CertificateRoles(Enum):
+    AUTH = 1
+    SIGN = 2
+    CRYPT = 3

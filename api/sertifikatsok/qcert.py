@@ -16,7 +16,7 @@ from .constants import (
     SUBJECT_FIELDS,
     KEY_USAGES,
 )
-from .enums import CertType, CertificateStatus
+from .enums import CertType, CertificateStatus, CertificateRoles
 
 
 class QualifiedCertificate:
@@ -27,6 +27,7 @@ class QualifiedCertificate:
 
         self.issuer = stringify_x509_name(self.cert.issuer)
         self.type, self.description = self._get_type()
+        self.roles = self._get_roles()
         self.dn = dn
         self.ldap_params = ldap_params
         self.status = CertificateStatus.UNKNOWN
@@ -110,7 +111,7 @@ class QualifiedCertificate:
                 return cdp.full_name[0].value
         return None
 
-    def get_roles(self) -> List[str]:
+    def _get_roles(self) -> List[CertificateRoles]:
         """
         A set of Norwegian qualified certificates should have certificates intended for
         *) Encryption
@@ -126,11 +127,11 @@ class QualifiedCertificate:
             ExtensionOID.KEY_USAGE
         ).value
         if key_usage.digital_signature:
-            cert_roles.append("auth")
+            cert_roles.append(CertificateRoles.AUTH)
         if key_usage.content_commitment:
-            cert_roles.append("sign")
+            cert_roles.append(CertificateRoles.SIGN)
         if key_usage.data_encipherment:
-            cert_roles.append("crypt")
+            cert_roles.append(CertificateRoles.CRYPT)
         return cert_roles
 
     def print_subject(self, full: bool = False) -> str:
@@ -259,16 +260,15 @@ class QualifiedCertificateSet(object):
 
         cert_sets: List[QualifiedCertificateSet] = []
         cert_set: List[QualifiedCertificate] = []
-        cert_set_roles: List[str] = []
+        cert_set_roles: List[CertificateRoles] = []
 
         counter = 0
         while counter < len(certs):
 
             cert = certs[counter]
-            cert_roles = cert.get_roles()
 
             if not cert_set:
-                cert_set_roles = cert_roles
+                cert_set_roles = cert.roles
             elif (
                 # Certificates in a set should have the same subject,
                 # so if they differ they are not from the same set
@@ -285,13 +285,13 @@ class QualifiedCertificateSet(object):
                 )
                 or
                 # A set can't contain several certs of the same type
-                [i for i in cert_roles if i in cert_set_roles]
+                [i for i in cert.roles if i in cert_set_roles]
             ):
                 cert_sets.append(cls(cert_set))
                 cert_set = []
-                cert_set_roles = cert_roles
+                cert_set_roles = cert.roles
             else:
-                cert_set_roles += cert_roles
+                cert_set_roles += cert.roles
 
             cert_set.append(cert)
             counter += 1
