@@ -64,3 +64,12 @@ export const LdapButton = (props) => (
         {...props}
     />
 )
+
+export const SertifikatsokSearchbutton = (props) => (
+    <button className="btn waves-effect waves-light valign-wrapper" onClick={props.onClick}>{props.text}</button>
+)
+
+SertifikatsokSearchbutton.propTypes = {
+    text: PropTypes.string,
+    onClick: PropTypes.func,
+}

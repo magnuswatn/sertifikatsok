@@ -5,6 +5,8 @@ import React from 'react';
 /* global Blob */
 /* global ArrayBuffer */
 /* global Uint8Array */
+/* global fetch */
+/* global URL */
 
 export const CALogo = (issuer) => {
     let image = '';
@@ -125,3 +127,26 @@ export const selectText = (element) => {
 export const openBreg = (orgnr) => {
     window.open(`https://w2.brreg.no/enhet/sok/detalj.jsp?orgnr=${orgnr}`);
 }
+
+export const getCompanies = async (startOfName) => {
+    const url = new URL('https://data.brreg.no/enhetsregisteret/enhet.json');
+
+    const filter = {
+        $filter: `startswith(navn,'${startOfName}')`,
+    };
+
+    Object.keys(filter).forEach(key => url.searchParams.append(key, filter[key]))
+
+    const response = await fetch(url)
+    const result = await response.json();
+
+    let companies = {};
+
+    if (result.data) {
+        for (let i = 0, len = result.data.length; i < len; i++) {
+            companies[`${result.data[i].navn} ` +
+                `(${result.data[i].organisasjonsnummer})`] = null;
+        }
+    }
+    return companies;
+};
