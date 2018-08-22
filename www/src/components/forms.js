@@ -17,6 +17,7 @@ export class SearchForm extends Component {
     componentDidUpdate() {
         this.self.updateData(this.props.data);
         this.self.open();
+        this.ref.current.focus();
     }
 
     componentWillUnmount() {
