@@ -17,33 +17,39 @@ export class SearchPage extends React.Component {
     }
 
     autocomplete(value) {
-        // TODO: only on enterprises
-        if (this.searchTimeout) {
-            window.clearTimeout(this.searchTimeout);
-        }
-
-        this.searchTimeout = window.setTimeout(async () => {
-            const searchValue = value.split('\'').join('');
-            if (searchValue.length > 3) {
-                const companies = await getCompanies(searchValue);
-                this.setState({
-                    autocompleteData: companies,
-                });
+        if (this.state.opentab === 0) {
+            if (this.searchTimeout) {
+                window.clearTimeout(this.searchTimeout);
             }
-        }, 500);
+
+            this.searchTimeout = window.setTimeout(async () => {
+                const searchValue = value.split('\'').join('');
+                if (searchValue.length > 3) {
+                    const companies = await getCompanies(searchValue);
+                    this.setState({
+                        autocompleteData: companies,
+                    });
+                }
+            }, 500);
+        }
     }
 
     handletabChange(tabId) {
         let text;
+        let autocompleteData;
+
         if (tabId === 0) {
             text = "Organisasjonsnummer eller -navn"
+            autocompleteData = this.state.autocompleteData;
         } else if (tabId === 1) {
             text = "Fullt navn"
+            autocompleteData = {}
         }
 
         this.setState({
             opentab: tabId,
             text: text,
+            autocompleteData: autocompleteData,
         });
     }
 
