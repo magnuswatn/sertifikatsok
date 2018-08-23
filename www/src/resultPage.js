@@ -111,7 +111,7 @@ const callApi = async () => {
     let response;
     let result;
     try {
-        response = await fetch(`/api?${params}`)
+        response = await fetch(`/api${params}`)
         result = await response.json();
     } catch (error) {
         return {
