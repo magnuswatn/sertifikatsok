@@ -2,8 +2,6 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import M from 'materialize-css';
 
-// TODO: make this a controlled component instead?
-
 export class SearchForm extends Component {
     constructor(props) {
         super(props);
@@ -11,7 +9,10 @@ export class SearchForm extends Component {
     }
 
     componentDidMount() {
-        this.self = M.Autocomplete.init(this.ref.current, { 'limit': 20 })
+        this.self = M.Autocomplete.init(this.ref.current, {
+            'limit': 20,
+            'onAutocomplete': () => this.handleAutocomplete(),
+        })
     }
 
     componentDidUpdate() {
@@ -25,16 +26,35 @@ export class SearchForm extends Component {
         this.self = null;
     }
 
+    handleAutocomplete() {
+        this.props.onAutocomplete(this.ref.current.value)
+        this.self.close();
+    }
+
+    handleKeyPress(e) {
+        if (e.key === 'Enter') {
+            this.props.onEnter();
+        }
+    }
+
     render() {
         return (
             <div className="row">
                 <div className="col s12">
                     <div className="row">
                         <div className="input-field col s12">
-                            <input ref={this.ref} type="text" autoFocus onChange={() => this.props.onChange(this.ref.current.value)} />
+                            <input
+                                ref={this.ref}
+                                type="text"
+                                autoFocus
+                                onChange={() => this.props.onChange(this.ref.current.value)}
+                                value={this.props.inputText}
+                                onKeyDown={(e) => this.handleKeyPress(e)}
+                            />
                             <label htmlFor="autocomplete-input">
                                 <i className="material-icons">search</i>
-                                {this.props.text}</label>
+                                {this.props.labelText}
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -44,7 +64,10 @@ export class SearchForm extends Component {
 }
 
 SearchForm.propTypes = {
-    text: PropTypes.string,
+    labelText: PropTypes.string,
+    inputText: PropTypes.string,
+    onAutocomplete: PropTypes.func,
     onChange: PropTypes.func,
+    onEnter: PropTypes.func,
     data: PropTypes.object,
 }

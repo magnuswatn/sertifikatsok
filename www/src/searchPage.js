@@ -11,27 +11,60 @@ export class SearchPage extends React.Component {
         this.state = {
             autocompleteData: {},
             opentab: 0,
-            text: "Organisasjonsnummer eller -navn",
+            searchFieldText: "Organisasjonsnummer eller -navn",
+            inputText: "",
+            searchText: "",
         };
         this.searchTimeout;
     }
 
-    autocomplete(value) {
+    async doAutocomplete() {
+        const searchValue = this.state.inputText.split('\'').join('');
+        if (searchValue.length > 3) {
+            const companies = await getCompanies(searchValue);
+            this.setState({
+                autocompleteData: companies,
+            });
+        }
+    }
+
+    doSearch(env) {
+        const queryParams = {
+            query: this.state.searchText,
+            env: env,
+            type: (this.state.opentab === 0) ? "enterprise" : "person"
+        };
+
+        const query = Object.keys(queryParams)
+            .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(queryParams[k]))
+            .join('&');
+
+        window.location.search = query;
+    }
+
+    handleTextInput(text) {
         if (this.state.opentab === 0) {
             if (this.searchTimeout) {
                 window.clearTimeout(this.searchTimeout);
             }
 
-            this.searchTimeout = window.setTimeout(async () => {
-                const searchValue = value.split('\'').join('');
-                if (searchValue.length > 3) {
-                    const companies = await getCompanies(searchValue);
-                    this.setState({
-                        autocompleteData: companies,
-                    });
-                }
-            }, 500);
+            this.searchTimeout = window.setTimeout(() => this.doAutocomplete(), 500);
+
         }
+        this.setState({
+            inputText: text,
+            searchText: text,
+        });
+    }
+
+    handleAutoComplete(value) {
+        const re = /\((\d{9})\)/;
+        const reResult = re.exec(value);
+
+        this.setState({
+            inputText: value,
+            searchText: reResult[1],
+        });
     }
 
     handletabChange(tabId) {
@@ -48,11 +81,10 @@ export class SearchPage extends React.Component {
 
         this.setState({
             opentab: tabId,
-            text: text,
+            searchFieldText: text,
             autocompleteData: autocompleteData,
         });
     }
-
 
     render() {
         return (
@@ -64,16 +96,22 @@ export class SearchPage extends React.Component {
                 </div>
                 <div className="card-content center">
                     <SearchForm
-                        text={this.state.text}
+                        labelText={this.state.searchFieldText}
+                        inputText={this.state.inputText}
                         data={this.state.autocompleteData}
-                        onChange={(value) => this.autocomplete(value)}
+                        onChange={(value) => this.handleTextInput(value)}
+                        onEnter={() => this.doSearch("prod")}
+                        onKeyDown={(e) => this.handleKeyPress(e)}
+                        onAutocomplete={(value) => this.handleAutoComplete(value)}
                     />
                     <SertifikatsokSearchbutton
                         text="Søk"
+                        onClick={() => this.doSearch("prod")}
                     />
                     &nbsp;
                     <SertifikatsokSearchbutton
                         text="Søk i test"
+                        onClick={() => this.doSearch("test")}
                     />
                 </div>
             </div>
