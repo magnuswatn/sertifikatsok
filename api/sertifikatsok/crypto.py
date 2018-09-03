@@ -43,10 +43,7 @@ class CrlRetriever:
                     crl = await self._download(url, issuer)
                 except CouldNotGetValidCRLError:
                     logger.exception("Could not download CRL %s", url)
-                    self.errors.append(
-                        f"Kunne ikke hente ned CRL fra {url}. "
-                        f"Revokeringsstatus er derfor ukjent for noen sertifikater."
-                    )
+                    self.errors.append("ERR-003")
                     crl = None
 
             self.crls[url] = crl

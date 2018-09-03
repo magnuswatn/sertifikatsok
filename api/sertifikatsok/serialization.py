@@ -88,7 +88,13 @@ def qualified_certificate_set(val):
 def certificate_search(val):
     result = {}
     result["subject"] = val.search_filter
-    result["errors"] = val.errors
+
+    errors = set()
+    for error in val.errors:
+        errors.add(_get_norwegian_error_message(error))
+
+    result["errors"] = list(errors)
+
     result["certificate_sets"] = []
     for cert_set in val.cert_sets:
         result["certificate_sets"].append(cert_set)
@@ -127,3 +133,21 @@ def _get_norwegian_display_name(cert: QualifiedCertificate) -> Tuple[str, str]:
     elif CertificateRoles.AUTH in cert.roles:
         return "Autentiseringssertifikat", "Autentisering"
     return "Ukjent", "Ukjent"
+
+
+def _get_norwegian_error_message(error_code: str) -> str:
+    if error_code == "ERR-001":
+        return "Kunne ikke hente sertfikater fra Buypass"
+    if error_code == "ERR-002":
+        return "Kunne ikke hente sertfikater fra Commfides"
+    if error_code == "ERR-003":
+        return (
+            "Kunne ikke hente ned alle CRL-er, "
+            "revokeringsstatus er derfor ukjent for noen sertifikater"
+        )
+    if error_code == "ERR-004":
+        return (
+            "Det er mulig noen gamle sertifikater ikke vises, "
+            "da søket returnerte for mange resultater"
+        )
+    return "Det har skjedd en ukjent feil"

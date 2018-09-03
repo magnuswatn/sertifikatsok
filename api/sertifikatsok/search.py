@@ -86,7 +86,7 @@ class CertificateSearch:
             self.results.extend(await self.do_ldap_search(server, base, retry=True))
         except bonsai.LDAPError:
             logger.exception("Could not retrieve certificates from Buypass")
-            self.errors.append("Kunne ikke hente sertfikater fra Buypass")
+            self.errors.append("ERR-001")
         else:
             logger.debug("Ending: Buypass query")
 
@@ -108,7 +108,7 @@ class CertificateSearch:
             self.results.extend(await self.do_ldap_search(server, base))
         except bonsai.LDAPError:
             logger.exception("Could not retrieve certificates from Commfides")
-            self.errors.append("Kunne ikke hente sertfikater fra Commfides")
+            self.errors.append("ERR-002")
         else:
             logger.debug("Ending: Commfides query")
 
@@ -156,10 +156,7 @@ class CertificateSearch:
                     self.search_filter,
                     server,
                 )
-                self.errors.append(
-                    "Det er mulig noen gamle sertifikater ikke vises, "
-                    "da søket returnerte for mange resultater"
-                )
+                self.errors.append("ERR-004")
 
         return await self._parse_ldap_results(all_results, server, base)
 
@@ -188,7 +185,7 @@ class CertificateSearch:
         return qualified_certs
 
     def get_tasks(self):
-        """Returnes the tasks that need solving for this search"""
+        """Returns the tasks that need solving for this search"""
         tasks = [self.query_buypass(), self.query_commfides()]
         return tasks
 
