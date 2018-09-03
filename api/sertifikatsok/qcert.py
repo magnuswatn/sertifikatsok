@@ -10,12 +10,7 @@ from cryptography.exceptions import InvalidSignature
 
 
 from .utils import get_subject_order, stringify_x509_name
-from .constants import (
-    KNOWN_CERT_TYPES,
-    UNDERENHET_REGEX,
-    SUBJECT_FIELDS,
-    KEY_USAGES,
-)
+from .constants import KNOWN_CERT_TYPES, UNDERENHET_REGEX, SUBJECT_FIELDS, KEY_USAGES
 from .enums import CertType, CertificateStatus, CertificateRoles
 
 
@@ -98,7 +93,7 @@ class QualifiedCertificate:
                 pass
 
         # This will only display the last OID, out of potentially several, but good enough
-        return (CertType.UNKNOWN, "Ukjent (oid: {})".format(oid))
+        return (CertType.UNKNOWN, oid)
 
     def _get_http_cdp(self) -> Optional[str]:
         """Returns the first CRL Distribution Point from the cert with http scheme, if any"""

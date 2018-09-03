@@ -40,7 +40,12 @@ def qualified_certificate(val):
     info["Gyldig fra"] = val.cert.not_valid_before.isoformat()
     info["Gyldig til"] = val.cert.not_valid_after.isoformat()
     info["Nøkkelbruk"] = val.get_key_usages()
-    info["Type"] = val.description
+
+    # If the type is unknown only the OID is present in the description
+    if val.type == CertType.UNKNOWN:
+        info["Type"] = f"Ukjent (oid: {val.description})"
+    else:
+        info["Type"] = val.description
 
     info["Status"] = _get_norwegian_cert_status(val.status, val.revocation_date)
 
