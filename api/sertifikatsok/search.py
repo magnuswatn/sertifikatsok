@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import bonsai
@@ -84,7 +85,7 @@ class CertificateSearch:
 
         try:
             self.results.extend(await self.do_ldap_search(server, base, retry=True))
-        except bonsai.LDAPError:
+        except (bonsai.LDAPError, asyncio.TimeoutError):
             logger.exception("Could not retrieve certificates from Buypass")
             self.errors.append("ERR-001")
         else:
@@ -106,7 +107,7 @@ class CertificateSearch:
 
         try:
             self.results.extend(await self.do_ldap_search(server, base))
-        except bonsai.LDAPError:
+        except (bonsai.LDAPError, asyncio.TimeoutError):
             logger.exception("Could not retrieve certificates from Commfides")
             self.errors.append("ERR-002")
         else:

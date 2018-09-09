@@ -5,7 +5,7 @@ from .enums import CertType
 # fmt: off
 
 
-LDAP_TIMEOUT = 20
+LDAP_TIMEOUT = 7
 LDAP_RETRIES = 5
 
 ORG_NUMBER_REGEX = re.compile(r"(\d\s?){9}")
