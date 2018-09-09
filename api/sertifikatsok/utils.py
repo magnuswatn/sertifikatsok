@@ -2,17 +2,6 @@ from cryptography.x509 import Name
 from .constants import SUBJECT_FIELDS
 
 
-def escape_ldap_query(query: str) -> str:
-    """Escapes an ldap query as described in RFC 4515"""
-    return (
-        query.replace("\\", r"\5c")
-        .replace(r"*", r"\2a")
-        .replace(r"(", r"\28")
-        .replace(r")", r"\29")
-        .replace("\x00", r"\00")
-    )
-
-
 def get_subject_order(field: str) -> int:
     """Returns the order of the subject element, for pretty printing"""
     order = {

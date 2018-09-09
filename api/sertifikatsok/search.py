@@ -2,7 +2,6 @@ import logging
 
 import bonsai
 
-from .utils import escape_ldap_query
 from .constants import (
     ORG_NUMBER_REGEX,
     PERSONAL_SERIAL_REGEX,
@@ -39,7 +38,8 @@ class CertificateSearch:
         elif self.typ == CertType.PERSONAL and PERSONAL_SERIAL_REGEX.fullmatch(query):
             self.search_filter = f"(serialNumber={query})"
         else:
-            self.search_filter = f"(cn={escape_ldap_query(query)})"
+            escaped_ldap_filter = bonsai.escape_filter_exp(query)
+            self.search_filter = f"(cn={escaped_ldap_filter})"
 
     @classmethod
     def create_from_request(cls, request):
