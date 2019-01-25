@@ -6,7 +6,7 @@ import uvloop
 from aiohttp import web
 from .search import CertificateSearch
 from .errors import ClientError
-from .crypto import CrlRetriever, CertRetriever
+from .crypto import AppCrlRetriever, CertRetriever
 from .serialization import sertifikatsok_serialization
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ async def error_middleware(request, handler):
 
 
 async def init_app(app):
-    app["CrlRetriever"] = CrlRetriever()
+    app["CrlRetriever"] = AppCrlRetriever()
     app["CertRetrievers"] = {
         "test": CertRetriever("test"),
         "prod": CertRetriever("prod"),

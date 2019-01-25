@@ -18,52 +18,76 @@ from .utils import stringify_x509_name
 logger = logging.getLogger(__name__)
 
 
-class CrlRetriever:
-    """Represents a Certificate Revocation List"""
+class AppCrlRetriever:
+    """
+    CRL retriever for an app instance.
+
+    Retrieves CRLs and caches them in the file system and in memory.
+
+    Only returns valid CRLs.
+    """
 
     def __init__(self) -> None:
         self.crls: Dict[str, x509.CertificateRevocationList] = {}
-        self.errors = []
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
     ) -> x509.CertificateRevocationList:
-        """
-        Retrieves the CRL from the specified url
-
-        The retrieved CRLs are cached on the object.
-        """
+        """Retrieves the CRL from the specified url"""
         try:
-            return self.crls[url]
-        except KeyError:
+            return self._get_cached_crl(url, issuer)
+        except CouldNotGetValidCRLError:
             try:
                 crl = self._get_from_file(url, issuer)
             except CouldNotGetValidCRLError:
-                try:
-                    crl = await self._download(url, issuer)
-                except CouldNotGetValidCRLError:
-                    logger.exception("Could not download CRL %s", url)
-                    self.errors.append("ERR-003")
-                    crl = None
+                crl = await self._download(url, issuer)
 
             self.crls[url] = crl
             return crl
 
+    def get_retriever_for_request(self):
+        """
+        Returns a retriever suitable for a single request,
+        based on this retriever
+        """
+        return RequestCrlRetriever(self)
+
+    def _get_cached_crl(self, url: str, issuer: str) -> x509.CertificateRevocationList:
+        """Returnes CRL from memory"""
+        try:
+            crl = self.crls[url]
+        except KeyError:
+            logger.debug("CRL %s not found in AppCrlRetriever memory cache", url)
+            raise CouldNotGetValidCRLError()
+
+        if not self._validate(crl, issuer):
+            logger.debug(
+                "CRL %s from AppCrlRetriever memory cache not longer valid", url
+            )
+            raise CouldNotGetValidCRLError()
+
+        logger.debug("Returning CRL for %s from memory", url)
+        return crl
+
     def _get_from_file(
         self, url: str, issuer: x509.Certificate
     ) -> x509.CertificateRevocationList:
-        """Retrieves a CRl from disk"""
+        """Retrieves a CRL from disk"""
         filename = "./crls/{}".format(urllib.parse.quote_plus(url))
         try:
             with open(filename, "rb") as open_file:
                 crl_bytes = open_file.read()
         except FileNotFoundError:
-            raise CouldNotGetValidCRLError
+            logger.debug("CRL for %s not found on disk", url)
+            raise CouldNotGetValidCRLError()
 
         crl = x509.load_der_x509_crl(crl_bytes, default_backend())
 
         if not self._validate(crl, issuer):
-            raise CouldNotGetValidCRLError
+            logger.debug("CRL for %s from disk is no longer valid", url)
+            raise CouldNotGetValidCRLError()
+
+        logger.debug("Returning CRL for %s from disk", url)
         return crl
 
     async def _download(
@@ -79,7 +103,7 @@ class CrlRetriever:
                 resp = await session.get(url, headers=headers)
                 crl_bytes = await resp.read()
             except (aiohttp.ClientError, asyncio.TimeoutError) as error:
-                raise CouldNotGetValidCRLError(f"Could not retrieve CRL: {error}")
+                raise CouldNotGetValidCRLError() from error
 
         logger.debug("Finishined downloading CRL %s", url)
 
@@ -99,7 +123,7 @@ class CrlRetriever:
         crl = x509.load_der_x509_crl(crl_bytes, default_backend())
 
         if not self._validate(crl, issuer):
-            raise CouldNotGetValidCRLError
+            raise CouldNotGetValidCRLError()
 
         filename = f"./crls/{urllib.parse.quote_plus(url)}"
         with open(filename, "wb") as open_file:
@@ -116,9 +140,13 @@ class CrlRetriever:
         if not (
             crl.next_update > datetime.utcnow() and crl.last_update < datetime.utcnow()
         ):
+            logger.debug("CRL failed date validation")
             return False
+
         if not crl.issuer == issuer.subject:
+            logger.debug("CRL failed issuer validation")
             return False
+
         try:
             issuer.public_key().verify(
                 crl.signature,
@@ -127,8 +155,48 @@ class CrlRetriever:
                 crl.signature_hash_algorithm,
             )
         except InvalidSignature:
+            logger.debug("CRL failed signature validation")
             return False
+
         return True
+
+
+class RequestCrlRetriever:
+    """
+    CRL retriever for a single request.
+
+    Cached CRLs are returned without validation,
+    so objects should not be long-lived.
+    """
+
+    def __init__(self, crl_retriever: AppCrlRetriever):
+        self.crls: Dict[str, x509.CertificateRevocationList] = {}
+        self.crl_retriever = crl_retriever
+        self.errors = []
+
+    async def retrieve(
+        self, url: str, issuer: x509.Certificate
+    ) -> x509.CertificateRevocationList:
+        """Retrieves the CRL from the specified url."""
+        try:
+            return self.crls[url]
+        except KeyError:
+            pass
+
+        logger.debug(
+            "CRL %s not in RequestCrlRetriever cache. Retrieving from AppCrlRetriever",
+            url,
+        )
+
+        try:
+            crl = await self.crl_retriever.retrieve(url, issuer)
+        except CouldNotGetValidCRLError:
+            logger.exception("Could not retrieve CRL %s", url)
+            self.errors.append("ERR-003")
+            crl = None
+
+        self.crls[url] = crl
+        return crl
 
 
 class CertRetriever:

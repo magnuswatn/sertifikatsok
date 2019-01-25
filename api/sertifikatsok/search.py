@@ -70,7 +70,7 @@ class CertificateSearch:
             env,
             typ,
             query,
-            request.app["CrlRetriever"],
+            request.app["CrlRetriever"].get_retriever_for_request(),
             request.app["CertRetrievers"][org_env],
         )
 
