@@ -3,7 +3,7 @@ import asyncio
 import logging
 import urllib.parse
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List
 
 import aiohttp
 
@@ -109,7 +109,7 @@ class AppCrlRetriever:
 
         if resp.status != 200:
             raise CouldNotGetValidCRLError(
-                f"Got status code {resp.status_code} for url {url}"
+                f"Got status code {resp.status} for url {url}"
             )
 
         if resp.headers["Content-Type"] not in (
@@ -172,7 +172,7 @@ class RequestCrlRetriever:
     def __init__(self, crl_retriever: AppCrlRetriever):
         self.crls: Dict[str, x509.CertificateRevocationList] = {}
         self.crl_retriever = crl_retriever
-        self.errors = []
+        self.errors: List[str] = []
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
