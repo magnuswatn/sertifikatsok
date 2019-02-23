@@ -30,8 +30,6 @@ class CertificateSearch:
         self.cert_retriever = cert_retriever
         self.crl_retriever = crl_retriever
 
-        query = query
-
         # If the query is an organization number, or an norwegian personal serial number,
         # we search in the serialNumber field, otherwise the commonName field
         if self.typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
