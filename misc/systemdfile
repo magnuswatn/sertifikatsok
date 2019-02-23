@@ -7,12 +7,12 @@ Wants=network-online.target systemd-networkd-wait-online.service
 [Service]
 User=SERVICE_USER
 Group=SERVICE_GROUP
-PIDFile=BINHOME/gunicorn.pid
+PIDFile=BINHOME/sertifikatsok.pid
 RuntimeDirectory=sertifikatsok
 WorkingDirectory=APPHOME
-ExecStart=BINHOME/venv/bin/gunicorn --bind localhost:7001 --worker-class=gevent --workers=3 \
-	  --log-file=/var/log/caddy/sertifikatsok-app.log --pid=BINHOME/gunicorn.pid sertifikatsok:api
-      
+ExecStart=BINHOME/python -m sertifikatsok --host 127.0.0.1 --port 7001 \
+    --log-files=/var/log/caddy/sertifikatsok_{}.log
+
 ExecReload=/bin/kill -s HUP $MAINPID
 ExecStop=/bin/kill -s TERM $MAINPID
 PrivateTmp=true
