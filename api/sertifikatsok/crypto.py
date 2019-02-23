@@ -14,6 +14,7 @@ from cryptography.exceptions import InvalidSignature
 
 from .errors import CouldNotGetValidCRLError
 from .utils import stringify_x509_name
+from .logging import performance_log
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +91,7 @@ class AppCrlRetriever:
         logger.debug("Returning CRL for %s from disk", url)
         return crl
 
+    @performance_log(id_param=1)
     async def _download(
         self, url: str, issuer: x509.Certificate
     ) -> x509.CertificateRevocationList:

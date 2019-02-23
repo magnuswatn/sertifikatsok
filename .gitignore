@@ -9,3 +9,4 @@ www/api
 TODO
 api/.cache/
 .mypy_cache/
+api/log_*.log

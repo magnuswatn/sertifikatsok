@@ -12,6 +12,7 @@ from .constants import (
 from .enums import CertType, Environemnt
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
 from .errors import ClientError
+from .logging import audit_log, performance_log
 
 # black and pylint doesn't agree on everything
 # pylint: disable=C0330
@@ -66,6 +67,8 @@ class CertificateSearch:
         if not query:
             raise ClientError("Missing query parameter")
 
+        audit_log(request)
+
         return cls(
             env,
             typ,
@@ -74,6 +77,7 @@ class CertificateSearch:
             request.app["CertRetrievers"][org_env],
         )
 
+    @performance_log()
     async def query_buypass(self):
         logger.debug("Starting: Buypass query")
         if self.env == Environemnt.TEST:
@@ -91,6 +95,7 @@ class CertificateSearch:
         else:
             logger.debug("Ending: Buypass query")
 
+    @performance_log()
     async def query_commfides(self):
         logger.debug("Starting: Commfides query")
         if self.env == Environemnt.TEST:
@@ -161,6 +166,7 @@ class CertificateSearch:
 
         return await self._parse_ldap_results(all_results, server, base)
 
+    @performance_log(id_param=2)
     async def _parse_ldap_results(self, search_results, server, base):
         """Takes a ldap response and creates a list of QualifiedCertificateSet"""
         logger.debug("Start: parsing certificates from %s", server)

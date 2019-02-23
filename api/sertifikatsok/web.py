@@ -3,8 +3,11 @@ import logging
 import json
 import argparse
 import uvloop
+import uuid
+import aiotask_context as context
 from aiohttp import web
 from .search import CertificateSearch
+from .logging import configure_logging, performance_log
 from .errors import ClientError
 from .crypto import AppCrlRetriever, CertRetriever
 from .serialization import sertifikatsok_serialization
@@ -36,6 +39,15 @@ async def error_middleware(request, handler):
         )
 
 
+@web.middleware
+async def correlation_middleware(request, handler):
+    correlation_id = str(uuid.uuid4())
+    context.set(key="correlation_id", value=correlation_id)
+    response = await handler(request)
+    response.headers["Correlation-Id"] = correlation_id
+    return response
+
+
 async def init_app(app):
     app["CrlRetriever"] = AppCrlRetriever()
     app["CertRetrievers"] = {
@@ -44,6 +56,7 @@ async def init_app(app):
     }
 
 
+@performance_log()
 async def api_endpoint(request):
     """
     ---
@@ -100,12 +113,14 @@ async def api_endpoint(request):
 
 def run():
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    asyncio.get_event_loop().set_task_factory(context.task_factory)
 
     parser = argparse.ArgumentParser(description="Sertifikatsok API")
     parser.add_argument("--host")
     parser.add_argument("--path")
     parser.add_argument("--port")
     parser.add_argument("--log-level")
+    parser.add_argument("--log-files")
     parser.add_argument("--dev", action="store_true")
 
     args = parser.parse_args()
@@ -116,9 +131,9 @@ def run():
         log_level = logging.DEBUG
     else:
         log_level = logging.INFO
-    logging.basicConfig(level=log_level)
+    configure_logging(log_level, args.log_files)
 
-    app = web.Application(middlewares=[error_middleware])
+    app = web.Application(middlewares=[error_middleware, correlation_middleware])
     app.router.add_get("/api", api_endpoint)
     app.on_startup.append(init_app)
 
