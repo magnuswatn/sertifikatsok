@@ -3,6 +3,7 @@
 .eslintrc.json
 node_modules/
 api/__pycache__/*
+api/sertifikatsok/__pycache__/*
 api/.env
 www/Caddyfile
 www/api
@@ -10,3 +11,4 @@ TODO
 api/.cache/
 .mypy_cache/
 api/log_*.log
+.pytest_cache/
