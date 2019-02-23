@@ -92,11 +92,15 @@ class QualifiedCertificate:
             except KeyError:
                 pass
 
-        # This will only display the last OID, out of potentially several, but good enough
+        # This will only display the last OID,
+        # out of potentially several, but good enough
         return (CertType.UNKNOWN, oid)
 
     def _get_http_cdp(self) -> Optional[str]:
-        """Returns the first CRL Distribution Point from the cert with http scheme, if any"""
+        """
+        Returns the first CRL Distribution Point from the cert with
+        http scheme, if any.
+        """
         cdps = self.cert.extensions.get_extension_for_oid(
             x509.ObjectIdentifier("2.5.29.31")
         ).value
@@ -108,7 +112,9 @@ class QualifiedCertificate:
 
     def _get_roles(self) -> List[CertificateRoles]:
         """
-        A set of Norwegian qualified certificates should have certificates intended for
+        A set of Norwegian qualified certificates should have certificates
+        intended for:
+
         *) Encryption
         *) Signature
         *) Authentication
@@ -132,11 +138,13 @@ class QualifiedCertificate:
     def print_subject(self, full: bool = False) -> str:
         """
         Returns the subject of the cert as a string.
-        If it's an non-Enterprise Commfides certificate (indicated by an organization number in the
-        serialNumber field) the serialNumber field is skipped, unless 'full' is True.
+        If it's an non-Enterprise Commfides certificate (indicated by an organization
+        number in the serialNumber field) the serialNumber field is skipped,
+        unless 'full' is True.
 
-        This is becuase Commfides generates random serialNumbers for all Person certificates,
-        so they are not very useful and also different within a set
+        This is becuase Commfides generates random serialNumbers
+        for all Person certificates, so they are not very useful
+        and also different within a set.
         """
         subject = []
         for field in self.cert.subject:
@@ -152,7 +160,8 @@ class QualifiedCertificate:
                 # If we don't recognize the field, we just print the dotted string
                 subject.append("{}={}".format(field.oid.dotted_string, field.value))
 
-        # If not full (e.g. used for pretty printing), we order the fields in an uniform order
+        # If not full (e.g. used for pretty printing),
+        # we order the fields in an uniform order
         if not full:
             subject.sort(key=get_subject_order)
         return ", ".join(list(subject))
@@ -203,9 +212,10 @@ class QualifiedCertificateSet(object):
     def __init__(self, certs):
         self.certs = certs
 
-        # Commfides issues encryption certs with longer validity than the rest of the
-        # certificates in the set, so we shouldn't use that to check the validity of the set.
-        # Therefore we try to find a non-encryption cert to use as the "main cert" of the set
+        # Commfides issues encryption certs with longer validity than
+        # the rest of the certificates in the set, so we shouldn't use
+        # that to check the validity of the set. Therefore we try to find
+        # a non-encryption cert to use as the "main cert" of the set.
         self.main_cert = self._get_non_encryption_cert()
 
         self.status = self.main_cert.status
@@ -251,9 +261,10 @@ class QualifiedCertificateSet(object):
                 # so if they differ they are not from the same set
                 (cert_set[0].print_subject() != cert.print_subject())
                 or
-                # Commfides seems to issue the Encryption certificates at a different time than
-                # the rest of the certificates in the set, but they should be issued within
-                # three days of each other
+                # Commfides seems to issue the Encryption certificates
+                # at a different time than the rest of the certificates
+                # in the set, but they should be issued within three days
+                # of each other.
                 (
                     (
                         cert.cert.not_valid_before - cert_set[0].cert.not_valid_before
@@ -278,9 +289,10 @@ class QualifiedCertificateSet(object):
 
     def _get_non_encryption_cert(self) -> QualifiedCertificate:
         """
-        This tries to find an non-encryption certificate in the certificate set and return that
+        This tries to find an non-encryption certificate in the
+        certificate set and return that.
 
-        If none is found, the first cert in the set is returned
+        If none is found, the first cert in the set is returned.
         """
         for cert in self.certs:
             key_usage = cert.cert.extensions.get_extension_for_oid(

@@ -30,8 +30,9 @@ class CertificateSearch:
         self.cert_retriever = cert_retriever
         self.crl_retriever = crl_retriever
 
-        # If the query is an organization number, or an norwegian personal serial number,
-        # we search in the serialNumber field, otherwise the commonName field
+        # If the query is an organization number,or an norwegian personal
+        # serial number, we search in the serialNumber field, otherwise
+        # the commonName field.
         if self.typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
             self.search_filter = f"(serialNumber={query.replace(' ', '')})"
             self.org_number_search = True
@@ -153,7 +154,8 @@ class CertificateSearch:
                     count = LDAP_RETRIES + 1
 
             logger.debug("Ending: ldap search against: %s", server)
-            # If we got 20 on our last (of sevaral) search, there may be more certs out there...
+            # If we got 20 on our last (of sevaral) search,
+            # there may be more certs out there...
             if len(results) == 20 and retry:
                 logger.warning(
                     "Exceeded max count for search with filter %s against %s",
