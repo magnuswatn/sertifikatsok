@@ -92,7 +92,6 @@ def qualified_certificate_set(val):
 @sertifikatsok_serialization.register(CertificateSearch)
 def certificate_search(val):
     result = {}
-    result["subject"] = val.search_filter
 
     errors = set()
     for error in val.errors:
@@ -105,6 +104,20 @@ def certificate_search(val):
         result["certificate_sets"].append(cert_set)
 
     result["certificate_sets"].sort(key=attrgetter("valid_from"), reverse=True)
+
+    # this is horrible and must be replaced.
+    if val.org_number_search and val.results:
+        subject = result["certificate_sets"][0].subject.split(",")
+        try:
+            org_name = [
+                part.split("=")[1] for part in subject if part.startswith(" O=")
+            ][0]
+        except IndexError:
+            result["subject"] = val.query
+        else:
+            result["subject"] = "{} ({})".format(org_name, val.query)
+    else:
+        result["subject"] = val.query
 
     return result
 

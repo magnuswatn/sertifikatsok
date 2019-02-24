@@ -24,6 +24,7 @@ class CertificateSearch:
     def __init__(self, env, typ, query, crl_retriever, cert_retriever):
         self.env = env
         self.typ = typ
+        self.query = query
         self.org_number_search = False
         self.results = []
         self.errors = []
