@@ -95,7 +95,7 @@ class QualifiedCertificate:
                 pass
 
         # This will only display the last OID,
-        # out of potentially several, but good enough
+        # out of potentially several, but good enough.
         return (CertType.UNKNOWN, oid)
 
     def _get_http_cdp(self) -> Optional[str]:
