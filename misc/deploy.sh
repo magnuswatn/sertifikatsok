@@ -14,6 +14,15 @@ WWW_DIR=/var/www/sertifikatsok
 SERVICE_NAME=sertifikatsok
 
 cd $DIR/../api
+
+head="$(git rev-parse HEAD)"
+last_deploy="$(cat "${BIN_DIR}/last_deploy")"
+
+if [[ $head == $last_deploy ]]; then
+  # No changes since last deploy. Early exit.
+  exit 0
+fi
+
 export WORKON_HOME="${BIN_DIR}/venvs/$(date +%s)"
 $PIPENV_VENV/bin/pipenv install --deploy
 pipenv_python="$(${PIPENV_VENV}/bin/pipenv --py)"
@@ -43,3 +52,5 @@ rsync $temp_dir/ $WWW_DIR --delete --recursive --checksum
 rm -Rf $temp_dir
 ln -sf "${pipenv_python}" "${BIN_DIR}/python"
 sudo /usr/bin/systemctl restart $SERVICE_NAME
+
+echo $head > "${BIN_DIR}/last_deploy"
