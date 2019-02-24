@@ -138,9 +138,8 @@ class QualifiedCertificate:
     def print_subject(self, full: bool = False) -> str:
         """
         Returns the subject of the cert as a string.
-        If it's an non-Enterprise Commfides certificate (indicated by an organization
-        number in the serialNumber field) the serialNumber field is skipped,
-        unless 'full' is True.
+        If it's an Personal Commfides certificate the serialNumber
+        field is skipped, unless 'full' is True.
 
         This is becuase Commfides generates random serialNumbers
         for all Person certificates, so they are not very useful
@@ -149,8 +148,8 @@ class QualifiedCertificate:
         subject = []
         for field in self.cert.subject:
             if field.oid.dotted_string == "2.5.4.5" and not full:
-                # Skip serialNumber if non-Enterprise cert from Commfides
-                if "Commfides" in self.issuer and self.type != CertType.ENTERPRISE:
+                # Skip serialNumber if Personal cert from Commfides
+                if "Commfides" in self.issuer and self.type == CertType.PERSONAL:
                     continue
             try:
                 subject.append(
