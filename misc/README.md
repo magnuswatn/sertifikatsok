@@ -36,9 +36,7 @@ sertifikatsok.no, www.sertifikatsok.no, xn--sertifikatsk-5jb.no, www.xn--sertifi
     }
     header /resources Cache-Control "max-age=31536000,public"
     header /api -Server
-    proxy /api localhost:7001/ {
-        transparent
-    }
+    proxy /api localhost:7001/
     tls {
         key_type p256
         ciphers ECDHE-RSA-WITH-CHACHA20-POLY1305 ECDHE-RSA-AES128-GCM-SHA256 ECDHE-ECDSA-WITH-CHACHA20-POLY1305 ECDHE-ECDSA-AES128-GCM-SHA256
