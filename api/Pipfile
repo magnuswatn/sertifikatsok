@@ -4,15 +4,16 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-flask = "*"
-pyldap = "*"
-gevent = "*"
-gunicorn = "*"
-requests = "*"
-cryptography = ">=2.3"
+bonsai = ">=1.0.0"
+aiohttp = "*"
+cryptography = ">=2.4.2"
+uvloop = "*"
+aiotask-context = "*"
 
 [dev-packages]
 pytest = "*"
 pylint = "*"
-black = "*"
+black = "==18.9b0"
 mypy = "*"
+aiohttp-swagger = "*"
+

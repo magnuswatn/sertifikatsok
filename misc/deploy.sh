@@ -1,8 +1,9 @@
 #!/bin/bash
-
+set -Eeuo pipefail
 
 DIR="$( cd "$( dirname "$0" )" && pwd )"
 BIN_DIR="$(readlink -f $DIR/../../)"
+PIPENV_VENV="$BIN_DIR/pipenv-venv"
 
 UGLIFY_ES=$BIN_DIR/node_modules/uglify-es/bin/uglifyjs
 CSSO=$BIN_DIR/node_modules/csso-cli/bin/csso
@@ -12,8 +13,21 @@ BROTLI=/usr/local/bin/brotli
 WWW_DIR=/var/www/sertifikatsok
 SERVICE_NAME=sertifikatsok
 
+cd $DIR/../api
 
-temp_dir=$(mktemp --directory) 
+head="$(git rev-parse HEAD)"
+last_deploy="$(cat "${BIN_DIR}/last_deploy")"
+
+if [[ $head == $last_deploy ]]; then
+  # No changes since last deploy. Early exit.
+  exit 0
+fi
+
+export WORKON_HOME="${BIN_DIR}/venvs/$(date +%s)"
+$PIPENV_VENV/bin/pipenv install --deploy
+pipenv_python="$(${PIPENV_VENV}/bin/pipenv --py)"
+
+temp_dir=$(mktemp --directory)
 
 cp $DIR/../www/* $temp_dir -R
 cd $temp_dir
@@ -36,5 +50,7 @@ find $temp_dir -type f -not -name '*.png' -exec $BROTLI '{}' \;
 rsync $temp_dir/ $WWW_DIR --delete --recursive --checksum
 
 rm -Rf $temp_dir
+ln -sf "${pipenv_python}" "${BIN_DIR}/python"
+sudo /usr/bin/systemctl restart $SERVICE_NAME
 
-sudo /usr/bin/systemctl reload $SERVICE_NAME
+echo $head > "${BIN_DIR}/last_deploy"

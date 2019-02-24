@@ -1,4 +1,5 @@
 #!/bin/bash
+set -Eeuo pipefail
 
 SERVICE_USER=caddy
 SERVICE_GROUP=caddy
@@ -6,12 +7,12 @@ SERVICE_GROUP=caddy
 # On RHEL with Python3.6 installed from EPEL it is currently
 # only known as python36, not python3
 export PYTHON=$(type -P python36 || type -P python3)
-if [ -z "$PYTHON" ]; then
+if [[ -z $PYTHON ]]; then
   echo "python3(6) was not found. Exiting"
   exit 1
 fi
 
-if [ "$(whoami)" != "root" ]; then
+if [[ $EUID -ne 0 ]]; then
   echo "Must be root."
   exit 1
 fi
@@ -22,10 +23,6 @@ BIN_DIR="$(readlink -f ../../)"
 cp sudoersfile 99-sertifikatsok
 sed -i -e "s/SERVICE_USER/$SERVICE_GROUP/" 99-sertifikatsok
 visudo -cf 99-sertifikatsok
-if [ $? -eq 1 ]; then
-  echo "ERROR: Something went horribly wrong in sudoers config. Can not continue"
-  exit 1
-fi
 mv 99-sertifikatsok /etc/sudoers.d
 
 cp systemdfile sertifikatsok.service
@@ -43,12 +40,14 @@ systemctl enable sertifikatsok
 chown $SERVICE_USER:$SERVICE_GROUP $BIN_DIR -R
 
 cd $BIN_DIR
-su $SERVICE_USER -c "$PYTHON -m venv venv"
-su $SERVICE_USER -c "venv/bin/pip install --upgrade pip"
-su $SERVICE_USER -c "venv/bin/pip install -r $APP_DIR/requirements.txt"
+su $SERVICE_USER -c "$PYTHON -m venv pipenv-venv"
+su $SERVICE_USER -c "pipenv-venv/bin/pip install --upgrade pip"
+su $SERVICE_USER -c "pipenv-venv/bin/pip install pipenv"
 
 su $SERVICE_USER -c "npm install uglify-es"
 su $SERVICE_USER -c "npm install csso-cli"
 su $SERVICE_USER -c "npm install html-minifier"
+
+su $SERVICE_USER -c -- "echo None > ${BIN_DIR}/last_deploy"
 
 echo "Done."
