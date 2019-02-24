@@ -35,7 +35,9 @@ class QualifiedCertificate:
 
         issuer = cert_retriever.retrieve(cert.issuer)
         if not issuer:
-            cert.status = CertificateStatus.UNKNOWN
+            # TODO: Should this be UNKNOWN? We don't
+            # trust the issuer, but others might...
+            cert.status = CertificateStatus.INVALID
         elif not cert._validate_against_issuer(issuer):
             cert.status = CertificateStatus.INVALID
         elif not cert._check_date():
