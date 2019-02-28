@@ -104,9 +104,12 @@ async def api_endpoint(request):
         content_type="application/json",
     )
 
-    response.headers[
-        "Cache-Control"
-    ] = "no-cache, no-store, must-revalidate, private, s-maxage=0"
+    if certificate_search.cacheable:
+        cache_control = "public, max-age=300"
+    else:
+        cache_control = "no-cache, no-store, must-revalidate, private, s-maxage=0"
+
+    response.headers["Cache-Control"] = cache_control
 
     return response
 

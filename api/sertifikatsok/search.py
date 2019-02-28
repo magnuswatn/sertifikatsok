@@ -28,6 +28,7 @@ class CertificateSearch:
         self.org_number_search = False
         self.results = []
         self.errors = []
+        self.warnings = []
         self.cert_retriever = cert_retriever
         self.crl_retriever = crl_retriever
 
@@ -76,6 +77,10 @@ class CertificateSearch:
             request.app["CrlRetriever"].get_retriever_for_request(),
             request.app["CertRetrievers"][org_env],
         )
+
+    @property
+    def cacheable(self):
+        return not self.errors
 
     @performance_log()
     async def query_buypass(self):
@@ -163,7 +168,7 @@ class CertificateSearch:
                     self.search_filter,
                     server,
                 )
-                self.errors.append("ERR-004")
+                self.warnings.append("ERR-004")
 
         return await self._parse_ldap_results(all_results, server, base)
 

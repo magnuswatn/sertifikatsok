@@ -94,7 +94,7 @@ def certificate_search(val):
     result = {}
 
     errors = set()
-    for error in val.errors:
+    for error in val.errors + val.warnings:
         errors.add(_get_norwegian_error_message(error))
 
     result["errors"] = list(errors)
