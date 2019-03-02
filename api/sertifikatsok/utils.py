@@ -8,11 +8,13 @@ def get_subject_order(field: str) -> int:
         "serialNumber": 0,
         "email": 1,
         "CN": 2,
-        "OU": 3,
-        "O": 4,
-        "L": 5,
-        "ST": 6,
-        "C": 7,
+        "GN": 3,
+        "SN": 4,
+        "OU": 5,
+        "O": 6,
+        "L": 7,
+        "ST": 8,
+        "C": 9,
     }
     field_name = field.split("=")[0]
     try:
