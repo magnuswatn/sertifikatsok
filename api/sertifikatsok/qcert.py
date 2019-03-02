@@ -328,7 +328,7 @@ class QualifiedCertificateSet(object):
         """Creates an LDAP url (RFC 1959) for the certificate set"""
         filter_parts = []
         for cert in self.certs:
-            filter_parts.append(cert.dn.split(",")[0])
+            filter_parts.append(f"certificateSerialNumber={cert.cert.serial_number}")
         ldap_filter = ")(".join(filter_parts)
         ldap_url = "{}/{}?usercertificate;binary?sub?(|({}))".format(
             self.certs[0].ldap_params[0],
