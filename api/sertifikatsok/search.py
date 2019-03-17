@@ -31,6 +31,7 @@ class CertificateSearch:
         self.warnings = []
         self.cert_retriever = cert_retriever
         self.crl_retriever = crl_retriever
+        self._tasks = [self.query_buypass, self.query_commfides]
 
         # If the query is an organization number,or an norwegian personal
         # serial number, we search in the serialNumber field, otherwise
@@ -40,6 +41,13 @@ class CertificateSearch:
             self.org_number_search = True
         elif self.typ == CertType.PERSONAL and PERSONAL_SERIAL_REGEX.fullmatch(query):
             self.search_filter = f"(serialNumber={query})"
+
+            # only search the relevant ca
+            ca_id = query.split("-")[1]
+            if ca_id in ("4050"):
+                self._tasks = [self.query_buypass]
+            elif ca_id in ("4505", "4510"):
+                self._tasks = [self.query_commfides]
         else:
             escaped_ldap_filter = bonsai.escape_filter_exp(query)
             self.search_filter = f"(cn={escaped_ldap_filter})"
@@ -81,6 +89,10 @@ class CertificateSearch:
     @property
     def cacheable(self):
         return not self.errors
+
+    @property
+    def tasks(self):
+        return [task() for task in self._tasks]
 
     @performance_log()
     async def query_buypass(self):
@@ -196,11 +208,6 @@ class CertificateSearch:
 
         logger.debug("End: parsing certificates from %s", server)
         return qualified_certs
-
-    def get_tasks(self):
-        """Returns the tasks that need solving for this search"""
-        tasks = [self.query_buypass(), self.query_commfides()]
-        return tasks
 
     def finish(self):
         self.errors.extend(self.crl_retriever.errors)

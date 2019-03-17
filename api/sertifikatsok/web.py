@@ -90,7 +90,7 @@ async def api_endpoint(request):
 
     certificate_search = CertificateSearch.create_from_request(request)
 
-    await asyncio.gather(*certificate_search.get_tasks())
+    await asyncio.gather(*certificate_search.tasks)
 
     certificate_search.finish()
 
