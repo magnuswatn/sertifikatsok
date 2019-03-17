@@ -7,7 +7,7 @@ class CertType(Enum):
     UNKNOWN = 3
 
 
-class Environemnt(Enum):
+class Environment(Enum):
     TEST = 1
     PROD = 2
 

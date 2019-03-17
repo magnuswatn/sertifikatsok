@@ -9,7 +9,7 @@ from .constants import (
     LDAP_RETRIES,
     LDAP_TIMEOUT,
 )
-from .enums import CertType, Environemnt
+from .enums import CertType, Environment
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
 from .errors import ClientError
 from .logging import audit_log, performance_log
@@ -57,9 +57,9 @@ class CertificateSearch:
 
         org_env = request.query.get("env")
         if org_env == "prod":
-            env = Environemnt.PROD
+            env = Environment.PROD
         elif org_env == "test":
-            env = Environemnt.TEST
+            env = Environment.TEST
         else:
             raise ClientError("Unknown environment")
 
@@ -97,7 +97,7 @@ class CertificateSearch:
     @performance_log()
     async def query_buypass(self):
         logger.debug("Starting: Buypass query")
-        if self.env == Environemnt.TEST:
+        if self.env == Environment.TEST:
             server = "ldap://ldap.test4.buypass.no"
             base = "dc=Buypass,dc=no,CN=Buypass Class 3 Test4"
         else:
@@ -115,7 +115,7 @@ class CertificateSearch:
     @performance_log()
     async def query_commfides(self):
         logger.debug("Starting: Commfides query")
-        if self.env == Environemnt.TEST:
+        if self.env == Environment.TEST:
             server = "ldap://ldap.test.commfides.com"
         else:
             server = "ldap://ldap.commfides.com"
