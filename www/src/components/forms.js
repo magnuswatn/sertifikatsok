@@ -39,25 +39,19 @@ export class SearchForm extends Component {
 
     render() {
         return (
-            <div className="row">
-                <div className="col s12">
-                    <div className="row">
-                        <div className="input-field col s12">
-                            <input
-                                ref={this.ref}
-                                type="text"
-                                autoFocus
-                                onChange={() => this.props.onChange(this.ref.current.value)}
-                                value={this.props.inputText}
-                                onKeyDown={(e) => this.handleKeyPress(e)}
-                            />
-                            <label htmlFor="autocomplete-input">
-                                <i className="material-icons">search</i>
-                                {this.props.labelText}
-                            </label>
-                        </div>
-                    </div>
-                </div>
+            <div className="input-field col s12">
+                <input
+                    ref={this.ref}
+                    type="text"
+                    autoFocus
+                    onChange={() => this.props.onChange(this.ref.current.value)}
+                    value={this.props.inputText}
+                    onKeyDown={(e) => this.handleKeyPress(e)}
+                />
+                <label htmlFor="autocomplete-input">
+                    <i className="material-icons">search</i>
+                    {this.props.labelText}
+                </label>
             </div>
         )
     }
