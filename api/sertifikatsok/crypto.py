@@ -1,7 +1,7 @@
-import os
 import asyncio
 import logging
 import urllib.parse
+from pathlib import Path
 from datetime import datetime
 from typing import Dict, List
 
@@ -74,10 +74,8 @@ class AppCrlRetriever:
         self, url: str, issuer: x509.Certificate
     ) -> x509.CertificateRevocationList:
         """Retrieves a CRL from disk"""
-        filename = "./crls/{}".format(urllib.parse.quote_plus(url))
         try:
-            with open(filename, "rb") as open_file:
-                crl_bytes = open_file.read()
+            crl_bytes = Path("crls", urllib.parse.quote_plus(url)).read_bytes()
         except FileNotFoundError:
             logger.debug("CRL for %s not found on disk", url)
             raise CouldNotGetValidCRLError()
@@ -127,9 +125,7 @@ class AppCrlRetriever:
         if not self._validate(crl, issuer):
             raise CouldNotGetValidCRLError()
 
-        filename = f"./crls/{urllib.parse.quote_plus(url)}"
-        with open(filename, "wb") as open_file:
-            open_file.write(crl_bytes)
+        Path("crls", urllib.parse.quote_plus(url)).write_bytes(crl_bytes)
 
         return crl
 
@@ -215,25 +211,22 @@ class CertRetriever:
         except KeyError:
             return None
 
-    def _load_certificate(self, filename: str):
-        with open(filename, "rb") as open_file:
-            cert_bytes = open_file.read()
-        cert = x509.load_pem_x509_certificate(cert_bytes, default_backend())
-
+    def _load_certificate(self, path: Path):
+        cert = x509.load_pem_x509_certificate(path.read_bytes(), default_backend())
         cert_name = stringify_x509_name(cert.subject)
         self.certs[cert_name] = cert
-        logger.debug("Loaded trusted certificate %s from %s", cert_name, filename)
+        logger.debug("Loaded trusted certificate %s from %s", cert_name, path)
 
     def _load_all_certs(self, env: str):
         count = 0
-        for file in os.scandir(f"certs/{env}"):
-            if file.is_file():
+        for path in Path("certs", env).iterdir():
+            if path.is_file():
                 try:
-                    self._load_certificate(file.path)
+                    self._load_certificate(path)
                 except (IOError, ValueError):
                     logger.exception(
-                        "Could not load %s as a trusted certificate", file.path
+                        "Could not load '%s' as a trusted certificate", path
                     )
-                finally:
+                else:
                     count += 1
         logger.info("Loaded %d trusted certificates from file for env %s", count, env)
