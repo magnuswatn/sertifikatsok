@@ -37,10 +37,12 @@ class AppCrlRetriever:
         """Retrieves the CRL from the specified url"""
         try:
             return self._get_cached_crl(url, issuer)
-        except CouldNotGetValidCRLError:
+        except CouldNotGetValidCRLError as error:
+            logger.debug("Could not get CRL '%s' from memory cache: %s", url, error)
             try:
                 crl = self._get_from_file(url, issuer)
-            except CouldNotGetValidCRLError:
+            except CouldNotGetValidCRLError as error:
+                logger.debug("Could not get CRL '%s' from file: %s", url, error)
                 crl = await self._download(url, issuer)
 
             self.crls[url] = crl
@@ -58,14 +60,9 @@ class AppCrlRetriever:
         try:
             crl = self.crls[url]
         except KeyError:
-            logger.debug("CRL %s not found in AppCrlRetriever memory cache", url)
-            raise CouldNotGetValidCRLError()
+            raise CouldNotGetValidCRLError("Not in AppCrlRetriever memory cache")
 
-        if not self._validate(crl, issuer):
-            logger.debug(
-                "CRL %s from AppCrlRetriever memory cache not longer valid", url
-            )
-            raise CouldNotGetValidCRLError()
+        self._validate(crl, issuer)
 
         logger.debug("Returning CRL for %s from memory", url)
         return crl
@@ -77,14 +74,14 @@ class AppCrlRetriever:
         try:
             crl_bytes = Path("crls", urllib.parse.quote_plus(url)).read_bytes()
         except FileNotFoundError:
-            logger.debug("CRL for %s not found on disk", url)
-            raise CouldNotGetValidCRLError()
+            raise CouldNotGetValidCRLError("Not found on disk")
 
-        crl = x509.load_der_x509_crl(crl_bytes, default_backend())
+        try:
+            crl = x509.load_der_x509_crl(crl_bytes, default_backend())
+        except ValueError as error:
+            raise CouldNotGetValidCRLError(error) from error
 
-        if not self._validate(crl, issuer):
-            logger.debug("CRL for %s from disk is no longer valid", url)
-            raise CouldNotGetValidCRLError()
+        self._validate(crl, issuer)
 
         logger.debug("Returning CRL for %s from disk", url)
         return crl
@@ -120,30 +117,35 @@ class AppCrlRetriever:
                 f"Got content type: {resp.headers['Content-Type']} for url {url}"
             )
 
-        crl = x509.load_der_x509_crl(crl_bytes, default_backend())
+        try:
+            crl = x509.load_der_x509_crl(crl_bytes, default_backend())
+        except ValueError as error:
+            raise CouldNotGetValidCRLError(error) from error
 
-        if not self._validate(crl, issuer):
-            raise CouldNotGetValidCRLError()
+        self._validate(crl, issuer)
 
         Path("crls", urllib.parse.quote_plus(url)).write_bytes(crl_bytes)
 
         return crl
 
     @staticmethod
-    def _validate(
-        crl: x509.CertificateRevocationList, issuer: x509.Certificate
-    ) -> bool:
+    def _validate(crl: x509.CertificateRevocationList, issuer: x509.Certificate):
         """Validates a crl against a issuer certificate"""
 
         if not (
             crl.next_update > datetime.utcnow() and crl.last_update < datetime.utcnow()
         ):
-            logger.debug("CRL failed date validation")
-            return False
+            raise CouldNotGetValidCRLError(
+                f"CRL failed date validation. "
+                f"Last update: '{crl.last_update}' Next Update: '{crl.next_update}'"
+            )
 
         if not crl.issuer == issuer.subject:
-            logger.debug("CRL failed issuer validation")
-            return False
+            raise CouldNotGetValidCRLError(
+                f"CRL failed issuer validation. "
+                f"Expected: {stringify_x509_name(issuer.subject)} "
+                f"Actual: {stringify_x509_name(crl.issuer)}."
+            )
 
         try:
             issuer.public_key().verify(
@@ -152,11 +154,8 @@ class AppCrlRetriever:
                 PKCS1v15(),
                 crl.signature_hash_algorithm,
             )
-        except InvalidSignature:
-            logger.debug("CRL failed signature validation")
-            return False
-
-        return True
+        except InvalidSignature as error:
+            raise CouldNotGetValidCRLError("CRL failed signature validation") from error
 
 
 class RequestCrlRetriever:
