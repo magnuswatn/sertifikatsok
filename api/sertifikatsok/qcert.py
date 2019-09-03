@@ -133,7 +133,7 @@ class QualifiedCertificate:
             cert_roles.append(CertificateRoles.AUTH)
         if key_usage.content_commitment:
             cert_roles.append(CertificateRoles.SIGN)
-        if key_usage.data_encipherment:
+        if key_usage.data_encipherment or key_usage.key_encipherment:
             cert_roles.append(CertificateRoles.CRYPT)
         return cert_roles
 

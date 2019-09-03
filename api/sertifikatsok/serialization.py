@@ -142,7 +142,9 @@ def _get_norwegian_display_name(cert: QualifiedCertificate) -> Tuple[str, str]:
     """
     Returns the appropriate Norwegian name and application for it
     """
-    if CertificateRoles.SIGN in cert.roles:
+    if len(cert.roles) == 3:
+        return "Altmuligsertifikat", "Signering, kryptering og autentisering"
+    elif CertificateRoles.SIGN in cert.roles:
         return "Signeringssertifikat", "Signering"
     elif CertificateRoles.CRYPT in cert.roles and CertificateRoles.AUTH in cert.roles:
         return "Krypteringssertifikat", "Kryptering og autentisering"
