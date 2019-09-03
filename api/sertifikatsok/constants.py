@@ -36,6 +36,16 @@ KEY_USAGES = [
     ("crl_sign", "CRL signing"),
 ]
 
+EXTENDED_KEY_USAGES = {
+    "2.5.29.37.0": "ANY",
+    "1.3.6.1.5.5.7.3.1": "Server authentication",
+    "1.3.6.1.5.5.7.3.2": "Client authentication",
+    "1.3.6.1.5.5.7.3.3":"Code signing",
+    "1.3.6.1.5.5.7.3.4": "Email protection",
+    "1.3.6.1.5.5.7.3.8": "Time stamping",
+    "1.3.6.1.5.5.7.3.9": "OCSP signing",
+}
+
 # Contains an dict with known Norwegian Qualified certificates
 #
 # The key is a tuple with the issuer, as a string, and the Policy OID

@@ -10,7 +10,13 @@ from cryptography.exceptions import InvalidSignature
 
 
 from .utils import get_subject_order, stringify_x509_name
-from .constants import KNOWN_CERT_TYPES, UNDERENHET_REGEX, SUBJECT_FIELDS, KEY_USAGES
+from .constants import (
+    KNOWN_CERT_TYPES,
+    UNDERENHET_REGEX,
+    SUBJECT_FIELDS,
+    KEY_USAGES,
+    EXTENDED_KEY_USAGES,
+)
 from .enums import CertType, CertificateStatus, CertificateRoles
 
 
@@ -205,6 +211,24 @@ class QualifiedCertificate:
             ):
                 key_usages.append(key_usage[1])
         return ", ".join(key_usages)
+
+    def get_extended_key_usages(self) -> Optional[str]:
+        """Returns a string with the extended key usages from the cert"""
+        try:
+            cert_eku = self.cert.extensions.get_extension_for_oid(
+                ExtensionOID.EXTENDED_KEY_USAGE
+            ).value
+        except x509.ExtensionNotFound:
+            return None
+
+        ekus = []
+        for eku in cert_eku:
+            try:
+                ekus.append(EXTENDED_KEY_USAGES[eku.dotted_string])
+            except KeyError:
+                ekus.append(eku.dotted_string)
+
+        return ", ".join(ekus)
 
 
 class QualifiedCertificateSet(object):

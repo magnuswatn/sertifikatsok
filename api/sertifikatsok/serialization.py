@@ -40,6 +40,8 @@ def qualified_certificate(val):
     info["Gyldig fra"] = val.cert.not_valid_before.isoformat()
     info["Gyldig til"] = val.cert.not_valid_after.isoformat()
     info["Nøkkelbruk"] = val.get_key_usages()
+    eku = val.get_extended_key_usages()
+    info["Utvidet nøkkelbruk"] = eku if eku != None else "(ingen)"
 
     # If the type is unknown only the OID is present in the description
     if val.type == CertType.UNKNOWN:
