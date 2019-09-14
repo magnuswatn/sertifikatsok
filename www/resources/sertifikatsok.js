@@ -322,7 +322,8 @@ const loadPage = function() {
             lastQuery = window.location.search;
             getResponse(window.location.search);
         } else if (window.location.hash !== '#!') {
-            $(window.location.hash).modal('open');
+            const lowerHash = window.location.hash.toLowerCase();
+            $(lowerHash).modal('open');
         } else if (window.location.hash === '#!') {
             $('.modal').modal('close');
         }
