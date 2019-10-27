@@ -199,7 +199,7 @@ const showCertificateSets = function(certificateSets) {
                 certificates[certificate.info['Avtrykk (SHA-1)']] = certBlob;
 
                 const $certificateEntryLink = $('<a/>',
-                    {href: `#${certificate.info['Avtrykk (SHA-1)']}`})
+                    {href: `#${certificate.info['Avtrykk (SHA-1)']}`, id: 'certCard'})
                     .append($fullCertificateEntry);
 
                     $certificateRow.append($certificateEntryLink);
@@ -245,7 +245,7 @@ const loadMaterialize = function() {
             // We must not change the hash when the string modal closes
             // as it is used on top of another modal
             if ($(this).attr('id') !== 'string-modal' ) {
-                window.location.hash = '!';
+	         history.replaceState(null, 'Sertifikatsøk', '#!');
             }
         },
       }
@@ -329,6 +329,9 @@ const loadPage = function() {
         }
     } else {
         // Search view
+        if ($('.modal').hasClass('open')) {
+            $('.modal').modal('close');
+        }
         lastQuery = '';
         loadSearchGUI();
         $('#enterprise-search-value').focus();
@@ -482,6 +485,13 @@ $(document.body).on('click', '#search-button', function() {
 $(document.body).on('click', '#search-test-button', function() {
     search('test');
 });
+
+$(document.body).on('click', '#certCard', function(e) {
+    history.replaceState(null, 'Sertifikatsøk', e.currentTarget.href);
+    loadPage();
+    return false;
+});
+
 
 // The string modal is used on top of another modal,
 // so we need to make sure only that is closed when pressing ESC
