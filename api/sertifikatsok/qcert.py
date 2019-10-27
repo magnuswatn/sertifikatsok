@@ -1,4 +1,5 @@
 import urllib.parse
+import logging
 from datetime import datetime
 from typing import Optional, List, Tuple
 
@@ -18,6 +19,8 @@ from .constants import (
     EXTENDED_KEY_USAGES,
 )
 from .enums import CertType, CertificateStatus, CertificateRoles
+
+logger = logging.getLogger(__name__)
 
 
 class QualifiedCertificate:
@@ -100,9 +103,11 @@ class QualifiedCertificate:
             except KeyError:
                 pass
 
-        # This will only display the last OID,
-        # out of potentially several, but good enough.
-        return (CertType.UNKNOWN, oid)
+        oids = [policy.policy_identifier.dotted_string for policy in cert_policies]
+
+        logger.warn("Unknown certificate type. OIDs=%s Issuer='%s'", oids, self.issuer)
+
+        return (CertType.UNKNOWN, ", ".join(oids))
 
     def _get_http_cdp(self) -> Optional[str]:
         """
@@ -285,6 +290,9 @@ class QualifiedCertificateSet(object):
                 # Certificates in a set should have the same subject,
                 # so if they differ they are not from the same set
                 (cert_set[0].print_subject() != cert.print_subject())
+                or
+                # Certificats in a set should have the same type description
+                (cert_set[0].description != cert.description)
                 or
                 # Commfides seems to issue the Encryption certificates
                 # at a different time than the rest of the certificates

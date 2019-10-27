@@ -117,6 +117,47 @@ KNOWN_CERT_TYPES = {
 
     ("CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.912.1.1.1"):
     (CertType.PERSONAL, "Commfides TEST person-sertifikat"),
+
+
+    # Commfides eIDAS certs
+    ("CN=CPN Person High SHA256 CLASS 3, OU=Commfides Trust Environment (c) 2011 Commfides Norge AS, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.12.10.1.0"):
+    (CertType.PERSONAL, "Commfides person-sertifikat, sentralisert"),
+    ("CN=CPN Person High SHA256 CLASS 3, OU=Commfides Trust Environment (c) 2011 Commfides Norge AS, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.12.11.1.0"):
+    (CertType.PERSONAL, "Commfides person-sertifikat, sentralisert"),
+    ("CN=CPN Person High SHA256 CLASS 3, OU=Commfides Trust Environment (c) 2011 Commfides Norge AS, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.12.12.1.0"):
+    (CertType.PERSONAL, "Commfides person-sertifikat, sentralisert"),
+    ("CN=CPN Person High SHA256 CLASS 3, OU=Commfides Trust Environment (c) 2011 Commfides Norge AS, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.12.20.1.0"):
+    (CertType.PERSONAL, "Commfides ansatt-sertifikat, sentralisert"),
+    ("CN=CPN Person High SHA256 CLASS 3, OU=Commfides Trust Environment (c) 2011 Commfides Norge AS, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.12.21.1.0"):
+    (CertType.PERSONAL, "Commfides ansatt-sertifikat, sentralisert"),
+    ("CN=CPN Person High SHA256 CLASS 3, OU=Commfides Trust Environment (c) 2011 Commfides Norge AS, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.12.22.1.0"):
+    (CertType.PERSONAL, "Commfides ansatt-sertifikat, sentralisert"),
+    ("CN=CPN Person High SHA256 CLASS 3, OU=Commfides Trust Environment (c) 2011 Commfides Norge AS, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.12.30.1.0"):
+    (CertType.PERSONAL, "Commfides ansatt-sertifikat, distribuert"),
+    ("CN=CPN Person High SHA256 CLASS 3, OU=Commfides Trust Environment (c) 2011 Commfides Norge AS, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.12.31.1.0"):
+    (CertType.PERSONAL, "Commfides ansatt-sertifikat, distribuert"),
+    ("CN=CPN Person High SHA256 CLASS 3, OU=Commfides Trust Environment (c) 2011 Commfides Norge AS, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.12.32.1.0"):
+    (CertType.PERSONAL, "Commfides ansatt-sertifikat, distribuert"),
+
+    ("CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.912.10.1.0"):
+    (CertType.PERSONAL, "Commfides TEST person-sertifikat, sentralisert"),
+    ("CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.912.11.1.0"):
+    (CertType.PERSONAL, "Commfides TEST person-sertifikat, sentralisert"),
+    ("CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.912.12.1.0"):
+    (CertType.PERSONAL, "Commfides TEST person-sertifikat, sentralisert"),
+    ("CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.912.20.1.0"):
+    (CertType.PERSONAL, "Commfides TEST ansatt-sertifikat, sentralisert"),
+    ("CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.912.21.1.0"):
+    (CertType.PERSONAL, "Commfides TEST ansatt-sertifikat, sentralisert"),
+    ("CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.912.22.1.0"):
+    (CertType.PERSONAL, "Commfides TEST ansatt-sertifikat, sentralisert"),
+    ("CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.912.30.1.0"):
+    (CertType.PERSONAL, "Commfides TEST ansatt-sertifikat, distribuert"),
+    ("CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.912.31.1.0"):
+    (CertType.PERSONAL, "Commfides TEST ansatt-sertifikat, distribuert"),
+    ("CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.912.32.1.0"):
+    (CertType.PERSONAL, "Commfides TEST ansatt-sertifikat, distribuert"),
+
 }
 
 # fmt: on
