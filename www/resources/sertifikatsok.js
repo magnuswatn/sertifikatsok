@@ -245,7 +245,7 @@ const loadMaterialize = function() {
             // We must not change the hash when the string modal closes
             // as it is used on top of another modal
             if ($(this).attr('id') !== 'string-modal' ) {
-	         history.replaceState(null, 'Sertifikatsøk', '#!');
+                history.replaceState(null, 'Sertifikatsøk', '#!');
             }
         },
       }
@@ -270,20 +270,47 @@ const loadResultGUI = function(response) {
     $('#body-container').empty();
     handleWarnings(response.errors);
 
-    const env = window.location.search.includes('test') ? ' i test' : '';
-
     $amountMessage = $('<h5/>', {'class': 'center-align'});
     $amountMessage.text(`Fant ${response.certificate_sets.length} `+
-                        `sett med sertifikater for ${response.subject}`+
-                        `${env}:`);
+                        `sett med sertifikater for ${response.subject}`);
     $('#body-container').append($amountMessage);
-    $('#body-container').append('<br>');
+
+    $searchDetails = $('<p/>', {'class': 'link-text', 'id': 'searchDetailsTxt'});
+    $searchDetails.text("Trykk her for å se søkedetaljer");
+    $searchDetails.append($('<i/>', {class: 'material-icons tiny', text: 'info_outline'}))
+
+    $('#body-container').append($('<div/>', {'class':'center-align'}).append($searchDetails));
+    updateSearchDetailsModal(response.searchDetails)
 
     showCertificateSets(response.certificate_sets);
     loadMaterialize();
     if (window.location.hash !== '#!') {
         $(window.location.hash).modal('open');
     }
+};
+
+const updateSearchDetailsModal = function(searchDetails) {
+
+    $modal = $('#sokedetaljer-modal');
+    $modal.modal();
+    const values = [
+        'Miljø', 'Type', 'Søkefilter',
+        'LDAP-servere forespurt', 'Korrelasjonsid'
+    ];
+
+    $table = $modal.find('tbody');
+    $table.empty();
+
+    values.forEach(function(value) {
+        $row = $('<tr/>');
+        $boldText = $('<b/>').text(value);
+        $row.append($('<td/>').append($boldText));
+        $row.append($('<td/>').text(searchDetails[value]));
+        $table.append($row);
+    });
+
+    $modal.modal('open');
+    $('#modals').append($modal);
 };
 
 const getResponse = async function(query) {
@@ -477,6 +504,12 @@ $(document.body).on('click', '#logo', function() {
     loadPage();
     return false;
 });
+
+$(document.body).on('click', '#searchDetailsTxt', function() {
+    $('#sokedetaljer-modal').modal();
+    $('#sokedetaljer-modal').modal('open');
+});
+
 
 $(document.body).on('click', '#search-button', function() {
     search('prod');

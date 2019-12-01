@@ -7,7 +7,7 @@ from operator import attrgetter
 from functools import singledispatch
 
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
-from .enums import CertType, CertificateStatus, CertificateRoles
+from .enums import CertType, CertificateStatus, CertificateRoles, Environment
 from .search import CertificateSearch
 
 from cryptography.hazmat.primitives import hashes
@@ -120,6 +120,28 @@ def certificate_search(val):
             result["subject"] = "{} ({})".format(org_name, val.query)
     else:
         result["subject"] = val.query
+
+    if val.env == Environment.TEST:
+        search_env = "Test"
+    elif val.env == Environment.PROD:
+        search_env = "Produksjon"
+    else:
+        search_env = "Ukjent"
+
+    if val.typ == CertType.PERSONAL:
+        search_type = "Personlig sertifikater"
+    elif val.typ == CertType.ENTERPRISE:
+        search_type = "Virksomhetssertifikater"
+    else:
+        search_type = "Ukjent"
+
+    result["searchDetails"] = {
+        "Type": search_type,
+        "Søkefilter": val.search_filter,
+        "Miljø": search_env,
+        "LDAP-servere forespurt": ", ".join(val._ldap_servers),
+        "Korrelasjonsid": val.correlation_id,
+    }
 
     return result
 

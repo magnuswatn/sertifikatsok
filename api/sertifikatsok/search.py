@@ -21,17 +21,19 @@ logger = logging.getLogger(__name__)
 
 
 class CertificateSearch:
-    def __init__(self, env, typ, query, crl_retriever, cert_retriever):
+    def __init__(self, env, typ, query, crl_retriever, cert_retriever, correlation_id):
         self.env = env
         self.typ = typ
         self.query = query
         self.org_number_search = False
+        self.correlation_id = correlation_id
         self.results = []
         self.errors = []
         self.warnings = []
         self.cert_retriever = cert_retriever
         self.crl_retriever = crl_retriever
         self._tasks = [self.query_buypass, self.query_commfides]
+        self._ldap_servers = []
 
         # If the query is an organization number,or an norwegian personal
         # serial number, we search in the serialNumber field, otherwise
@@ -84,6 +86,7 @@ class CertificateSearch:
             query,
             request.app["CrlRetriever"].get_retriever_for_request(),
             request.app["CertRetrievers"][org_env],
+            request["correlation_id"],
         )
 
     @property
@@ -98,11 +101,13 @@ class CertificateSearch:
     async def query_buypass(self):
         logger.debug("Starting: Buypass query")
         if self.env == Environment.TEST:
-            server = "ldap://ldap.test4.buypass.no"
+            server = "ldap.test4.buypass.no"
             base = "dc=Buypass,dc=no,CN=Buypass Class 3 Test4"
         else:
-            server = "ldap://ldap.buypass.no"
+            server = "ldap.buypass.no"
             base = "dc=Buypass,dc=no,CN=Buypass Class 3"
+
+        self._ldap_servers.append(server)
 
         try:
             self.results.extend(await self.do_ldap_search(server, base, retry=True))
@@ -116,9 +121,9 @@ class CertificateSearch:
     async def query_commfides(self):
         logger.debug("Starting: Commfides query")
         if self.env == Environment.TEST:
-            server = "ldap://ldap.test.commfides.com"
+            server = "ldap.test.commfides.com"
         else:
-            server = "ldap://ldap.commfides.com"
+            server = "ldap.commfides.com"
 
         if self.typ == CertType.PERSONAL:
             # We only search for Person-High
@@ -126,6 +131,8 @@ class CertificateSearch:
             base = "ou=Person-High,dc=commfides,dc=com"
         else:
             base = "ou=Enterprise,dc=commfides,dc=com"
+
+        self._ldap_servers.append(server)
 
         try:
             self.results.extend(await self.do_ldap_search(server, base))
@@ -144,7 +151,7 @@ class CertificateSearch:
         certs we have already gotten. The queries get uglier and uglier,
         so this shouldn't be repeatet too many times
         """
-        client = bonsai.LDAPClient(server)
+        client = bonsai.LDAPClient(f"ldap://{server}")
         count = 0
         all_results = []
         search_filter = self.search_filter

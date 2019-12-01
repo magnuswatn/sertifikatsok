@@ -68,3 +68,8 @@ main {
 .string-modal {
   z-index: 20000 !important;
 }
+
+.link-text {
+  cursor: pointer;
+  display: inline-block;
+}

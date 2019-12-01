@@ -43,6 +43,7 @@ async def error_middleware(request, handler):
 async def correlation_middleware(request, handler):
     correlation_id = str(uuid.uuid4())
     context.set(key="correlation_id", value=correlation_id)
+    request["correlation_id"] = correlation_id
     response = await handler(request)
     response.headers["Correlation-Id"] = correlation_id
     return response
