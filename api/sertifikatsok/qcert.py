@@ -362,7 +362,7 @@ class QualifiedCertificateSet(object):
         for cert in self.certs:
             filter_parts.append(f"certificateSerialNumber={cert.cert.serial_number}")
         ldap_filter = ")(".join(filter_parts)
-        ldap_url = "{}/{}?usercertificate;binary?sub?(|({}))".format(
+        ldap_url = "ldap://{}/{}?usercertificate;binary?sub?(|({}))".format(
             self.certs[0].ldap_params[0],
             urllib.parse.quote(self.certs[0].ldap_params[1], safe="=,"),
             ldap_filter,
