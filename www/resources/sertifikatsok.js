@@ -578,17 +578,17 @@ $(document.body).on('keyup', '#enterprise-search-value', async function() {
 });
 
 const getCompanies = async function(startOfName) {
-    const url='https://data.brreg.no/enhetsregisteret/enhet.json';
-    const filter={
-        $filter: `startswith(navn,'${startOfName}')`,
+    const url = 'https://data.brreg.no/enhetsregisteret/api/enheter';
+    const filter = {
+        navn: startOfName
     };
     const response = await $.getJSON(url, filter);
 
-    companies = {};
-    if (response.data) {
-        for (let i=0, len=response.data.length; i<len; i++) {
-            companies[`${response.data[i].navn} `+
-                      `(${response.data[i].organisasjonsnummer})`] = null;
+    const companies = {};
+    if (response._embedded.enheter) {
+        for (let i=0, len=response._embedded.enheter.length; i<len; i++) {
+            companies[`${response._embedded.enheter[i].navn} ` +
+        `(${response._embedded.enheter[i].organisasjonsnummer})`] = null;
         }
     };
     return companies;
