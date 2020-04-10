@@ -198,17 +198,19 @@ class CertificateSearch:
 
         qualified_certs = []
         for result in search_results:
+            raw_cert = result.get("userCertificate;binary")
+            if raw_cert is None or len(raw_cert) < 1:
+                # Commfides have entries in their LDAP without a cert...
+                continue
+
             try:
                 qualified_cert = await QualifiedCertificate.create(
-                    result["userCertificate;binary"][0],
+                    raw_cert[0],
                     str(result.dn),
                     (server, base),
                     self.crl_retriever,
                     self.cert_retriever,
                 )
-            except KeyError:
-                # Commfides have entries in their LDAP without a cert...
-                continue
             except ValueError:
                 # https://github.com/magnuswatn/sertifikatsok/issues/22
                 logging.exception("ValueError while decoding certificate")
