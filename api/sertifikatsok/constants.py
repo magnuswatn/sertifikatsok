@@ -38,6 +38,7 @@ KEY_USAGES = [
 ]
 
 EXTENDED_KEY_USAGES = {
+    "0.4.0.2231.3.0": "TSL signing",
     "2.5.29.37.0": "ANY",
     "1.3.6.1.5.5.7.3.1": "Server authentication",
     "1.3.6.1.5.5.7.3.2": "Client authentication",
@@ -45,6 +46,8 @@ EXTENDED_KEY_USAGES = {
     "1.3.6.1.5.5.7.3.4": "Email protection",
     "1.3.6.1.5.5.7.3.8": "Time stamping",
     "1.3.6.1.5.5.7.3.9": "OCSP signing",
+    "1.3.6.1.4.1.311.10.3.4": "Microsoft Encrypted File System",
+    "1.3.6.1.4.1.311.10.3.12": "Microsoft Document Signing",
     "1.3.6.1.4.1.311.20.2.2": "Microsoft Smart Card Logon",
 }
 
