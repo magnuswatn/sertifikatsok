@@ -22,6 +22,7 @@ SUBJECT_FIELDS = {
     "2.5.4.4": "SN",
     "2.5.4.42": "GN",
     "2.5.4.11": "OU",
+    "2.5.4.97": "organizationIdentifier",
     "1.2.840.113549.1.9.1": "email",
 }
 
