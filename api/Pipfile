@@ -13,6 +13,6 @@ aiotask-context = "*"
 [dev-packages]
 pytest = "*"
 pylint = "*"
-black = "==19.3b0"
+black = "==19.10b0"
 mypy = "*"
 aiohttp-swagger = "*"
