@@ -9,6 +9,7 @@ aiohttp = "*"
 cryptography = ">=2.4.2"
 uvloop = "*"
 aiotask-context = "*"
+attrs = "*"
 
 [dev-packages]
 pytest = "*"

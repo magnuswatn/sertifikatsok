@@ -52,8 +52,8 @@ async def correlation_middleware(request, handler):
 async def init_app(app):
     app["CrlRetriever"] = AppCrlRetriever()
     app["CertRetrievers"] = {
-        "test": CertRetriever("test"),
-        "prod": CertRetriever("prod"),
+        "test": CertRetriever.create("test"),
+        "prod": CertRetriever.create("prod"),
     }
 
 

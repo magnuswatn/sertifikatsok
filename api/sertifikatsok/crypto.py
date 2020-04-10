@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List
 
+import attr
 import aiohttp
 
 from cryptography import x509
@@ -19,6 +20,7 @@ from .logging import performance_log
 logger = logging.getLogger(__name__)
 
 
+@attr.s(frozen=True, slots=True)
 class AppCrlRetriever:
     """
     CRL retriever for an app instance.
@@ -28,8 +30,7 @@ class AppCrlRetriever:
     Only returns valid CRLs.
     """
 
-    def __init__(self) -> None:
-        self.crls: Dict[str, x509.CertificateRevocationList] = {}
+    crls: Dict[str, x509.CertificateRevocationList] = attr.ib(factory=dict)
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
@@ -158,6 +159,7 @@ class AppCrlRetriever:
             raise CouldNotGetValidCRLError("CRL failed signature validation") from error
 
 
+@attr.s(frozen=True, slots=True)
 class RequestCrlRetriever:
     """
     CRL retriever for a single request.
@@ -166,10 +168,9 @@ class RequestCrlRetriever:
     so objects should not be long-lived.
     """
 
-    def __init__(self, crl_retriever: AppCrlRetriever):
-        self.crls: Dict[str, x509.CertificateRevocationList] = {}
-        self.crl_retriever = crl_retriever
-        self.errors: List[str] = []
+    crl_retriever = attr.ib()
+    crls: Dict[str, x509.CertificateRevocationList] = attr.ib(factory=dict)
+    errors: List[str] = attr.ib(factory=list)
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
@@ -196,10 +197,14 @@ class RequestCrlRetriever:
         return crl
 
 
+@attr.s(frozen=True, slots=True)
 class CertRetriever:
-    def __init__(self, env: str) -> None:
-        self.certs: Dict[str, x509.Certificate] = {}
-        self._load_all_certs(env)
+    certs: Dict[str, x509.Certificate] = attr.ib()
+
+    @classmethod
+    def create(cls, env):
+        certs = cls._load_all_certs(env)
+        return cls(certs)
 
     def retrieve(self, name: str) -> x509.Certificate:
         """
@@ -210,22 +215,25 @@ class CertRetriever:
         except KeyError:
             return None
 
-    def _load_certificate(self, path: Path):
+    @staticmethod
+    def _load_certificate(path: Path, certs: Dict[str, x509.Certificate]):
         cert = x509.load_pem_x509_certificate(path.read_bytes(), default_backend())
         cert_name = stringify_x509_name(cert.subject)
-        self.certs[cert_name] = cert
-        logger.debug("Loaded trusted certificate %s from %s", cert_name, path)
+        certs[cert_name] = cert
+        logger.debug("Loaded trusted certificate '%s' from '%s'", cert_name, path)
 
-    def _load_all_certs(self, env: str):
-        count = 0
+    @classmethod
+    def _load_all_certs(cls, env: str):
+        certs: Dict[str, x509.Certificate] = {}
         for path in Path("certs", env).iterdir():
             if path.is_file():
                 try:
-                    self._load_certificate(path)
+                    cls._load_certificate(path, certs)
                 except (IOError, ValueError):
                     logger.exception(
                         "Could not load '%s' as a trusted certificate", path
                     )
-                else:
-                    count += 1
-        logger.info("Loaded %d trusted certificates from file for env %s", count, env)
+        logger.info(
+            "Loaded %d trusted certificates from file for env %s", len(certs), env
+        )
+        return certs

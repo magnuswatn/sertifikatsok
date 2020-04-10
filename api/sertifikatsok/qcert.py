@@ -3,6 +3,8 @@ import logging
 from datetime import datetime
 from typing import Optional, List, Tuple
 
+import attr
+
 from cryptography import x509
 from cryptography.x509.oid import ExtensionOID, NameOID
 from cryptography.hazmat.backends import default_backend
@@ -236,27 +238,37 @@ class QualifiedCertificate:
         return ", ".join(ekus)
 
 
-class QualifiedCertificateSet(object):
+@attr.s(frozen=True, slots=True)
+class QualifiedCertificateSet:
     """Represents a set of Norwegian qualified certificates"""
 
-    def __init__(self, certs):
-        self.certs = certs
+    certs = attr.ib()
+    main_cert = attr.ib()
+    status = attr.ib()
+    revocation_date = attr.ib()
+    org_number = attr.ib()
+    underenhet = attr.ib()
+
+    @classmethod
+    def create(cls, certs):
 
         # Commfides issues encryption certs with longer validity than
         # the rest of the certificates in the set, so we shouldn't use
         # that to check the validity of the set. Therefore we try to find
         # a non-encryption cert to use as the "main cert" of the set.
-        self.main_cert = self._get_non_encryption_cert()
+        main_cert = cls._get_non_encryption_cert(certs)
 
-        self.status = self.main_cert.status
-        self.revocation_date = None
-        # Just to be sure we don't label a set with a revoked cert in it as OK
-        for cert in self.certs:
+        status = main_cert.status
+        revocation_date = None
+        # Just to be sure we don't label a set
+        # with a revoked cert in it as OK
+        for cert in certs:
             if cert.status == CertificateStatus.REVOKED:
-                self.status = cert.status
-                self.revocation_date = cert.revocation_date
+                status = cert.status
+                revocation_date = cert.revocation_date
 
-        self.org_number, self.underenhet = self.main_cert.get_orgnumber()
+        org_number, underenhet = main_cert.get_orgnumber()
+        return cls(certs, main_cert, status, revocation_date, org_number, underenhet)
 
     @classmethod
     def create_sets_from_certs(
@@ -308,7 +320,7 @@ class QualifiedCertificateSet(object):
                 # A set can't contain several certs of the same type
                 [i for i in cert.roles if i in cert_set_roles]
             ):
-                cert_sets.append(cls(cert_set))
+                cert_sets.append(cls.create(cert_set))
                 cert_set = []
                 cert_set_roles = cert.roles.copy()
             else:
@@ -317,23 +329,24 @@ class QualifiedCertificateSet(object):
             cert_set.append(cert)
             counter += 1
 
-        cert_sets.append(cls(cert_set))
+        cert_sets.append(cls.create(cert_set))
         return cert_sets
 
-    def _get_non_encryption_cert(self) -> QualifiedCertificate:
+    @staticmethod
+    def _get_non_encryption_cert(certs) -> QualifiedCertificate:
         """
         This tries to find an non-encryption certificate in the
         certificate set and return that.
 
         If none is found, the first cert in the set is returned.
         """
-        for cert in self.certs:
+        for cert in certs:
             key_usage = cert.cert.extensions.get_extension_for_oid(
                 ExtensionOID.KEY_USAGE
             ).value
             if not key_usage.data_encipherment:
                 return cert
-        return self.certs[0]
+        return certs[0]
 
     @property
     def valid_to(self):
