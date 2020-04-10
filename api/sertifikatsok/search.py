@@ -209,6 +209,11 @@ class CertificateSearch:
             except KeyError:
                 # Commfides have entries in their LDAP without a cert...
                 continue
+            except ValueError:
+                # https://github.com/magnuswatn/sertifikatsok/issues/22
+                logging.exception("ValueError while decoding certificate")
+                self.errors.append("ERR-005")
+                continue
 
             if qualified_cert.type in (self.typ, CertType.UNKNOWN):
                 qualified_certs.append(qualified_cert)

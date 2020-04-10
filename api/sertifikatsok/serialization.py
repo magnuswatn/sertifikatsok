@@ -194,4 +194,9 @@ def _get_norwegian_error_message(error_code: str) -> str:
             "Det er mulig noen gamle sertifikater ikke vises, "
             "da søket returnerte for mange resultater"
         )
+    if error_code == "ERR-005":
+        return (
+            "Ikke alle sertifikatene vises, da søket returnerte "
+            "noen feilformaterte sertifikater"
+        )
     return "Det har skjedd en ukjent feil"
