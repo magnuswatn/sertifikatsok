@@ -233,6 +233,7 @@ class QualifiedCertificate:
             try:
                 ekus.append(EXTENDED_KEY_USAGES[eku.dotted_string])
             except KeyError:
+                logger.warn("Unknown EKU. OID=%s", eku.dotted_string)
                 ekus.append(eku.dotted_string)
 
         return ", ".join(ekus)
