@@ -5,7 +5,10 @@ SERVICE_USER=caddy
 SERVICE_GROUP=caddy
 
 # On RHEL with Python3.6 installed from EPEL it is currently
-# only known as python36, not python3
+# only known as python36, not python3.
+# (We disable ShellCheck because we check the Python version afterwards,
+# to get a better error message).
+# shellcheck disable=SC2155
 export PYTHON=$(type -P python36 || type -P python3)
 if [[ -z $PYTHON ]]; then
   echo "python3(6) was not found. Exiting"
@@ -37,9 +40,9 @@ mv sertifikatsok.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable sertifikatsok
 
-chown $SERVICE_USER:$SERVICE_GROUP $BIN_DIR -R
+chown $SERVICE_USER:$SERVICE_GROUP "$BIN_DIR" -R
 
-cd $BIN_DIR
+cd "$BIN_DIR"
 su $SERVICE_USER -c "$PYTHON -m venv pipenv-venv"
 su $SERVICE_USER -c "pipenv-venv/bin/pip install --upgrade pip"
 su $SERVICE_USER -c "pipenv-venv/bin/pip install pipenv"
