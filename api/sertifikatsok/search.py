@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+import attr
 import bonsai
 
 from .constants import (
@@ -223,6 +224,24 @@ class CertificateSearch:
         logger.debug("End: parsing certificates from %s", server)
         return qualified_certs
 
-    def finish(self):
+    async def get_response(self):
+        await asyncio.gather(*self.tasks)
         self.errors.extend(self.crl_retriever.errors)
-        self.cert_sets = QualifiedCertificateSet.create_sets_from_certs(self.results)
+        return CertificateSearchResponse.create(self)
+
+
+@attr.s(frozen=True, slots=True)
+class CertificateSearchResponse:
+    search = attr.ib()
+    cert_sets = attr.ib()
+    warnings = attr.ib()
+    errors = attr.ib()
+
+    @classmethod
+    def create(cls, search: CertificateSearch):
+        cert_sets = QualifiedCertificateSet.create_sets_from_certs(search.results)
+        return cls(search, cert_sets, search.warnings, search.errors)
+
+    @property
+    def cacheable(self):
+        return not self.errors

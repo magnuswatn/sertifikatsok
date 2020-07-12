@@ -91,21 +91,19 @@ async def api_endpoint(request):
 
     certificate_search = CertificateSearch.create_from_request(request)
 
-    await asyncio.gather(*certificate_search.tasks)
-
-    certificate_search.finish()
+    search_response = await certificate_search.get_response()
 
     # web.json_response() doesn't set ensure_ascii = False
     # so the æøås get messed up
     response = web.Response(
         text=json.dumps(
-            certificate_search, ensure_ascii=False, default=sertifikatsok_serialization
+            search_response, ensure_ascii=False, default=sertifikatsok_serialization
         ),
         status=200,
         content_type="application/json",
     )
 
-    if certificate_search.cacheable:
+    if search_response.cacheable:
         cache_control = "public, max-age=300"
     else:
         cache_control = "no-cache, no-store, must-revalidate, private, s-maxage=0"

@@ -8,7 +8,7 @@ from functools import singledispatch
 
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
 from .enums import CertType, CertificateStatus, CertificateRoles, Environment
-from .search import CertificateSearch
+from .search import CertificateSearchResponse
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import Encoding
@@ -91,7 +91,7 @@ def qualified_certificate_set(val):
     return dumped
 
 
-@sertifikatsok_serialization.register(CertificateSearch)
+@sertifikatsok_serialization.register(CertificateSearchResponse)
 def certificate_search(val):
     result = {}
 
@@ -108,39 +108,39 @@ def certificate_search(val):
     result["certificate_sets"].sort(key=attrgetter("valid_from"), reverse=True)
 
     # this is horrible and must be replaced.
-    if val.org_number_search and val.results:
+    if val.search.org_number_search and val.search.results:
         subject = result["certificate_sets"][0].subject.split(",")
         try:
             org_name = [
                 part.split("=")[1] for part in subject if part.startswith(" O=")
             ][0]
         except IndexError:
-            result["subject"] = val.query
+            result["subject"] = val.search.query
         else:
-            result["subject"] = "{} ({})".format(org_name, val.query)
+            result["subject"] = "{} ({})".format(org_name, val.search.query)
     else:
-        result["subject"] = val.query
+        result["subject"] = val.search.query
 
-    if val.env == Environment.TEST:
+    if val.search.env == Environment.TEST:
         search_env = "Test"
-    elif val.env == Environment.PROD:
+    elif val.search.env == Environment.PROD:
         search_env = "Produksjon"
     else:
         search_env = "Ukjent"
 
-    if val.typ == CertType.PERSONAL:
+    if val.search.typ == CertType.PERSONAL:
         search_type = "Personlig sertifikater"
-    elif val.typ == CertType.ENTERPRISE:
+    elif val.search.typ == CertType.ENTERPRISE:
         search_type = "Virksomhetssertifikater"
     else:
         search_type = "Ukjent"
 
     result["searchDetails"] = {
         "Type": search_type,
-        "Søkefilter": val.search_filter,
+        "Søkefilter": val.search.search_filter,
         "Miljø": search_env,
-        "LDAP-servere forespurt": ", ".join(val._ldap_servers),
-        "Korrelasjonsid": val.correlation_id,
+        "LDAP-servere forespurt": ", ".join(val.search._ldap_servers),
+        "Korrelasjonsid": val.search.correlation_id,
     }
 
     return result
