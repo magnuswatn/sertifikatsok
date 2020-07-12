@@ -246,12 +246,12 @@ class QualifiedCertificate:
 class QualifiedCertificateSet:
     """Represents a set of Norwegian qualified certificates"""
 
-    certs = attr.ib()
-    main_cert = attr.ib()
-    status = attr.ib()
-    revocation_date = attr.ib()
-    org_number = attr.ib()
-    underenhet = attr.ib()
+    certs: List[QualifiedCertificate] = attr.ib()
+    main_cert: QualifiedCertificate = attr.ib()
+    status: CertificateStatus = attr.ib()
+    revocation_date: Optional[datetime] = attr.ib()
+    org_number: str = attr.ib()
+    underenhet: bool = attr.ib()
 
     @classmethod
     def create(cls, certs):
