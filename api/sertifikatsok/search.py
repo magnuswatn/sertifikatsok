@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import List
 
 import attr
 import bonsai
@@ -13,6 +14,7 @@ from .constants import (
 from .enums import CertType, Environment, SearchAttribute
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
 from .errors import ClientError
+from .crypto import RequestCrlRetriever, CertRetriever
 from .logging import audit_log, performance_log
 
 # black and pylint doesn't agree on everything
@@ -21,30 +23,39 @@ from .logging import audit_log, performance_log
 logger = logging.getLogger(__name__)
 
 
+@attr.s(slots=True)
 class CertificateSearch:
-    def __init__(self, env, typ, query, crl_retriever, cert_retriever, correlation_id):
-        self.env = env
-        self.typ = typ
-        self.correlation_id = correlation_id
-        self.results = []
-        self.errors = []
-        self.warnings = []
-        self.cert_retriever = cert_retriever
-        self.crl_retriever = crl_retriever
-        self._ldap_servers = []
+    env: str = attr.ib()
+    typ: str = attr.ib()
+    query: str = attr.ib()
+    search_attr: SearchAttribute = attr.ib()
+    correlation_id: str = attr.ib()
+    cert_retriever: CertRetriever = attr.ib()
+    crl_retriever: RequestCrlRetriever = attr.ib()
+    errors: List[str] = attr.ib(factory=list)
+    warnings: List[str] = attr.ib(factory=list)
+    _ldap_servers: List[str] = attr.ib(factory=list)
+    results: List[QualifiedCertificate] = attr.ib(factory=list)
+
+    @classmethod
+    def create(cls, env, typ, query, crl_retriever, cert_retriever, correlation_id):
 
         # If the query is an organization number,or an norwegian personal
         # serial number, we search in the serialNumber field, otherwise
         # the commonName field.
-        if self.typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
-            self.search_attr = SearchAttribute.SN
-            self.query = query.replace(" ", "")
-        elif self.typ == CertType.PERSONAL and PERSONAL_SERIAL_REGEX.fullmatch(query):
-            self.search_attr = SearchAttribute.SN
-            self.query = query
+        if typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
+            search_attr = SearchAttribute.SN
+            query = query.replace(" ", "")
+        elif typ == CertType.PERSONAL and PERSONAL_SERIAL_REGEX.fullmatch(query):
+            search_attr = SearchAttribute.SN
+            query = query
         else:
-            self.search_attr = SearchAttribute.CN
-            self.query = bonsai.escape_filter_exp(query)
+            search_attr = SearchAttribute.CN
+            query = bonsai.escape_filter_exp(query)
+
+        return cls(
+            env, typ, query, search_attr, correlation_id, cert_retriever, crl_retriever
+        )
 
     @classmethod
     def create_from_request(cls, request):
@@ -72,7 +83,7 @@ class CertificateSearch:
 
         audit_log(request)
 
-        return cls(
+        return cls.create(
             env,
             typ,
             query,
@@ -230,10 +241,10 @@ class CertificateSearch:
 
 @attr.s(frozen=True, slots=True)
 class CertificateSearchResponse:
-    search = attr.ib()
-    cert_sets = attr.ib()
-    warnings = attr.ib()
-    errors = attr.ib()
+    search: CertificateSearch = attr.ib()
+    cert_sets: List[QualifiedCertificateSet] = attr.ib()
+    warnings: List[str] = attr.ib()
+    errors: List[str] = attr.ib()
 
     @classmethod
     def create(cls, search: CertificateSearch):
