@@ -24,3 +24,8 @@ class CertificateRoles(Enum):
     AUTH = 1
     SIGN = 2
     CRYPT = 3
+
+
+class SearchAttribute(Enum):
+    CN = "cn"
+    SN = "serialNumber"

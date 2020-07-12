@@ -10,7 +10,7 @@ from .constants import (
     LDAP_RETRIES,
     LDAP_TIMEOUT,
 )
-from .enums import CertType, Environment
+from .enums import CertType, Environment, SearchAttribute
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
 from .errors import ClientError
 from .logging import audit_log, performance_log
@@ -25,35 +25,26 @@ class CertificateSearch:
     def __init__(self, env, typ, query, crl_retriever, cert_retriever, correlation_id):
         self.env = env
         self.typ = typ
-        self.query = query
-        self.org_number_search = False
         self.correlation_id = correlation_id
         self.results = []
         self.errors = []
         self.warnings = []
         self.cert_retriever = cert_retriever
         self.crl_retriever = crl_retriever
-        self._tasks = [self.query_buypass, self.query_commfides]
         self._ldap_servers = []
 
         # If the query is an organization number,or an norwegian personal
         # serial number, we search in the serialNumber field, otherwise
         # the commonName field.
         if self.typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
-            self.search_filter = f"(serialNumber={query.replace(' ', '')})"
-            self.org_number_search = True
+            self.search_attr = SearchAttribute.SN
+            self.query = query.replace(" ", "")
         elif self.typ == CertType.PERSONAL and PERSONAL_SERIAL_REGEX.fullmatch(query):
-            self.search_filter = f"(serialNumber={query})"
-
-            # only search the relevant ca
-            ca_id = query.split("-")[1]
-            if ca_id in ("4050"):
-                self._tasks = [self.query_buypass]
-            elif ca_id in ("4505", "4510"):
-                self._tasks = [self.query_commfides]
+            self.search_attr = SearchAttribute.SN
+            self.query = query
         else:
-            escaped_ldap_filter = bonsai.escape_filter_exp(query)
-            self.search_filter = f"(cn={escaped_ldap_filter})"
+            self.search_attr = SearchAttribute.CN
+            self.query = bonsai.escape_filter_exp(query)
 
     @classmethod
     def create_from_request(cls, request):
@@ -91,12 +82,8 @@ class CertificateSearch:
         )
 
     @property
-    def cacheable(self):
-        return not self.errors
-
-    @property
-    def tasks(self):
-        return [task() for task in self._tasks]
+    def search_filter(self):
+        return f"({self.search_attr.value}={self.query})"
 
     @performance_log()
     async def query_buypass(self):
@@ -225,7 +212,18 @@ class CertificateSearch:
         return qualified_certs
 
     async def get_response(self):
-        await asyncio.gather(*self.tasks)
+        tasks = [self.query_buypass, self.query_commfides]
+
+        if self.typ == CertType.PERSONAL and self.search_attr == SearchAttribute.SN:
+            # If we are searching for personal certificates by serial number,
+            # we can limit our search to only the relevant CA.
+            ca_id = self.search_filter.split("-")[1]
+            if ca_id in ("4050"):
+                tasks = [self.query_buypass]
+            elif ca_id in ("4505", "4510"):
+                tasks = [self.query_commfides]
+
+        await asyncio.gather(*[task() for task in tasks])
         self.errors.extend(self.crl_retriever.errors)
         return CertificateSearchResponse.create(self)
 

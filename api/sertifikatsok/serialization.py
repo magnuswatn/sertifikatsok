@@ -7,7 +7,13 @@ from operator import attrgetter
 from functools import singledispatch
 
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
-from .enums import CertType, CertificateStatus, CertificateRoles, Environment
+from .enums import (
+    CertType,
+    CertificateStatus,
+    CertificateRoles,
+    Environment,
+    SearchAttribute,
+)
 from .search import CertificateSearchResponse
 
 from cryptography.hazmat.primitives import hashes
@@ -108,7 +114,11 @@ def certificate_search(val):
     result["certificate_sets"].sort(key=attrgetter("valid_from"), reverse=True)
 
     # this is horrible and must be replaced.
-    if val.search.org_number_search and val.search.results:
+    if (
+        val.search.typ == CertType.ENTERPRISE
+        and val.search.search_attr == SearchAttribute.SN
+        and val.search.results
+    ):
         subject = result["certificate_sets"][0].subject.split(",")
         try:
             org_name = [
