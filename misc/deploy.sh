@@ -30,7 +30,7 @@ pipenv_python="$("${PIPENV_VENV}/bin/pipenv" --py)"
 
 temp_dir=$(mktemp --directory)
 
-cp "$DIR/../www/*" "$temp_dir" -R
+cp "$DIR/../www/." "$temp_dir" -R
 cd "$temp_dir"
 
 # sertifikatsok.js and .css are subject to change, so best to add some cache busting
