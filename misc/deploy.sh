@@ -27,6 +27,7 @@ WORKON_HOME="${BIN_DIR}/venvs/$(date +%s)"
 export WORKON_HOME
 "$PIPENV_VENV/bin/pipenv" install --deploy
 pipenv_python="$("${PIPENV_VENV}/bin/pipenv" --py)"
+venv_path="$(realpath "$(dirname "${pipenv_python}")/..")"
 
 temp_dir=$(mktemp --directory)
 
@@ -53,7 +54,7 @@ find "$temp_dir" -type f -not -name '*.png' -exec $BROTLI '{}' \;
 rsync "$temp_dir/" $WWW_DIR --delete --recursive --checksum
 
 rm -Rf "$temp_dir"
-ln -sf "${pipenv_python}" "${BIN_DIR}/python"
+ln -sf "${venv_path}" "${BIN_DIR}/venv"
 sudo /usr/bin/systemctl restart $SERVICE_NAME
 
 echo "$head" > "${BIN_DIR}/last_deploy"

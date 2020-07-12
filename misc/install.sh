@@ -22,6 +22,7 @@ fi
 
 APP_DIR="$(readlink -f ../api)"
 BIN_DIR="$(readlink -f ../../)"
+VENV_DIR="${BIN_DIR}/venv"
 
 cp sudoersfile 99-sertifikatsok
 sed -i -e "s/SERVICE_USER/$SERVICE_GROUP/" 99-sertifikatsok
@@ -31,8 +32,10 @@ mv 99-sertifikatsok /etc/sudoers.d
 cp systemdfile sertifikatsok.service
 ESCAPED_APP_PATH=${APP_DIR////\\/}
 ESCAPED_BIN_PATH=${BIN_DIR////\\/}
+ESCAPED_VENV_PATH=${VENV_DIR////\\/}
 sed -i -e "s/APPHOME/$ESCAPED_APP_PATH/" sertifikatsok.service
 sed -i -e "s/BINHOME/$ESCAPED_BIN_PATH/" sertifikatsok.service
+sed -i -e "s/VENV/$ESCAPED_VENV_PATH/" sertifikatsok.service
 sed -i -e "s/SERVICE_USER/$SERVICE_USER/" sertifikatsok.service
 sed -i -e "s/SERVICE_GROUP/$SERVICE_GROUP/" sertifikatsok.service
 
