@@ -20,3 +20,9 @@ class CouldNotGetValidCRLError(SertifikatSokError):
     """Signifies that we could not download a valid crl"""
 
     pass
+
+
+class ConfigurationError(SertifikatSokError):
+    """Sertifikatsok was configured incorrectly"""
+
+    pass

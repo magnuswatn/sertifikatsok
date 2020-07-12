@@ -3,7 +3,7 @@ import logging
 import urllib.parse
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Optional, cast
 
 import attr
 import aiohttp
@@ -11,9 +11,10 @@ import aiohttp
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.exceptions import InvalidSignature
 
-from .errors import CouldNotGetValidCRLError
+from .errors import CouldNotGetValidCRLError, ConfigurationError
 from .utils import stringify_x509_name
 from .logging import performance_log
 
@@ -56,7 +57,9 @@ class AppCrlRetriever:
         """
         return RequestCrlRetriever(self)
 
-    def _get_cached_crl(self, url: str, issuer: str) -> x509.CertificateRevocationList:
+    def _get_cached_crl(
+        self, url: str, issuer: x509.Certificate
+    ) -> x509.CertificateRevocationList:
         """Returnes CRL from memory"""
         try:
             crl = self.crls[url]
@@ -149,7 +152,9 @@ class AppCrlRetriever:
             )
 
         try:
-            issuer.public_key().verify(
+            # cast because mypy. The type of key is checked
+            # when it is loaded in CertRetriever.
+            cast(RSAPublicKey, issuer.public_key()).verify(
                 crl.signature,
                 crl.tbs_certlist_bytes,
                 PKCS1v15(),
@@ -206,7 +211,7 @@ class CertRetriever:
         certs = cls._load_all_certs(env)
         return cls(certs)
 
-    def retrieve(self, name: str) -> x509.Certificate:
+    def retrieve(self, name: str) -> Optional[x509.Certificate]:
         """
         Retrieves the CA certificate with the specified name
         """
@@ -218,6 +223,11 @@ class CertRetriever:
     @staticmethod
     def _load_certificate(path: Path, certs: Dict[str, x509.Certificate]):
         cert = x509.load_pem_x509_certificate(path.read_bytes(), default_backend())
+        if not isinstance(cert.public_key(), RSAPublicKey):
+            # If this is changed, the signature validation
+            # in AppCrlRetriever must also be updated.
+            raise ConfigurationError("Only CA certificates with RSA keys are supported")
+
         cert_name = stringify_x509_name(cert.subject)
         certs[cert_name] = cert
         logger.debug("Loaded trusted certificate '%s' from '%s'", cert_name, path)
