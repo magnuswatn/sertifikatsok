@@ -225,7 +225,7 @@ class CertRetriever:
         cert = x509.load_pem_x509_certificate(path.read_bytes(), default_backend())
         if not isinstance(cert.public_key(), RSAPublicKey):
             # If this is changed, the signature validation
-            # in AppCrlRetriever must also be updated.
+            # in AppCrlRetriever and QualifiedCertificate must also be updated.
             raise ConfigurationError("Only CA certificates with RSA keys are supported")
 
         cert_name = stringify_x509_name(cert.subject)

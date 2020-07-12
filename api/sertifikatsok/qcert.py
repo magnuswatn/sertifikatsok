@@ -1,13 +1,14 @@
 import urllib.parse
 import logging
 from datetime import datetime
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, cast
 
 import attr
 
 from cryptography import x509
 from cryptography.x509.oid import ExtensionOID, NameOID
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.exceptions import InvalidSignature
 
@@ -81,7 +82,9 @@ class QualifiedCertificate:
         if not self.cert.issuer == issuer.subject:
             return False
         try:
-            issuer.public_key().verify(
+            # cast because mypy. The type of key is checked
+            # when it is loaded in CertRetriever.
+            cast(RSAPublicKey, issuer.public_key()).verify(
                 self.cert.signature,
                 self.cert.tbs_certificate_bytes,
                 PKCS1v15(),
