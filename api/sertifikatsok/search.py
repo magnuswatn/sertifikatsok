@@ -38,19 +38,25 @@ class CertificateSearch:
     results: List[QualifiedCertificate] = attr.ib(factory=list)
 
     @classmethod
-    def create(cls, env, typ, query, crl_retriever, cert_retriever, correlation_id):
+    def create(
+        cls, env, typ, query, attr, crl_retriever, cert_retriever, correlation_id
+    ):
 
-        # If the query is an organization number,or an norwegian personal
-        # serial number, we search in the serialNumber field, otherwise
-        # the commonName field.
-        if typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
-            search_attr = SearchAttribute.SN
-            query = query.replace(" ", "")
-        elif typ == CertType.PERSONAL and PERSONAL_SERIAL_REGEX.fullmatch(query):
-            search_attr = SearchAttribute.SN
-            query = query
+        if attr is None:
+            # If the query is an organization number,or an norwegian personal
+            # serial number, we search in the serialNumber field, otherwise
+            # the commonName field.
+            if typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
+                search_attr = SearchAttribute.SN
+                query = query.replace(" ", "")
+            elif typ == CertType.PERSONAL and PERSONAL_SERIAL_REGEX.fullmatch(query):
+                search_attr = SearchAttribute.SN
+                query = query
+            else:
+                search_attr = SearchAttribute.CN
+                query = bonsai.escape_filter_exp(query)
         else:
-            search_attr = SearchAttribute.CN
+            search_attr = attr
             query = bonsai.escape_filter_exp(query)
 
         return cls(
@@ -81,12 +87,22 @@ class CertificateSearch:
         if not query:
             raise ClientError("Missing query parameter")
 
+        raw_attr = request.query.get("attr")
+        if raw_attr is not None:
+            try:
+                attr = SearchAttribute(raw_attr)
+            except ValueError:
+                raise ClientError("Unknown ldap attr")
+        else:
+            attr = None
+
         audit_log(request)
 
         return cls.create(
             env,
             typ,
             query,
+            attr,
             request.app["CrlRetriever"].get_retriever_for_request(),
             request.app["CertRetrievers"][org_env],
             request["correlation_id"],

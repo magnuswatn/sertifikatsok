@@ -66,15 +66,23 @@ async def api_endpoint(request):
         - in: query
           name: env
           type: string
+          required: true
           enum: [test, prod]
           description: The environment to search in
         - in: query
           name: type
+          required: true
           type: string
           enum: [personal, enterprise]
           description: The type of certificate
         - in: query
+          name: attr
+          type: string
+          enum: [cn, mail, ou, o, serialNumber, certificateSerialNumber]
+          description: The ldap attribute to search by (optional)
+        - in: query
           name: query
+          required: true
           type: string
           description: The search query
 

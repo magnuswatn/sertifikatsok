@@ -28,4 +28,8 @@ class CertificateRoles(Enum):
 
 class SearchAttribute(Enum):
     CN = "cn"
+    mail = "mail"
+    OU = "ou"
+    O = "o"
     SN = "serialNumber"
+    CSN = "certificateSerialNumber"
