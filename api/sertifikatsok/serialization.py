@@ -209,4 +209,9 @@ def _get_norwegian_error_message(error_code: str) -> str:
             "Ikke alle sertifikatene vises, da søket returnerte "
             "noen feilformaterte sertifikater"
         )
+    if error_code == "ERR-006":
+        return (
+            "Det er kun Buypass som støtter søk på e-postadresse, "
+            "så eventuelle Commfides-sertifikater vil ikke vises på slike søk"
+        )
     return "Det har skjedd en ukjent feil"

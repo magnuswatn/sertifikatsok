@@ -10,6 +10,7 @@ from .constants import (
     PERSONAL_SERIAL_REGEX,
     LDAP_RETRIES,
     LDAP_TIMEOUT,
+    EMAIL_REGEX,
 )
 from .enums import CertType, Environment, SearchAttribute
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
@@ -52,6 +53,9 @@ class CertificateSearch:
             elif typ == CertType.PERSONAL and PERSONAL_SERIAL_REGEX.fullmatch(query):
                 search_attr = SearchAttribute.SN
                 query = query
+            elif typ == CertType.PERSONAL and EMAIL_REGEX.fullmatch(query):
+                search_attr = SearchAttribute.MAIL
+                query = bonsai.escape_filter_exp(query)
             else:
                 search_attr = SearchAttribute.CN
                 query = bonsai.escape_filter_exp(query)
@@ -249,6 +253,10 @@ class CertificateSearch:
                 tasks = [self.query_buypass]
             elif ca_id in ("4505", "4510"):
                 tasks = [self.query_commfides]
+        elif self.search_attr == SearchAttribute.MAIL:
+            # Only Buypass have the mail attribute in their LDAP catalog.
+            tasks = [self.query_buypass]
+            self.errors.append("ERR-006")
 
         await asyncio.gather(*[task() for task in tasks])
         self.errors.extend(self.crl_retriever.errors)
