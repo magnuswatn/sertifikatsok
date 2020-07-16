@@ -8,8 +8,8 @@ class CertType(Enum):
 
 
 class Environment(Enum):
-    TEST = 1
-    PROD = 2
+    TEST = "test"
+    PROD = "prod"
 
 
 class CertificateStatus(Enum):

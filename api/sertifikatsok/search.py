@@ -108,7 +108,7 @@ class CertificateSearch:
             query,
             attr,
             request.app["CrlRetriever"].get_retriever_for_request(),
-            request.app["CertRetrievers"][org_env],
+            request.app["CertRetrievers"][env],
             request["correlation_id"],
         )
 

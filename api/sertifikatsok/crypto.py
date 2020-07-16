@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.exceptions import InvalidSignature
 
 from .errors import CouldNotGetValidCRLError, ConfigurationError
+from .enums import Environment
 from .utils import stringify_x509_name
 from .logging import performance_log
 
@@ -204,14 +205,14 @@ class RequestCrlRetriever:
 
 @attr.s(frozen=True, slots=True)
 class CertRetriever:
-    certs: Dict[str, x509.Certificate] = attr.ib()
+    env: Environment = attr.ib()
+    certs: Dict[x509.Name, x509.Certificate] = attr.ib()
 
     @classmethod
-    def create(cls, env):
-        certs = cls._load_all_certs(env)
-        return cls(certs)
+    def create(cls, env: Environment):
+        return cls(env, cls._load_all_certs(env))
 
-    def retrieve(self, name: str) -> Optional[x509.Certificate]:
+    def retrieve(self, name: x509.Name) -> Optional[x509.Certificate]:
         """
         Retrieves the CA certificate with the specified name
         """
@@ -221,21 +222,24 @@ class CertRetriever:
             return None
 
     @staticmethod
-    def _load_certificate(path: Path, certs: Dict[str, x509.Certificate]):
+    def _load_certificate(path: Path, certs: Dict[x509.Name, x509.Certificate]):
         cert = x509.load_pem_x509_certificate(path.read_bytes(), default_backend())
         if not isinstance(cert.public_key(), RSAPublicKey):
             # If this is changed, the signature validation
             # in AppCrlRetriever and QualifiedCertificate must also be updated.
             raise ConfigurationError("Only CA certificates with RSA keys are supported")
 
-        cert_name = stringify_x509_name(cert.subject)
-        certs[cert_name] = cert
-        logger.debug("Loaded trusted certificate '%s' from '%s'", cert_name, path)
+        certs[cert.subject] = cert
+        logger.debug(
+            "Loaded trusted certificate '%s' from '%s'",
+            stringify_x509_name(cert.subject),
+            path,
+        )
 
     @classmethod
-    def _load_all_certs(cls, env: str):
-        certs: Dict[str, x509.Certificate] = {}
-        for path in Path("certs", env).iterdir():
+    def _load_all_certs(cls, env: Environment):
+        certs: Dict[x509.Name, x509.Certificate] = {}
+        for path in Path("certs", env.value).iterdir():
             if path.is_file():
                 try:
                     cls._load_certificate(path, certs)

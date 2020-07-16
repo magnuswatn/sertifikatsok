@@ -6,6 +6,7 @@ import uvloop
 import uuid
 import aiotask_context as context
 from aiohttp import web
+from .enums import Environment
 from .search import CertificateSearch
 from .logging import configure_logging, performance_log
 from .errors import ClientError
@@ -52,8 +53,8 @@ async def correlation_middleware(request, handler):
 async def init_app(app):
     app["CrlRetriever"] = AppCrlRetriever()
     app["CertRetrievers"] = {
-        "test": CertRetriever.create("test"),
-        "prod": CertRetriever.create("prod"),
+        Environment.TEST: CertRetriever.create(Environment.TEST),
+        Environment.PROD: CertRetriever.create(Environment.PROD),
     }
 
 

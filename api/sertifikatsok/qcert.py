@@ -45,7 +45,7 @@ class QualifiedCertificate:
 
         cert = cls(raw_cert, dn, ldap_params)
 
-        issuer = cert_retriever.retrieve(cert.issuer)
+        issuer = cert_retriever.retrieve(cert.cert.issuer)
         if not issuer:
             # TODO: Should this be UNKNOWN? We don't
             # trust the issuer, but others might...
