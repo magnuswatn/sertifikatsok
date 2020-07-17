@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 @attr.s(slots=True)
 class CertificateSearch:
-    env: str = attr.ib()
-    typ: str = attr.ib()
+    env: Environment = attr.ib()
+    typ: CertType = attr.ib()
     query: str = attr.ib()
     search_attr: SearchAttribute = attr.ib()
     correlation_id: str = attr.ib()
