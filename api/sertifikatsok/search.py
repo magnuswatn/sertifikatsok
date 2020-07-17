@@ -15,7 +15,7 @@ from .constants import (
 from .enums import CertType, Environment, SearchAttribute
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
 from .errors import ClientError
-from .crypto import RequestCrlRetriever, CertRetriever
+from .crypto import CertValidator
 from .logging import audit_log, performance_log
 
 # black and pylint doesn't agree on everything
@@ -31,17 +31,14 @@ class CertificateSearch:
     query: str = attr.ib()
     search_attr: SearchAttribute = attr.ib()
     correlation_id: str = attr.ib()
-    cert_retriever: CertRetriever = attr.ib()
-    crl_retriever: RequestCrlRetriever = attr.ib()
+    cert_validator: CertValidator = attr.ib()
     errors: List[str] = attr.ib(factory=list)
     warnings: List[str] = attr.ib(factory=list)
     _ldap_servers: List[str] = attr.ib(factory=list)
     results: List[QualifiedCertificate] = attr.ib(factory=list)
 
     @classmethod
-    def create(
-        cls, env, typ, query, attr, crl_retriever, cert_retriever, correlation_id
-    ):
+    def create(cls, env, typ, query, attr, cert_validator, correlation_id):
 
         if attr is None:
             # If the query is an organization number,or an norwegian personal
@@ -63,9 +60,7 @@ class CertificateSearch:
             search_attr = attr
             query = bonsai.escape_filter_exp(query)
 
-        return cls(
-            env, typ, query, search_attr, correlation_id, cert_retriever, crl_retriever
-        )
+        return cls(env, typ, query, search_attr, correlation_id, cert_validator)
 
     @classmethod
     def create_from_request(cls, request):
@@ -100,16 +95,15 @@ class CertificateSearch:
         else:
             attr = None
 
+        cert_validator = CertValidator(
+            request.app["CertRetrievers"][env],
+            request.app["CrlRetriever"].get_retriever_for_request(),
+        )
+
         audit_log(request)
 
         return cls.create(
-            env,
-            typ,
-            query,
-            attr,
-            request.app["CrlRetriever"].get_retriever_for_request(),
-            request.app["CertRetrievers"][env],
-            request["correlation_id"],
+            env, typ, query, attr, cert_validator, request["correlation_id"],
         )
 
     @property
@@ -224,11 +218,7 @@ class CertificateSearch:
 
             try:
                 qualified_cert = await QualifiedCertificate.create(
-                    raw_cert[0],
-                    str(result.dn),
-                    (server, base),
-                    self.crl_retriever,
-                    self.cert_retriever,
+                    raw_cert[0], str(result.dn), (server, base), self.cert_validator,
                 )
             except ValueError:
                 # https://github.com/magnuswatn/sertifikatsok/issues/22
@@ -259,7 +249,7 @@ class CertificateSearch:
             self.errors.append("ERR-006")
 
         await asyncio.gather(*[task() for task in tasks])
-        self.errors.extend(self.crl_retriever.errors)
+        self.errors.extend(self.cert_validator.errors)
         return CertificateSearchResponse.create(self)
 
 

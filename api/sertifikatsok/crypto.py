@@ -15,7 +15,7 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.exceptions import InvalidSignature
 
 from .errors import CouldNotGetValidCRLError, ConfigurationError
-from .enums import Environment
+from .enums import Environment, CertificateStatus
 from .utils import stringify_x509_name
 from .logging import performance_log
 
@@ -226,7 +226,7 @@ class CertRetriever:
         cert = x509.load_pem_x509_certificate(path.read_bytes(), default_backend())
         if not isinstance(cert.public_key(), RSAPublicKey):
             # If this is changed, the signature validation
-            # in AppCrlRetriever and QualifiedCertificate must also be updated.
+            # in AppCrlRetriever and CertValidator must also be updated.
             raise ConfigurationError("Only CA certificates with RSA keys are supported")
 
         certs[cert.subject] = cert
@@ -251,3 +251,95 @@ class CertRetriever:
             "Loaded %d trusted certificates from file for env %s", len(certs), env
         )
         return certs
+
+
+@attr.s(frozen=True, slots=True)
+class CertValidator:
+    _cert_retriever: CertRetriever = attr.ib()
+    _crl_retriever: RequestCrlRetriever = attr.ib()
+
+    @property
+    def errors(self):
+        return self._crl_retriever.errors
+
+    async def validate_cert(self, cert: x509.Certificate):
+        status = CertificateStatus.UNKNOWN
+        revocation_date = None
+
+        issuer = self._cert_retriever.retrieve(cert.issuer)
+        if not issuer:
+            # TODO: Should this be UNKNOWN? We don't
+            # trust the issuer, but others might...
+            status = CertificateStatus.INVALID
+        elif not self._validate_cert_against_issuer(cert, issuer):
+            status = CertificateStatus.INVALID
+        elif not self._check_date_on_cert(cert):
+            status = CertificateStatus.EXPIRED
+        else:
+            # This will mark certs without CDP as unknown.
+            # This is technically wrong, but as we don't
+            # support OCSP, and certs without any revocation
+            # info should not occur in this eco system, it's
+            # OK, me thinks.
+            crl = await self._get_crl(cert, issuer)
+            if not crl:
+                status = CertificateStatus.UNKNOWN
+            else:
+                revoked_cert = crl.get_revoked_certificate_by_serial_number(
+                    cert.serial_number
+                )
+                if revoked_cert:
+                    status = CertificateStatus.REVOKED
+                    revocation_date = revoked_cert.revocation_date
+                else:
+                    status = CertificateStatus.OK
+        return status, revocation_date
+
+    async def _get_crl(
+        self, cert: x509.Certificate, issuer: x509.Certificate
+    ) -> Optional[x509.CertificateRevocationList]:
+        """
+        Will try to download a crl for the certificate from a HTTP endpoint, if any.
+        """
+        cdps = cert.extensions.get_extension_for_class(x509.CRLDistributionPoints).value
+        http_cdp = None
+        for cdp in cdps:
+            if cdp.full_name is not None:
+                url = urllib.parse.urlparse(cdp.full_name[0].value)
+                if url.scheme == "http":
+                    http_cdp = cdp.full_name[0].value
+                    break
+
+        if http_cdp is None:
+            return None
+
+        return await self._crl_retriever.retrieve(http_cdp, issuer)
+
+    @staticmethod
+    def _check_date_on_cert(cert: x509.Certificate) -> bool:
+        """Returns whether the certificate is valid wrt. the dates"""
+        return (
+            cert.not_valid_after > datetime.utcnow()
+            and cert.not_valid_before < datetime.utcnow()
+        )
+
+    @staticmethod
+    def _validate_cert_against_issuer(
+        cert: x509.Certificate, issuer: x509.Certificate
+    ) -> bool:
+        """Validates a certificate against it's (alleged) issuer"""
+
+        if not cert.issuer == issuer.subject:
+            return False
+        try:
+            # cast because mypy. The type of key is checked
+            # when it is loaded in CertRetriever.
+            cast(RSAPublicKey, issuer.public_key()).verify(
+                cert.signature,
+                cert.tbs_certificate_bytes,
+                PKCS1v15(),
+                cert.signature_hash_algorithm,
+            )
+        except InvalidSignature:
+            return False
+        return True

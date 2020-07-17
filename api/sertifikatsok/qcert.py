@@ -1,18 +1,15 @@
 import urllib.parse
 import logging
 from datetime import datetime
-from typing import Optional, List, Tuple, cast
+from typing import Optional, List, Tuple
 
 import attr
 
 from cryptography import x509
 from cryptography.x509.oid import ExtensionOID, NameOID
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
-from cryptography.exceptions import InvalidSignature
 
-
+from .crypto import CertValidator
 from .utils import get_subject_order, stringify_x509_name
 from .constants import (
     KNOWN_CERT_TYPES,
@@ -29,71 +26,26 @@ logger = logging.getLogger(__name__)
 class QualifiedCertificate:
     """Represents a Norwegian Qualified Certificate"""
 
-    def __init__(self, cert, dn, ldap_params):
-        self.cert = x509.load_der_x509_certificate(cert, default_backend())
+    def __init__(self, cert, dn, ldap_params, cert_status, revocation_date):
 
+        self.cert = cert
         self.issuer = stringify_x509_name(self.cert.issuer)
         self.type, self.description = self._get_type()
         self.roles = self._get_roles()
         self.dn = dn
         self.ldap_params = ldap_params
-        self.status = CertificateStatus.UNKNOWN
-        self.revocation_date = None
+        self.status = cert_status
+        self.revocation_date = revocation_date
 
     @classmethod
-    async def create(cls, raw_cert, dn, ldap_params, crl_retriever, cert_retriever):
+    async def create(
+        cls, raw_cert: bytes, dn, ldap_params, cert_validator: CertValidator
+    ):
 
-        cert = cls(raw_cert, dn, ldap_params)
+        cert = x509.load_der_x509_certificate(raw_cert, default_backend())
+        cert_status, revocation_date = await cert_validator.validate_cert(cert)
 
-        issuer = cert_retriever.retrieve(cert.cert.issuer)
-        if not issuer:
-            # TODO: Should this be UNKNOWN? We don't
-            # trust the issuer, but others might...
-            cert.status = CertificateStatus.INVALID
-        elif not cert._validate_against_issuer(issuer):
-            cert.status = CertificateStatus.INVALID
-        elif not cert._check_date():
-            cert.status = CertificateStatus.EXPIRED
-        else:
-            crl = await crl_retriever.retrieve(cert._get_http_cdp(), issuer)
-            if not crl:
-                cert.status = CertificateStatus.UNKNOWN
-            else:
-                revoked_cert = crl.get_revoked_certificate_by_serial_number(
-                    cert.cert.serial_number
-                )
-                if revoked_cert:
-                    cert.status = CertificateStatus.REVOKED
-                    cert.revocation_date = revoked_cert.revocation_date
-                else:
-                    cert.status = CertificateStatus.OK
-        return cert
-
-    def _check_date(self):
-        """Returns whether the certificate is valid wrt. the dates"""
-        return (
-            self.cert.not_valid_after > datetime.utcnow()
-            and self.cert.not_valid_before < datetime.utcnow()
-        )
-
-    def _validate_against_issuer(self, issuer: x509.Certificate) -> bool:
-        """Validates a certificate against it's (alleged) issuer"""
-
-        if not self.cert.issuer == issuer.subject:
-            return False
-        try:
-            # cast because mypy. The type of key is checked
-            # when it is loaded in CertRetriever.
-            cast(RSAPublicKey, issuer.public_key()).verify(
-                self.cert.signature,
-                self.cert.tbs_certificate_bytes,
-                PKCS1v15(),
-                self.cert.signature_hash_algorithm,
-            )
-        except InvalidSignature:
-            return False
-        else:
-            return True
+        return cls(cert, dn, ldap_params, cert_status, revocation_date)
 
     def _get_type(self) -> Tuple[CertType, str]:
         """Returns the type of certificate, based on issuer and Policy OID"""
@@ -113,20 +65,6 @@ class QualifiedCertificate:
         logger.warn("Unknown certificate type. OIDs=%s Issuer='%s'", oids, self.issuer)
 
         return (CertType.UNKNOWN, ", ".join(oids))
-
-    def _get_http_cdp(self) -> Optional[str]:
-        """
-        Returns the first CRL Distribution Point from the cert with
-        http scheme, if any.
-        """
-        cdps = self.cert.extensions.get_extension_for_oid(
-            x509.ObjectIdentifier("2.5.29.31")
-        ).value
-        for cdp in cdps:
-            url = urllib.parse.urlparse(cdp.full_name[0].value)
-            if url.scheme == "http":
-                return cdp.full_name[0].value
-        return None
 
     def _get_roles(self) -> List[CertificateRoles]:
         """
