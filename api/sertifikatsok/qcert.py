@@ -26,26 +26,23 @@ logger = logging.getLogger(__name__)
 class QualifiedCertificate:
     """Represents a Norwegian Qualified Certificate"""
 
-    def __init__(self, cert, dn, ldap_params, cert_status, revocation_date):
+    def __init__(self, cert, ldap_params, cert_status, revocation_date):
 
         self.cert = cert
         self.issuer = stringify_x509_name(self.cert.issuer)
         self.type, self.description = self._get_type()
         self.roles = self._get_roles()
-        self.dn = dn
         self.ldap_params = ldap_params
         self.status = cert_status
         self.revocation_date = revocation_date
 
     @classmethod
-    async def create(
-        cls, raw_cert: bytes, dn, ldap_params, cert_validator: CertValidator
-    ):
+    async def create(cls, raw_cert: bytes, ldap_params, cert_validator: CertValidator):
 
         cert = x509.load_der_x509_certificate(raw_cert, default_backend())
         cert_status, revocation_date = await cert_validator.validate_cert(cert)
 
-        return cls(cert, dn, ldap_params, cert_status, revocation_date)
+        return cls(cert, ldap_params, cert_status, revocation_date)
 
     def _get_type(self) -> Tuple[CertType, str]:
         """Returns the type of certificate, based on issuer and Policy OID"""
