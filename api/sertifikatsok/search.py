@@ -246,7 +246,7 @@ class CertificateSearch:
         elif self.search_attr == SearchAttribute.MAIL:
             # Only Buypass have the mail attribute in their LDAP catalog.
             tasks = [self.query_buypass]
-            self.errors.append("ERR-006")
+            self.warnings.append("ERR-006")
 
         await asyncio.gather(*[task() for task in tasks])
         self.errors.extend(self.cert_validator.errors)
