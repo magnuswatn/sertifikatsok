@@ -6,20 +6,17 @@ import attr
 import bonsai
 
 from .constants import (
-    ORG_NUMBER_REGEX,
-    PERSONAL_SERIAL_REGEX,
+    EMAIL_REGEX,
     LDAP_RETRIES,
     LDAP_TIMEOUT,
-    EMAIL_REGEX,
+    ORG_NUMBER_REGEX,
+    PERSONAL_SERIAL_REGEX,
 )
-from .enums import CertType, Environment, SearchAttribute
-from .qcert import QualifiedCertificate, QualifiedCertificateSet
-from .errors import ClientError
 from .crypto import CertValidator
+from .enums import CertType, Environment, SearchAttribute
+from .errors import ClientError
 from .logging import audit_log, performance_log
-
-# black and pylint doesn't agree on everything
-# pylint: disable=C0330
+from .qcert import QualifiedCertificate, QualifiedCertificateSet
 
 logger = logging.getLogger(__name__)
 

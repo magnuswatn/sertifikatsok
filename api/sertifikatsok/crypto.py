@@ -1,23 +1,22 @@
 import asyncio
 import logging
 import urllib.parse
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional, cast
 
-import attr
 import aiohttp
-
+import attr
 from cryptography import x509
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from cryptography.exceptions import InvalidSignature
 
-from .errors import CouldNotGetValidCRLError, ConfigurationError
-from .enums import Environment, CertificateStatus
-from .utils import stringify_x509_name
+from .enums import CertificateStatus, Environment
+from .errors import ConfigurationError, CouldNotGetValidCRLError
 from .logging import performance_log
+from .utils import stringify_x509_name
 
 logger = logging.getLogger(__name__)
 

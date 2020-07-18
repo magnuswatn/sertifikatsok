@@ -13,10 +13,10 @@ attrs = "*"
 
 [dev-packages]
 pytest = "*"
-pylint = "*"
 black = "==19.10b0"
 mypy = "*"
 aiohttp-swagger = "*"
+isort = "*"
 
 [requires]
 python_version = "3.6"

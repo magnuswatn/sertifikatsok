@@ -2,22 +2,22 @@
 import base64
 import codecs
 from datetime import datetime
-from typing import Dict, Union, Tuple
-from operator import attrgetter
 from functools import singledispatch
-
-from .qcert import QualifiedCertificate, QualifiedCertificateSet
-from .enums import (
-    CertType,
-    CertificateStatus,
-    CertificateRoles,
-    Environment,
-    SearchAttribute,
-)
-from .search import CertificateSearchResponse
+from operator import attrgetter
+from typing import Dict, Tuple, Union
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import Encoding
+
+from .enums import (
+    CertificateRoles,
+    CertificateStatus,
+    CertType,
+    Environment,
+    SearchAttribute,
+)
+from .qcert import QualifiedCertificate, QualifiedCertificateSet
+from .search import CertificateSearchResponse
 
 
 @singledispatch

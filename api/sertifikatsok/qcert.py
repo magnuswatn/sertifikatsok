@@ -1,24 +1,23 @@
-import urllib.parse
 import logging
+import urllib.parse
 from datetime import datetime
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
 
 import attr
-
 from cryptography import x509
-from cryptography.x509.oid import ExtensionOID, NameOID
 from cryptography.hazmat.backends import default_backend
+from cryptography.x509.oid import ExtensionOID, NameOID
 
-from .crypto import CertValidator
-from .utils import get_subject_order, stringify_x509_name
 from .constants import (
-    KNOWN_CERT_TYPES,
-    UNDERENHET_REGEX,
-    SUBJECT_FIELDS,
-    KEY_USAGES,
     EXTENDED_KEY_USAGES,
+    KEY_USAGES,
+    KNOWN_CERT_TYPES,
+    SUBJECT_FIELDS,
+    UNDERENHET_REGEX,
 )
-from .enums import CertType, CertificateStatus, CertificateRoles
+from .crypto import CertValidator
+from .enums import CertificateRoles, CertificateStatus, CertType
+from .utils import get_subject_order, stringify_x509_name
 
 logger = logging.getLogger(__name__)
 

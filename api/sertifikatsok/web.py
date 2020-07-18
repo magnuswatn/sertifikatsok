@@ -1,16 +1,18 @@
-import asyncio
-import logging
-import json
 import argparse
-import uvloop
+import asyncio
+import json
+import logging
 import uuid
+
 import aiotask_context as context
+import uvloop
 from aiohttp import web
-from .enums import Environment
-from .search import CertificateSearch
-from .logging import configure_logging, performance_log
-from .errors import ClientError
+
 from .crypto import AppCrlRetriever, CertRetriever
+from .enums import Environment
+from .errors import ClientError
+from .logging import configure_logging, performance_log
+from .search import CertificateSearch
 from .serialization import sertifikatsok_serialization
 
 logger = logging.getLogger(__name__)

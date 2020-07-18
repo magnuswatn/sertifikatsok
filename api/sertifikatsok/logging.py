@@ -1,7 +1,6 @@
-from datetime import datetime
 import logging
 import logging.config
-
+from datetime import datetime
 from functools import wraps
 
 import aiotask_context as context
