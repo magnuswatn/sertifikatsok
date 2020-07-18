@@ -65,12 +65,9 @@ class CertificateSearch:
     @classmethod
     def create_from_request(cls, request):
 
-        org_env = request.query.get("env")
-        if org_env == "prod":
-            env = Environment.PROD
-        elif org_env == "test":
-            env = Environment.TEST
-        else:
+        try:
+            env = Environment(request.query.get("env"))
+        except ValueError:
             raise ClientError("Unknown environment")
 
         raw_type = request.query.get("type")
@@ -91,7 +88,7 @@ class CertificateSearch:
             try:
                 attr = SearchAttribute(raw_attr)
             except ValueError:
-                raise ClientError("Unknown ldap attr")
+                raise ClientError("Unknown search attribute")
         else:
             attr = None
 
