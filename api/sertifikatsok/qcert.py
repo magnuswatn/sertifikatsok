@@ -5,7 +5,6 @@ from typing import List, Optional, Tuple
 
 import attr
 from cryptography import x509
-from cryptography.hazmat.backends import default_backend
 from cryptography.x509.oid import ExtensionOID, NameOID
 
 from .constants import (
@@ -38,7 +37,7 @@ class QualifiedCertificate:
     @classmethod
     async def create(cls, raw_cert: bytes, ldap_params, cert_validator: CertValidator):
 
-        cert = x509.load_der_x509_certificate(raw_cert, default_backend())
+        cert = x509.load_der_x509_certificate(raw_cert)
         cert_status, revocation_date = await cert_validator.validate_cert(cert)
 
         return cls(cert, ldap_params, cert_status, revocation_date)

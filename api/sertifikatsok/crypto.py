@@ -9,7 +9,6 @@ import aiohttp
 import attr
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 
@@ -81,7 +80,7 @@ class AppCrlRetriever:
             raise CouldNotGetValidCRLError("Not found on disk")
 
         try:
-            crl = x509.load_der_x509_crl(crl_bytes, default_backend())
+            crl = x509.load_der_x509_crl(crl_bytes)
         except ValueError as error:
             raise CouldNotGetValidCRLError(error) from error
 
@@ -122,7 +121,7 @@ class AppCrlRetriever:
             )
 
         try:
-            crl = x509.load_der_x509_crl(crl_bytes, default_backend())
+            crl = x509.load_der_x509_crl(crl_bytes)
         except ValueError as error:
             raise CouldNotGetValidCRLError(error) from error
 
@@ -222,7 +221,7 @@ class CertRetriever:
 
     @staticmethod
     def _load_certificate(path: Path, certs: Dict[x509.Name, x509.Certificate]):
-        cert = x509.load_pem_x509_certificate(path.read_bytes(), default_backend())
+        cert = x509.load_pem_x509_certificate(path.read_bytes())
         if not isinstance(cert.public_key(), RSAPublicKey):
             # If this is changed, the signature validation
             # in AppCrlRetriever and CertValidator must also be updated.
