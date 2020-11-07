@@ -20,7 +20,7 @@ from .utils import stringify_x509_name
 logger = logging.getLogger(__name__)
 
 
-@attr.s(frozen=True, slots=True)
+@attr.frozen
 class AppCrlRetriever:
     """
     CRL retriever for an app instance.
@@ -163,7 +163,7 @@ class AppCrlRetriever:
             raise CouldNotGetValidCRLError("CRL failed signature validation") from error
 
 
-@attr.s(frozen=True, slots=True)
+@attr.frozen
 class RequestCrlRetriever:
     """
     CRL retriever for a single request.
@@ -201,7 +201,7 @@ class RequestCrlRetriever:
         return crl
 
 
-@attr.s(frozen=True, slots=True)
+@attr.frozen
 class CertRetriever:
     env: Environment = attr.ib()
     certs: Dict[x509.Name, x509.Certificate] = attr.ib()
@@ -251,7 +251,7 @@ class CertRetriever:
         return certs
 
 
-@attr.s(frozen=True, slots=True)
+@attr.frozen
 class CertValidator:
     _cert_retriever: CertRetriever = attr.ib()
     _crl_retriever: RequestCrlRetriever = attr.ib()

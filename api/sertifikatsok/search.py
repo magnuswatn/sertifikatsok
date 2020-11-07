@@ -21,7 +21,7 @@ from .qcert import QualifiedCertificate, QualifiedCertificateSet
 logger = logging.getLogger(__name__)
 
 
-@attr.s(slots=True)
+@attr.mutable
 class CertificateSearch:
     env: Environment = attr.ib()
     typ: CertType = attr.ib()
@@ -247,7 +247,7 @@ class CertificateSearch:
         return CertificateSearchResponse.create(self)
 
 
-@attr.s(frozen=True, slots=True)
+@attr.frozen
 class CertificateSearchResponse:
     search: CertificateSearch = attr.ib()
     cert_sets: List[QualifiedCertificateSet] = attr.ib()

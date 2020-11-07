@@ -175,7 +175,7 @@ class QualifiedCertificate:
         return ", ".join(ekus)
 
 
-@attr.s(frozen=True, slots=True)
+@attr.frozen
 class QualifiedCertificateSet:
     """Represents a set of Norwegian qualified certificates"""
 
