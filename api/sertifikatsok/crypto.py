@@ -299,7 +299,17 @@ class CertValidator:
         """
         Will try to download a crl for the certificate from a HTTP endpoint, if any.
         """
-        cdps = cert.extensions.get_extension_for_class(x509.CRLDistributionPoints).value
+        try:
+            cdps = cert.extensions.get_extension_for_class(
+                x509.CRLDistributionPoints
+            ).value
+        except x509.ExtensionNotFound:
+            logger.warn(
+                "Certificate without CDP extension: Subject: '%s' Issuer:'%s'",
+                stringify_x509_name(cert.subject),
+                stringify_x509_name(cert.issuer),
+            )
+            return None
         http_cdp = None
         for cdp in cdps:
             if cdp.full_name is not None:
