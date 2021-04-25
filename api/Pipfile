@@ -7,7 +7,7 @@ name = "pypi"
 bonsai = ">=1.0.0"
 aiohttp = "*"
 cryptography = ">=2.4.2"
-uvloop = "*"
+uvloop = "==0.15.1"
 aiotask-context = "*"
 attrs = "*"
 
