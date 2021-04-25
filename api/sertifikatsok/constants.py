@@ -1,5 +1,7 @@
 import re
 
+from cryptography.x509.oid import ObjectIdentifier
+
 from .enums import CertType
 
 # turn off black, so that we can have loooong lines
@@ -15,6 +17,8 @@ PERSONAL_SERIAL_REGEX = re.compile(r"9578-(4505|4050|4510)-[A-z0-9]+")
 # (This is a bad email regex, but it's good enough
 # for thise use case.)
 EMAIL_REGEX = re.compile(r"[^\s@]+@[\w\d]+(\.[\w\d]+)+")
+
+ORGANIZATION_IDENTIFIER = ObjectIdentifier("2.5.4.97")
 
 SUBJECT_FIELDS = {
     "2.5.4.3": "CN",

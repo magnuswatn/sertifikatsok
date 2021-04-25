@@ -74,6 +74,8 @@ def qualified_certificate_set(val):
         dumped["notices"].append("underenhet")
     if val.typ == CertType.UNKNOWN:
         dumped["notices"].append("ukjent")
+    if val.seid2:
+        dumped["notices"].append("seid2")
 
     dumped["issuer"] = val.issuer
 

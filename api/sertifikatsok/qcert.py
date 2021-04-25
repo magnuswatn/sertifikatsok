@@ -5,17 +5,20 @@ from typing import List, Optional, Tuple
 
 import attr
 from cryptography import x509
+from cryptography.hazmat.primitives.serialization import Encoding
 from cryptography.x509.oid import ExtensionOID, NameOID
 
 from .constants import (
     EXTENDED_KEY_USAGES,
     KEY_USAGES,
     KNOWN_CERT_TYPES,
+    ORGANIZATION_IDENTIFIER,
     SUBJECT_FIELDS,
     UNDERENHET_REGEX,
 )
 from .crypto import CertValidator
 from .enums import CertificateRoles, CertificateStatus, CertType
+from .errors import MalformedCertificateError
 from .utils import get_subject_order, stringify_x509_name
 
 logger = logging.getLogger(__name__)
@@ -116,31 +119,54 @@ class QualifiedCertificate:
             subject.sort(key=get_subject_order)
         return ", ".join(list(subject))
 
-    def get_orgnumber(self) -> Tuple[Optional[str], bool]:
+    def get_orgnumber(self) -> Tuple[Optional[str], bool, bool]:
         """
         Gets the organization number from the cert,
-        and returns the organization number + if it's an "underenhet"
+        and returns the organization number, if it's an "underenhet"
+        and if it's a SEIDv2 cert.
         """
         if self.type != CertType.ENTERPRISE:
-            return None, False
+            return None, False, False
 
-        serial_number = self.cert.subject.get_attributes_for_oid(NameOID.SERIAL_NUMBER)[
-            0
-        ].value
+        serial_number_attr = self.cert.subject.get_attributes_for_oid(
+            NameOID.SERIAL_NUMBER
+        )
+        organization_identifier_attr = self.cert.subject.get_attributes_for_oid(
+            ORGANIZATION_IDENTIFIER
+        )
+
+        if organization_identifier_attr:
+            organization_identifier = organization_identifier_attr[0].value
+            if organization_identifier.startswith("NTRNO-"):
+                org_number = organization_identifier[6:]
+                seid2 = True
+            else:
+                logger.warn(
+                    "Semantic Identifier is not NTRNO: %s", organization_identifier
+                )
+                return None, False, True
+        elif serial_number_attr:
+            org_number = serial_number_attr[0].value
+            seid2 = False
+        else:
+            logger.error(
+                "Malformed cert: %s", self.cert.public_bytes(Encoding.PEM).decode()
+            )
+            raise MalformedCertificateError("Missing org number in subject")
 
         try:
             ou_field = self.cert.subject.get_attributes_for_oid(
                 NameOID.ORGANIZATIONAL_UNIT_NAME
             )[0].value
         except IndexError:
-            return serial_number, False
+            return org_number, False, seid2
 
         ou_number = UNDERENHET_REGEX.search(ou_field)
 
-        if ou_number and serial_number != ou_number[0]:
-            return ou_number[0], True
+        if ou_number and org_number != ou_number[0]:
+            return ou_number[0], True, seid2
 
-        return serial_number, False
+        return org_number, False, seid2
 
     def get_key_usages(self) -> str:
         """Returns a string with the key usages from the cert"""
@@ -185,6 +211,7 @@ class QualifiedCertificateSet:
     revocation_date: Optional[datetime] = attr.ib()
     org_number: str = attr.ib()
     underenhet: bool = attr.ib()
+    seid2: bool = attr.ib()
 
     @classmethod
     def create(cls, certs):
@@ -204,8 +231,10 @@ class QualifiedCertificateSet:
                 status = cert.status
                 revocation_date = cert.revocation_date
 
-        org_number, underenhet = main_cert.get_orgnumber()
-        return cls(certs, main_cert, status, revocation_date, org_number, underenhet)
+        org_number, underenhet, seid2 = main_cert.get_orgnumber()
+        return cls(
+            certs, main_cert, status, revocation_date, org_number, underenhet, seid2
+        )
 
     @classmethod
     def create_sets_from_certs(

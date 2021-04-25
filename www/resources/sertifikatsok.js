@@ -67,6 +67,9 @@ const getNotificationMessage = function(certificateSet) {
     let $message = '';
     certificateSet.notices.forEach(function(notice) {
         switch (notice) {
+            case 'seid2':
+                $message = $('#stashed-seid2-notification').clone();
+                break;
             case 'underenhet':
                $message = $('#stashed-underenhet-notification').clone();
                break;
@@ -479,6 +482,11 @@ $(document.body).on('click', '.revokert', function() {
 
 $(document.body).on('click', '.underenhet', function() {
     $('#underenhet-modal').modal('open');
+    return false;
+});
+
+$(document.body).on('click', '.seid2', function() {
+    $('#seid2-modal').modal('open');
     return false;
 });
 

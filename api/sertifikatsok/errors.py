@@ -26,3 +26,7 @@ class ConfigurationError(SertifikatSokError):
     """Sertifikatsok was configured incorrectly"""
 
     pass
+
+
+class MalformedCertificateError(SertifikatSokError):
+    pass
