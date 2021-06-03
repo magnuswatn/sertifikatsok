@@ -92,10 +92,10 @@ KNOWN_CERT_TYPES = {
     ("C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 CA 1", "2.16.578.1.26.1.3.5"):
     (CertType.ENTERPRISE, "Buypass virksomhetssertifikat (smartkort)"),
 
-    ("C=NO, organizationIdentifier=NTRNO-983163327, O=Buypass AS, CN=Buypass Class 3 Test4 CA G2 HT Business", "2.16.578.1.26.1.0.3.5"):
+    ("C=NO, organizationIdentifier=NTRNO-983163327, O=Buypass AS, CN=Buypass Class 3 Test4 CA G2 HT Business", "2.16.578.1.26.1.3.5"):
     (CertType.ENTERPRISE, "Buypass virksomhetssertifikat (smartkort)"),
 
-    ("C=NO, organizationIdentifier=NTRNO-983163327, O=Buypass AS, CN=Buypass Class 3 Test4 CA G2 ST Business", "2.16.578.1.26.1.0.3.2"):
+    ("C=NO, organizationIdentifier=NTRNO-983163327, O=Buypass AS, CN=Buypass Class 3 Test4 CA G2 ST Business", "2.16.578.1.26.1.3.2"):
     (CertType.ENTERPRISE, "Buypass virksomhetssertifikat (softsertifikat)"),
 
     ("C=NO, organizationIdentifier=NTRNO-983163327, O=Buypass AS, CN=Buypass Class 3 CA G2 HT Business", "2.16.578.1.26.1.3.5"):
