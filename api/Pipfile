@@ -7,7 +7,7 @@ name = "pypi"
 bonsai = ">=1.0.0"
 aiohttp = "*"
 cryptography = ">=2.4.2"
-uvloop = "==0.14.0"
+uvloop = "*"
 aiotask-context = "*"
 attrs = "*"
 
@@ -19,4 +19,4 @@ aiohttp-swagger = "*"
 isort = "*"
 
 [requires]
-python_version = "3.6"
+python_version = "3.8"
