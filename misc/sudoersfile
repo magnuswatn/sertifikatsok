@@ -1,2 +1,0 @@
- Cmnd_Alias RESTART_SERTIFIKATSOK = /usr/bin/systemctl restart sertifikatsok
- %SERVICE_USER ALL=(ALL) NOPASSWD: RESTART_SERTIFIKATSOK

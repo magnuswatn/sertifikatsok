@@ -2,9 +2,7 @@
 ### Prerequisites
 * brotli
 * nodejs
-* python3.6
-* python36-devel
-* openldap-devel
+* docker
 
 ### Installation
 Clone repo into $YOURFOLDER/repo (e.g. /opt/sertifikatsok/repo) and run install.sh as root.
