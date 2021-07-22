@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "d8050e29d1518d54a7b6562159cb73cf330aa8eb985274d742d9485be786f147"
+            "sha256": "05439c87579bf5a4d222c8fbea357fca153f4345e780788731ca22d1b6781f17"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -58,14 +58,6 @@
             ],
             "index": "pypi",
             "version": "==3.7.4.post0"
-        },
-        "aiotask-context": {
-            "hashes": [
-                "sha256:26a5fc4bc1b1611eeabdb352700aad1d9b37ad922f5a58beb5f8745cf40f48b2",
-                "sha256:e5984b786d5a576300785f03a44110b1ae3722347d05d48f3de663630fdfa6d9"
-            ],
-            "index": "pypi",
-            "version": "==0.6.1"
         },
         "async-timeout": {
             "hashes": [
@@ -745,7 +737,6 @@
                 "sha256:50b6f157849174217d0656f99dc82fe932884fb250826c18350e159ec6cdf342",
                 "sha256:779383f6086d90c99ae41cf0ff39aac8a7937a9283ce0a414e5dd782f4c94a84"
             ],
-            "markers": "python_version < '3.8'",
             "version": "==3.10.0.0"
         },
         "yarl": {

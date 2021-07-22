@@ -1,17 +1,17 @@
 import logging
 import logging.config
+from contextvars import ContextVar
 from datetime import datetime
 from functools import wraps
 
-import aiotask_context as context
-
 audit_logger = logging.getLogger("audit")
 performance_logger = logging.getLogger("performance")
+correlation_id_var = ContextVar("correlation_id", default=None)
 
 
 class CorrelationFilter(logging.Filter):
     def filter(self, record):
-        record.correlation_id = context.get("correlation_id")
+        record.correlation_id = correlation_id_var.get()
         return True
 
 
@@ -87,7 +87,7 @@ def performance_log(id_param=None):
                 "METHOD=%s TIME_TAKEN=%d CORRELATION_ID=%s",
                 method,
                 time_taken,
-                context.get("correlation_id"),
+                correlation_id_var.get(),
             )
             return return_value
 
@@ -107,5 +107,5 @@ def audit_log(request):
         request.query.get("env"),
         request.query.get("type"),
         request.query.get("query"),
-        context.get("correlation_id"),
+        correlation_id_var.get(),
     )
