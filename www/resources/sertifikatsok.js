@@ -404,22 +404,16 @@ const search = function(env) {
 const downloadCert = function(hash) {
     const blob = certificates[hash];
     const fileName = `${hash}.cer`;
-    if (window.navigator.msSaveBlob) {
-        // In case of EDGE cases
-        // hahahahaha, I'm so funny
-        window.navigator.msSaveBlob(blob, fileName);
-    } else {
-        const a = document.createElement('a');
-        a.style = 'display: none';
-        const url = window.URL.createObjectURL(blob);
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
+    const a = document.createElement('a');
+    a.style = 'display: none';
+    const url = window.URL.createObjectURL(blob);
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
 
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-    }
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
 };
 
 const showPEM = function(hash) {
