@@ -97,7 +97,7 @@ class CertificateSearch:
         audit_log(request)
 
         return cls.create(
-            env, typ, query, attr, cert_validator, request["correlation_id"],
+            env, typ, query, attr, cert_validator, request["correlation_id"]
         )
 
     @property
@@ -212,7 +212,7 @@ class CertificateSearch:
 
             try:
                 qualified_cert = await QualifiedCertificate.create(
-                    raw_cert[0], (server, base), self.cert_validator,
+                    raw_cert[0], (server, base), self.cert_validator
                 )
             except ValueError:
                 # https://github.com/magnuswatn/sertifikatsok/issues/22

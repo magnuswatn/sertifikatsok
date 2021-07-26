@@ -11,6 +11,7 @@ from cryptography import x509
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+from cryptography.hazmat.primitives.hashes import HashAlgorithm
 
 from .enums import CertificateStatus, Environment
 from .errors import ConfigurationError, CouldNotGetValidCRLError
@@ -340,13 +341,13 @@ class CertValidator:
         if not cert.issuer == issuer.subject:
             return False
         try:
-            # cast because mypy. The type of key is checked
+            # casts because mypy. The type of key is checked
             # when it is loaded in CertRetriever.
             cast(RSAPublicKey, issuer.public_key()).verify(
                 cert.signature,
                 cert.tbs_certificate_bytes,
                 PKCS1v15(),
-                cert.signature_hash_algorithm,
+                cast(HashAlgorithm, cert.signature_hash_algorithm),
             )
         except InvalidSignature:
             return False

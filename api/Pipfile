@@ -7,16 +7,15 @@ name = "pypi"
 bonsai = ">=1.0.0"
 aiohttp = "*"
 cryptography = ">=2.4.2"
-uvloop = "==0.14.0"
-aiotask-context = "*"
+uvloop = "*"
 attrs = "*"
 
 [dev-packages]
 pytest = "*"
-black = "==19.10b0"
+black = "==21.7b0"
 mypy = "*"
 aiohttp-swagger = "*"
 isort = "*"
 
 [requires]
-python_version = "3.6"
+python_version = "3.8"

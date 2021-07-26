@@ -4,14 +4,13 @@ import json
 import logging
 import uuid
 
-import aiotask_context as context
 import uvloop
 from aiohttp import web
 
 from .crypto import AppCrlRetriever, CertRetriever
 from .enums import Environment
 from .errors import ClientError
-from .logging import configure_logging, performance_log
+from .logging import configure_logging, correlation_id_var, performance_log
 from .search import CertificateSearch
 from .serialization import sertifikatsok_serialization
 
@@ -45,7 +44,7 @@ async def error_middleware(request, handler):
 @web.middleware
 async def correlation_middleware(request, handler):
     correlation_id = str(uuid.uuid4())
-    context.set(key="correlation_id", value=correlation_id)
+    correlation_id_var.set(correlation_id)
     request["correlation_id"] = correlation_id
     response = await handler(request)
     response.headers["Correlation-Id"] = correlation_id
@@ -126,7 +125,6 @@ async def api_endpoint(request):
 
 def run():
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    asyncio.get_event_loop().set_task_factory(context.task_factory)
 
     parser = argparse.ArgumentParser(description="Sertifikatsok API")
     parser.add_argument("--host")

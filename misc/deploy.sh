@@ -3,15 +3,17 @@ set -Eeuo pipefail
 
 DIR="$( cd "$( dirname "$0" )" && pwd )"
 BIN_DIR="$(readlink -f "$DIR/../../")"
-PIPENV_VENV="$BIN_DIR/pipenv-venv"
+CRL_DIR="$(readlink -f "$DIR/../api/crls")"
 
 UGLIFY_ES=$BIN_DIR/node_modules/uglify-es/bin/uglifyjs
 CSSO=$BIN_DIR/node_modules/csso-cli/bin/csso
 HTML_MINFIER=$BIN_DIR/node_modules/html-minifier/cli.js
 BROTLI=/usr/local/bin/brotli
 
+CONTAINER_NAME="sertifikatsok-api"
+CONTAINER_BACKUP_NAME="sertifikatsok-api-bak"
+
 WWW_DIR=/var/www/sertifikatsok
-SERVICE_NAME=sertifikatsok
 
 cd "$DIR/../api"
 
@@ -23,11 +25,23 @@ if [[ $head == "$last_deploy" ]]; then
   exit 0
 fi
 
-WORKON_HOME="${BIN_DIR}/venvs/$(date +%s)"
-export WORKON_HOME
-"$PIPENV_VENV/bin/pipenv" install --deploy
-pipenv_python="$("${PIPENV_VENV}/bin/pipenv" --py)"
-venv_path="$(realpath "$(dirname "${pipenv_python}")/..")"
+container_tag="sertifikatsok-api-$(date +%s)"
+
+docker build \
+  -t "${container_tag}" \
+  "${DIR}/../api"
+
+docker rm "${CONTAINER_BACKUP_NAME}" || $true
+docker stop "${CONTAINER_NAME}" || $true
+docker rename "${CONTAINER_NAME}" "${CONTAINER_BACKUP_NAME}" || $true
+docker run -d \
+  --restart always \
+  -v "${CRL_DIR}:/opt/sertifikatsok/api/crls" \
+  -v "/var/log/caddy/:/logs" \
+  -p 127.0.0.1:7001:7001 \
+  --name "${CONTAINER_NAME}" \
+  "${container_tag}" \
+  --port 7001 --host 0.0.0.0 --log-files=/logs/sertifikatsok_{}.log
 
 temp_dir=$(mktemp --directory)
 
@@ -54,7 +68,5 @@ find "$temp_dir" -type f -not -name '*.png' -exec $BROTLI '{}' \;
 rsync "$temp_dir/" $WWW_DIR --delete --recursive --checksum
 
 rm -Rf "$temp_dir"
-ln -sfn "${venv_path}" "${BIN_DIR}/venv"
-sudo /usr/bin/systemctl restart $SERVICE_NAME
 
 echo "$head" > "${BIN_DIR}/last_deploy"
