@@ -2,15 +2,15 @@ let searchTimeout;
 let lastQuery;
 let certificates;
 
-const handleWarnings = function(warnings) {
+const handleWarnings = function (warnings) {
     if (warnings.length > 0) {
-        const $warningRow = $('<div/>', {'class': 'row'});
-        warnings.forEach(function(warning) {
-            $warningRow.append('<div/>', {'class': 'col s6 offset-s3'}).append(
-                $('<div/>', {'class': 'card-panel orange darken-4'}).append(
-                    $('<span/>', {class: 'white-text', text: warning}).prepend(
-                        $('<i/>', {class: 'material-icons', text: 'warning'})
-                ))
+        const $warningRow = $('<div/>', { 'class': 'row' });
+        warnings.forEach(function (warning) {
+            $warningRow.append('<div/>', { 'class': 'col s6 offset-s3' }).append(
+                $('<div/>', { 'class': 'card-panel orange darken-4' }).append(
+                    $('<span/>', { class: 'white-text', text: warning }).prepend(
+                        $('<i/>', { class: 'material-icons', text: 'warning' })
+                    ))
             );
         });
         $warningRow.append('<br>');
@@ -19,7 +19,7 @@ const handleWarnings = function(warnings) {
 };
 
 // Thanks to https://gist.github.com/fupslot/5015897
-const base64toCertBlob = function(data, contentType) {
+const base64toCertBlob = function (data, contentType) {
     const byteString = atob(data);
 
     const ab = new ArrayBuffer(byteString.length);
@@ -28,16 +28,16 @@ const base64toCertBlob = function(data, contentType) {
         ia[i] = byteString.charCodeAt(i);
     }
 
-    const bb = new Blob([ab], {type: 'application/pkix-cert'});
+    const bb = new Blob([ab], { type: 'application/pkix-cert' });
     return bb;
 };
 
-const handleFatalError = function(msg) {
+const handleFatalError = function (msg) {
     $('#body-container').empty();
     handleWarnings([msg]);
 };
 
-const getStatusBadge = function(certificateSet) {
+const getStatusBadge = function (certificateSet) {
     let color = 'green';
     switch (certificateSet.status) {
         case 'OK':
@@ -57,54 +57,56 @@ const getStatusBadge = function(certificateSet) {
             break;
     }
     return $('<span/>',
-        {'class': `new badge ${color}`,
-        'data-badge-caption': certificateSet.status});
+        {
+            'class': `new badge ${color}`,
+            'data-badge-caption': certificateSet.status
+        });
 };
 
-const getNotificationMessage = function(certificateSet) {
+const getNotificationMessage = function (certificateSet) {
     // TODO: We can only show one message at the time now
     // Should we support more?
     let $message = '';
-    certificateSet.notices.forEach(function(notice) {
+    certificateSet.notices.forEach(function (notice) {
         switch (notice) {
             case 'seid2':
                 $message = $('#stashed-seid2-notification').clone();
                 break;
             case 'underenhet':
-               $message = $('#stashed-underenhet-notification').clone();
-               break;
+                $message = $('#stashed-underenhet-notification').clone();
+                break;
             case 'ukjent':
-               $message = $('#stashed-ukjent-notification').clone();
-               break;
+                $message = $('#stashed-ukjent-notification').clone();
+                break;
         }
     });
     return $message;
 };
 
-const getNorwegianDate = (function() {
+const getNorwegianDate = (function () {
     const monthNames = [
-      'januar', 'februar', 'mars',
-      'april', 'mai', 'juni', 'juli',
-      'august', 'september', 'oktober',
-      'november', 'desember',
+        'januar', 'februar', 'mars',
+        'april', 'mai', 'juni', 'juli',
+        'august', 'september', 'oktober',
+        'november', 'desember',
     ];
 
-    return function(dateString) {
+    return function (dateString) {
         const date = new Date(dateString);
 
-        return `${date.getDate()}. ${monthNames[date.getMonth()]} `+
+        return `${date.getDate()}. ${monthNames[date.getMonth()]} ` +
             `${date.getFullYear()}`;
     };
 })();
 
- const updateCertModal = function($modal, certificate) {
+const updateCertModal = function ($modal, certificate) {
     $modal.attr('id', certificate.info['Avtrykk (SHA-1)']);
     const values = ['Emne', 'Utsteder', 'Gyldig fra', 'Gyldig til',
-                    'Serienummer (hex)', 'Serienummer (int)', 'Bruksområde(r)',
-                    'Nøkkelbruk', 'Utvidet nøkkelbruk', 'Status', 'Type', 'Avtrykk (SHA-1)'];
+        'Serienummer (hex)', 'Serienummer (int)', 'Bruksområde(r)',
+        'Nøkkelbruk', 'Utvidet nøkkelbruk', 'Status', 'Type', 'Avtrykk (SHA-1)'];
 
     $table = $modal.find('tbody');
-    values.forEach(function(value) {
+    values.forEach(function (value) {
         $row = $('<tr/>');
         $boldText = $('<b/>').text(value);
         $row.append($('<td/>').append($boldText));
@@ -112,9 +114,9 @@ const getNorwegianDate = (function() {
         $table.append($row);
     });
     $('#modals').append($modal);
- };
+};
 
-const getCaIcon = function(certificateSet) {
+const getCaIcon = function (certificateSet) {
     let image = '';
     let alt;
     switch (certificateSet.issuer) {
@@ -127,36 +129,36 @@ const getCaIcon = function(certificateSet) {
             alt = "Commfides-logo";
             break;
     }
-    return $('<div/>', {class: 'right'})
-        .append($('<img/>', {src: image, width: 80, alt: alt}));
+    return $('<div/>', { class: 'right' })
+        .append($('<img/>', { src: image, width: 80, alt: alt }));
 };
 
-const showCertificateSets = function(certificateSets) {
+const showCertificateSets = function (certificateSets) {
     if (certificateSets.length > 0) {
         $ldapMessage = $('#stashed-ldap-string-box').clone();
         $certModal = $('#stashed-cert-modal').clone();
 
-        certificateSets.forEach(function(certificateSet) {
+        certificateSets.forEach(function (certificateSet) {
             const $collapsibleLi = $('<li/>');
-            const $collapsibleHeaderRow = $('<div/>', {class: 'row'});
+            const $collapsibleHeaderRow = $('<div/>', { class: 'row' });
 
             const norwegianFromDate = getNorwegianDate(
                 certificateSet.valid_from);
-            $collapsibleHeaderRow.append($('<div/>', {class: 'col s3'})
+            $collapsibleHeaderRow.append($('<div/>', { class: 'col s3' })
                 .text(`Utstedt ${norwegianFromDate}`));
-            $collapsibleHeaderRow.append($('<div/>', {class: 'col s5'})
+            $collapsibleHeaderRow.append($('<div/>', { class: 'col s5' })
                 .text(certificateSet.subject));
 
             const statusBadge = getStatusBadge(certificateSet);
-            $collapsibleHeaderRow.append($('<div/>', {class: 'col s2'})
-            .append(statusBadge));
+            $collapsibleHeaderRow.append($('<div/>', { class: 'col s2' })
+                .append(statusBadge));
 
             const CaImage = getCaIcon(certificateSet);
-            $collapsibleHeaderRow.append($('<div/>', {class: 'col s2'})
+            $collapsibleHeaderRow.append($('<div/>', { class: 'col s2' })
                 .append(CaImage));
 
             const $collapsibleHeader = $('<div/>',
-                {class: 'collapsible-header'}).append($collapsibleHeaderRow);
+                { class: 'collapsible-header' }).append($collapsibleHeaderRow);
             $collapsibleLi.append($collapsibleHeader);
 
             const $collapsibleBodySpan = $('<span/>');
@@ -168,47 +170,47 @@ const showCertificateSets = function(certificateSets) {
             $collapsibleBodySpan.append(getNotificationMessage(certificateSet));
 
             const norwegianToDate = getNorwegianDate(certificateSet.valid_to);
-            const certificateSetIntro = `Dette settet er gyldig til `+
+            const certificateSetIntro = `Dette settet er gyldig til ` +
                 `${norwegianToDate}`;
 
-            $collapsibleBodySpan.append($('<h6/>', {class: 'center-align'})
+            $collapsibleBodySpan.append($('<h6/>', { class: 'center-align' })
                 .text(certificateSetIntro));
 
             $collapsibleBodySpan.append('<br>');
 
-            const $certificateRow = $('<div/>', {class: 'row'});
+            const $certificateRow = $('<div/>', { class: 'row' });
 
-            certificateSet.certificates.forEach(function(certificate) {
+            certificateSet.certificates.forEach(function (certificate) {
                 const $certificateEntry = $('<div/>',
-                    {class: 'card-content white-text'});
+                    { class: 'card-content white-text' });
                 $certificateEntry.append($('<span/>',
-                    {class: 'card-title'}).text(certificate.name));
+                    { class: 'card-title' }).text(certificate.name));
 
                 const $certificateInfo = $('<p/>');
                 const values = ['Bruksområde(r)', 'Serienummer (hex)',
-                                'Serienummer (int)', 'Avtrykk (SHA-1)'];
-                values.forEach(function(value) {
-                    $certificateInfo.append($('<div/>', {class: 'left'})
+                    'Serienummer (int)', 'Avtrykk (SHA-1)'];
+                values.forEach(function (value) {
+                    $certificateInfo.append($('<div/>', { class: 'left' })
                         .text(value));
-                    $certificateInfo.append($('<div/>', {class: 'right'})
+                    $certificateInfo.append($('<div/>', { class: 'right' })
                         .text(certificate.info[value]));
                     $certificateInfo.append('<br>');
                 });
                 $certificateEntry.append($certificateInfo);
 
-                const $fullCertificateEntry = $('<div/>', {class: 'col s12 m6'})
+                const $fullCertificateEntry = $('<div/>', { class: 'col s12 m6' })
                     .append($('<div/>',
-                            {class: 'card blue-grey darken-1 hoverable cert'})
-                                .append($certificateEntry));
+                        { class: 'card blue-grey darken-1 hoverable cert' })
+                        .append($certificateEntry));
 
                 certBlob = base64toCertBlob(certificate.certificate);
                 certificates[certificate.info['Avtrykk (SHA-1)']] = certBlob;
 
                 const $certificateEntryLink = $('<a/>',
-                    {href: `#${certificate.info['Avtrykk (SHA-1)']}`, id: 'certCard'})
+                    { href: `#${certificate.info['Avtrykk (SHA-1)']}`, id: 'certCard' })
                     .append($fullCertificateEntry);
 
-                    $certificateRow.append($certificateEntryLink);
+                $certificateRow.append($certificateEntryLink);
 
                 const $thisCertModal = $certModal.clone();
                 updateCertModal($thisCertModal, certificate);
@@ -228,13 +230,13 @@ const showCertificateSets = function(certificateSets) {
                 $brregButton.remove();
             }
 
-            const $collapsibleBody = $('<div/>', {class: 'collapsible-body'})
+            const $collapsibleBody = $('<div/>', { class: 'collapsible-body' })
                 .append($collapsibleBodySpan);
 
             $collapsibleLi.append($collapsibleBody);
 
             const $collapsible = $('<ul/>',
-                {'class': 'collapsible', 'data-collapsible': 'expandable'})
+                { 'class': 'collapsible', 'data-collapsible': 'expandable' })
                 .append($collapsibleLi);
 
             $('#body-container').append($collapsible);
@@ -242,29 +244,29 @@ const showCertificateSets = function(certificateSets) {
     }
 };
 
-const loadMaterialize = function() {
+const loadMaterialize = function () {
     // Since we dynamically load these, we need to activate them
     $('.collapsible').collapsible();
-    $('.tooltipped').tooltip({delay: 50});
+    $('.tooltipped').tooltip({ delay: 50 });
     $('.modal').modal({
-        complete: function() {
+        complete: function () {
             // We must not change the hash when the string modal closes
             // as it is used on top of another modal
-            if ($(this).attr('id') !== 'string-modal' ) {
+            if ($(this).attr('id') !== 'string-modal') {
                 history.replaceState(null, 'Sertifikatsøk', '#!');
             }
         },
-      }
+    }
     );
 };
 
-const loadLoader = function() {
+const loadLoader = function () {
     $('#body-container').empty();
     const $loader = $('#stashed-loader').clone();
     $('#body-container').append($loader);
 };
 
-const loadSearchGUI = function() {
+const loadSearchGUI = function () {
     $('#body-container').empty();
     const $searchPage = $('#stashed-searchpage').clone();
     $('#body-container').append($searchPage);
@@ -272,20 +274,20 @@ const loadSearchGUI = function() {
     $('ul.tabs').tabs();
 };
 
-const loadResultGUI = function(response) {
+const loadResultGUI = function (response) {
     $('#body-container').empty();
     handleWarnings(response.errors);
 
-    $amountMessage = $('<h5/>', {'class': 'center-align'});
-    $amountMessage.text(`Fant ${response.certificate_sets.length} `+
-                        `sett med sertifikater for ${response.subject}`);
+    $amountMessage = $('<h5/>', { 'class': 'center-align' });
+    $amountMessage.text(`Fant ${response.certificate_sets.length} ` +
+        `sett med sertifikater for ${response.subject}`);
     $('#body-container').append($amountMessage);
 
-    $searchDetails = $('<p/>', {'class': 'link-text', 'id': 'searchDetailsTxt'});
+    $searchDetails = $('<p/>', { 'class': 'link-text', 'id': 'searchDetailsTxt' });
     $searchDetails.text("Trykk her for å se søkedetaljer");
-    $searchDetails.append($('<i/>', {class: 'material-icons tiny', text: 'info_outline'}))
+    $searchDetails.append($('<i/>', { class: 'material-icons tiny', text: 'info_outline' }))
 
-    $('#body-container').append($('<div/>', {'class':'center-align'}).append($searchDetails));
+    $('#body-container').append($('<div/>', { 'class': 'center-align' }).append($searchDetails));
     updateSearchDetailsModal(response.searchDetails)
 
     showCertificateSets(response.certificate_sets);
@@ -295,7 +297,7 @@ const loadResultGUI = function(response) {
     }
 };
 
-const updateSearchDetailsModal = function(searchDetails) {
+const updateSearchDetailsModal = function (searchDetails) {
 
     $modal = $('#sokedetaljer-modal');
     $modal.modal();
@@ -307,7 +309,7 @@ const updateSearchDetailsModal = function(searchDetails) {
     $table = $modal.find('tbody');
     $table.empty();
 
-    values.forEach(function(value) {
+    values.forEach(function (value) {
         $row = $('<tr/>');
         $boldText = $('<b/>').text(value);
         $row.append($('<td/>').append($boldText));
@@ -319,7 +321,7 @@ const updateSearchDetailsModal = function(searchDetails) {
     $('#modals').append($modal);
 };
 
-const getResponse = async function(query) {
+const getResponse = async function (query) {
     certificates = {};
     loadLoader();
     let response;
@@ -329,8 +331,8 @@ const getResponse = async function(query) {
         if (error.responseJSON) {
             handleFatalError(error.responseJSON.error);
         } else {
-            handleFatalError('Fikk ikke kontakt med serveren. '+
-                             'Vennligst prøv igjen senere.');
+            handleFatalError('Fikk ikke kontakt med serveren. ' +
+                'Vennligst prøv igjen senere.');
         };
         return false;
     }
@@ -338,17 +340,17 @@ const getResponse = async function(query) {
 };
 
 // credit to: https://stackoverflow.com/questions/985272/
- const selectText = function(element) {
-        const text = document.getElementById(element);
+const selectText = function (element) {
+    const text = document.getElementById(element);
 
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(text);
-        selection.removeAllRanges();
-        selection.addRange(range);
- };
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(text);
+    selection.removeAllRanges();
+    selection.addRange(range);
+};
 
-const loadPage = function() {
+const loadPage = function () {
     if (window.location.search !== '') {
         // Result view
         if (window.location.search !== lastQuery) {
@@ -371,7 +373,7 @@ const loadPage = function() {
     }
 };
 
-const search = function(env) {
+const search = function (env) {
     let type;
     let inputValue;
     if ($('#enterprise-search').attr('class')) {
@@ -396,15 +398,15 @@ const search = function(env) {
         return false;
     }
     const queryParams = [
-        {name: 'query', value: inputValue.trim()},
-        {name: 'env', value: env},
-        {name: 'type', value: type},
+        { name: 'query', value: inputValue.trim() },
+        { name: 'env', value: env },
+        { name: 'type', value: type },
     ];
     history.pushState(null, 'Resultat', `/?${$.param(queryParams)}`);
     loadPage();
 };
 
-const downloadCert = function(hash) {
+const downloadCert = function (hash) {
     const blob = certificates[hash];
     const fileName = `${hash}.cer`;
     const a = document.createElement('a');
@@ -419,20 +421,20 @@ const downloadCert = function(hash) {
     window.URL.revokeObjectURL(url);
 };
 
-const showPEM = function(hash) {
+const showPEM = function (hash) {
     // thanks https://stackoverflow.com/questions/18650168/convert-blob-to-base64
     const blob = certificates[hash];
     const fileReader = new window.FileReader();
     fileReader.readAsDataURL(blob);
-    fileReader.onloadend = function(hash) {
+    fileReader.onloadend = function (hash) {
         b64cert = (fileReader.result)
             .substr((fileReader.result)
-            .indexOf(',')+1);
+                .indexOf(',') + 1);
 
         // Homemade PEM is the best PEM
         let pem = '-----BEGIN CERTIFICATE-----<br>';
-        for (let i = 1; i<=b64cert.length; i++) {
-            let char = b64cert.charAt(i-1);
+        for (let i = 1; i <= b64cert.length; i++) {
+            let char = b64cert.charAt(i - 1);
             if (i % 64 === 0) {
                 pem += `${char}<br>`;
             } else {
@@ -444,87 +446,87 @@ const showPEM = function(hash) {
         }
         pem += '-----END CERTIFICATE-----';
 
-          $('#string-modal').modal('open');
-          // Should be OK to use html here, as the input is PEM encoded by us
-          $('#string-modal-string').html(`<p class="pem">${pem}</p>`);
-          selectText('string-modal-string');
+        $('#string-modal').modal('open');
+        // Should be OK to use html here, as the input is PEM encoded by us
+        $('#string-modal-string').html(`<p class="pem">${pem}</p>`);
+        selectText('string-modal-string');
     };
 };
 
-$(document.body).on('click', '.ldap-button', function(e) {
+$(document.body).on('click', '.ldap-button', function (e) {
     $('#string-modal').modal('open');
     $('#string-modal-string').text($(this).attr('ldap'));
     selectText('string-modal-string');
 });
 
-$(document.body).on('click', '.brreg-button', function(e) {
+$(document.body).on('click', '.brreg-button', function (e) {
     const orgNumber = $(this).attr('orgnr');
     window.open(`https://w2.brreg.no/enhet/sok/detalj.jsp?orgnr=${orgNumber}`);
 });
 
-$(document.body).on('click', '.download-button', function(e) {
+$(document.body).on('click', '.download-button', function (e) {
     hash = $(this).parent().parent().parent().attr('id');
     downloadCert(hash);
 });
 
-$(document.body).on('click', '.pem-button', function(e) {
+$(document.body).on('click', '.pem-button', function (e) {
     hash = $(this).parent().parent().parent().attr('id');
     showPEM(hash);
 });
 
-$(document.body).on('click', '.revokert', function() {
+$(document.body).on('click', '.revokert', function () {
     $('#revokert-modal').modal('open');
     return false;
 });
 
-$(document.body).on('click', '.underenhet', function() {
+$(document.body).on('click', '.underenhet', function () {
     $('#underenhet-modal').modal('open');
     return false;
 });
 
-$(document.body).on('click', '.seid2', function() {
+$(document.body).on('click', '.seid2', function () {
     $('#seid2-modal').modal('open');
     return false;
 });
 
 // Not change the hash when the close button on the string modal is pressed
 // as it is used in front of another modal
-$(document.body).on('click', '#string-modal-close', function() {
+$(document.body).on('click', '#string-modal-close', function () {
     return false;
 });
 
-$(document.body).on('click', '.ukjent', function() {
+$(document.body).on('click', '.ukjent', function () {
     $('#ukjent-modal').modal('open');
     return false;
 });
 
-$(document.body).on('click', '#hjelp-button', function() {
+$(document.body).on('click', '#hjelp-button', function () {
     $('#hjelp-modal').modal();
     $('#hjelp-modal').modal('open');
     return false;
 });
 
-$(document.body).on('click', '#logo', function() {
+$(document.body).on('click', '#logo', function () {
     history.pushState(null, 'Sertifikatsøk', '/');
     loadPage();
     return false;
 });
 
-$(document.body).on('click', '#searchDetailsTxt', function() {
+$(document.body).on('click', '#searchDetailsTxt', function () {
     $('#sokedetaljer-modal').modal();
     $('#sokedetaljer-modal').modal('open');
 });
 
 
-$(document.body).on('click', '#search-button', function() {
+$(document.body).on('click', '#search-button', function () {
     search('prod');
 });
 
-$(document.body).on('click', '#search-test-button', function() {
+$(document.body).on('click', '#search-test-button', function () {
     search('test');
 });
 
-$(document.body).on('click', '#certCard', function(e) {
+$(document.body).on('click', '#certCard', function (e) {
     history.replaceState(null, 'Sertifikatsøk', e.currentTarget.href);
     loadPage();
     return false;
@@ -534,7 +536,7 @@ $(document.body).on('click', '#certCard', function(e) {
 // The string modal is used on top of another modal,
 // so we need to make sure only that is closed when pressing ESC
 // and not the underlying modal
-$(document.body).on('keydown', function(key) {
+$(document.body).on('keydown', function (key) {
     if (key.which === 27) {
         if ($('#string-modal').hasClass('open')) {
             $('#string-modal').modal('close');
@@ -543,14 +545,14 @@ $(document.body).on('keydown', function(key) {
     };
 });
 
-$(document.body).on('keyup', '.search-box', function(key) {
+$(document.body).on('keyup', '.search-box', function (key) {
     $(this).removeClass('invalid');
     if (key.which === 13) {
         search('prod');
     }
 });
 
-$(document.body).on('click', '#enterprise-search', function() {
+$(document.body).on('click', '#enterprise-search', function () {
     const personSearchVal = $('#person-search-value').val();
     if (personSearchVal !== "") {
         $('#enterprise-search-value').val(personSearchVal);
@@ -559,27 +561,27 @@ $(document.body).on('click', '#enterprise-search', function() {
     $('#enterprise-search-value').focus();
 });
 
-$(document.body).on('click', '#person-search', function() {
+$(document.body).on('click', '#person-search', function () {
     const enterpriseSearchVal = $('#enterprise-search-value').val();
     if (enterpriseSearchVal !== "") {
         $('#person-search-value').val(enterpriseSearchVal);
         $('#enterprise-search-value').val("");
     }
-     $('#person-search-value').focus();
+    $('#person-search-value').focus();
 });
 
-$(window).on('popstate', function(e) {
+$(window).on('popstate', function (e) {
     loadPage();
 });
 
 // Autocomplete from Brønnøysundregistrene when searching after enterprises
-$(document.body).on('keyup', '#enterprise-search-value', async function() {
+$(document.body).on('keyup', '#enterprise-search-value', async function () {
     const $field = $(this);
 
     if (searchTimeout) {
         window.clearTimeout(searchTimeout);
     }
-    searchTimeout = window.setTimeout(async function() {
+    searchTimeout = window.setTimeout(async function () {
         const searchValue = $field.val().split('\'').join('');
         if (searchValue.length > 3) {
             const companies = await getCompanies(searchValue);
@@ -592,7 +594,7 @@ $(document.body).on('keyup', '#enterprise-search-value', async function() {
     }, 500);
 });
 
-const getCompanies = async function(startOfName) {
+const getCompanies = async function (startOfName) {
     const url = 'https://data.brreg.no/enhetsregisteret/api/enheter';
     const filter = {
         navn: startOfName
@@ -601,14 +603,14 @@ const getCompanies = async function(startOfName) {
 
     const companies = {};
     if (response._embedded && response._embedded.enheter) {
-        for (let i=0, len=response._embedded.enheter.length; i<len; i++) {
+        for (let i = 0, len = response._embedded.enheter.length; i < len; i++) {
             companies[`${response._embedded.enheter[i].navn} ` +
-        `(${response._embedded.enheter[i].organisasjonsnummer})`] = null;
+                `(${response._embedded.enheter[i].organisasjonsnummer})`] = null;
         }
     };
     return companies;
 };
 
-$(function() {
+$(function () {
     loadPage();
 });
