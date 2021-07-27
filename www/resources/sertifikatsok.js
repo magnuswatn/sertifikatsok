@@ -116,16 +116,19 @@ const getNorwegianDate = (function() {
 
 const getCaIcon = function(certificateSet) {
     let image = '';
+    let alt;
     switch (certificateSet.issuer) {
         case 'Buypass':
             image = 'resources/buypass.svg';
+            alt = "Buypass-logo";
             break;
         case 'Commfides':
             image = 'resources/commfides.svg';
+            alt = "Commfides-logo";
             break;
     }
     return $('<div/>', {class: 'right'})
-        .append($('<img/>', {src: image}));
+        .append($('<img/>', {src: image, width: 80, alt: alt}));
 };
 
 const showCertificateSets = function(certificateSets) {
