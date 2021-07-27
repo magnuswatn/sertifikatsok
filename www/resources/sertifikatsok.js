@@ -551,11 +551,21 @@ $(document.body).on('keyup', '.search-box', function(key) {
 });
 
 $(document.body).on('click', '#enterprise-search', function() {
+    const personSearchVal = $('#person-search-value').val();
+    if (personSearchVal !== "") {
+        $('#enterprise-search-value').val(personSearchVal);
+        $('#person-search-value').val("");
+    }
     $('#enterprise-search-value').focus();
 });
 
 $(document.body).on('click', '#person-search', function() {
-    $('#person-search-value').focus();
+    const enterpriseSearchVal = $('#enterprise-search-value').val();
+    if (enterpriseSearchVal !== "") {
+        $('#person-search-value').val(enterpriseSearchVal);
+        $('#enterprise-search-value').val("");
+    }
+     $('#person-search-value').focus();
 });
 
 $(window).on('popstate', function(e) {
