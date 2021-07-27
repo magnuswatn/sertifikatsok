@@ -590,7 +590,7 @@ const getCompanies = async function(startOfName) {
     const response = await $.getJSON(url, filter);
 
     const companies = {};
-    if (response._embedded.enheter) {
+    if (response._embedded && response._embedded.enheter) {
         for (let i=0, len=response._embedded.enheter.length; i<len; i++) {
             companies[`${response._embedded.enheter[i].navn} ` +
         `(${response._embedded.enheter[i].organisasjonsnummer})`] = null;
