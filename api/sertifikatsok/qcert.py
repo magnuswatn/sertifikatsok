@@ -50,12 +50,12 @@ class QualifiedCertificate:
     def _get_type(self) -> Tuple[CertType, str]:
         """Returns the type of certificate, based on issuer and Policy OID"""
         cert_policies = self.cert.extensions.get_extension_for_oid(
-            x509.ObjectIdentifier("2.5.29.32")
+            ExtensionOID.CERTIFICATE_POLICIES
         ).value
 
         for policy in cert_policies:
             try:
-                oid = policy.policy_identifier.dotted_string
+                oid: str = policy.policy_identifier.dotted_string
                 return KNOWN_CERT_TYPES[(self.issuer, oid)]
             except KeyError:
                 pass
@@ -280,7 +280,7 @@ class QualifiedCertificateSet:
                 # so if they differ they are not from the same set
                 (cert_set[0].print_subject() != cert.print_subject())
                 or
-                # Certificats in a set should have the same type description
+                # Certificates in a set should have the same type description
                 (cert_set[0].description != cert.description)
                 or
                 # Commfides seems to issue the Encryption certificates

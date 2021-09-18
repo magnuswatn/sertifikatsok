@@ -33,3 +33,4 @@ class SearchAttribute(Enum):
     O = "o"
     SN = "serialNumber"
     CSN = "certificateSerialNumber"
+    ORGID = "organizationIdentifier"

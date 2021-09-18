@@ -1,4 +1,5 @@
 import re
+from typing import Dict, Tuple
 
 from cryptography.x509.oid import ObjectIdentifier
 
@@ -65,7 +66,7 @@ EXTENDED_KEY_USAGES = {
 #
 # The value is a tuple with the type of certificate,
 # and a string with an human friendly description
-KNOWN_CERT_TYPES = {
+KNOWN_CERT_TYPES: Dict[Tuple[str, str], Tuple[CertType, str]] = {
     ("C=NO, O=Buypass AS-983163327, CN=Buypass Class 3 Test4 CA 3", "2.16.578.1.26.1.0.3.2"):
     (CertType.ENTERPRISE, "Buypass TEST virksomhetssertifikat (softsertifikat)"),
 
