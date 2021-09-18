@@ -55,7 +55,8 @@ class AppCrlRetriever:
         Returns a retriever suitable for a single request,
         based on this retriever
         """
-        return RequestCrlRetriever(self)
+        # https://github.com/python-attrs/attrs/issues/795
+        return RequestCrlRetriever(self)  # type: ignore
 
     def _get_cached_crl(
         self, url: str, issuer: x509.Certificate
@@ -173,13 +174,13 @@ class RequestCrlRetriever:
     so objects should not be long-lived.
     """
 
-    crl_retriever = attr.ib()
-    crls: Dict[str, x509.CertificateRevocationList] = attr.ib(factory=dict)
+    crl_retriever: AppCrlRetriever
+    crls: Dict[str, Optional[x509.CertificateRevocationList]] = attr.ib(factory=dict)
     errors: List[str] = attr.ib(factory=list)
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
-    ) -> x509.CertificateRevocationList:
+    ) -> Optional[x509.CertificateRevocationList]:
         """Retrieves the CRL from the specified url."""
         try:
             return self.crls[url]
@@ -191,6 +192,7 @@ class RequestCrlRetriever:
             url,
         )
 
+        crl: Optional[x509.CertificateRevocationList]
         try:
             crl = await self.crl_retriever.retrieve(url, issuer)
         except CouldNotGetValidCRLError:
@@ -204,8 +206,8 @@ class RequestCrlRetriever:
 
 @attr.frozen
 class CertRetriever:
-    env: Environment = attr.ib()
-    certs: Dict[x509.Name, x509.Certificate] = attr.ib()
+    env: Environment
+    certs: Dict[x509.Name, x509.Certificate]
 
     @classmethod
     def create(cls, env: Environment):
@@ -254,8 +256,8 @@ class CertRetriever:
 
 @attr.frozen
 class CertValidator:
-    _cert_retriever: CertRetriever = attr.ib()
-    _crl_retriever: RequestCrlRetriever = attr.ib()
+    _cert_retriever: CertRetriever
+    _crl_retriever: RequestCrlRetriever
 
     @property
     def errors(self):
