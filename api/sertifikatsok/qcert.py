@@ -5,6 +5,8 @@ from typing import List, Optional, Tuple
 
 import attr
 from cryptography import x509
+from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.serialization import Encoding
 from cryptography.x509.oid import ExtensionOID, NameOID
 
@@ -167,6 +169,15 @@ class QualifiedCertificate:
             return ou_number[0], True, seid2
 
         return org_number, False, seid2
+
+    def get_key_info(self) -> Optional[str]:
+        pub_key = self.cert.public_key()
+        if isinstance(pub_key, RSAPublicKey):
+            return f"RSA ({pub_key.key_size} bits)"
+        if isinstance(pub_key, EllipticCurvePublicKey):
+            return f"ECC ({pub_key.curve.name})"
+        logger.warn(f"Unexpected key type: {pub_key}")
+        return None
 
     def get_key_usages(self) -> str:
         """Returns a string with the key usages from the cert"""

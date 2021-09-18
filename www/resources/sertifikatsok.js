@@ -102,7 +102,7 @@ const getNorwegianDate = (function () {
 const updateCertModal = function ($modal, certificate) {
     $modal.attr('id', certificate.info['Avtrykk (SHA-1)']);
     const values = ['Emne', 'Utsteder', 'Gyldig fra', 'Gyldig til',
-        'Serienummer (hex)', 'Serienummer (int)', 'Bruksområde(r)',
+        'Serienummer (hex)', 'Serienummer (int)', 'Bruksområde(r)', 'Nøkkeltype',
         'Nøkkelbruk', 'Utvidet nøkkelbruk', 'Status', 'Type', 'Avtrykk (SHA-1)'];
 
     $table = $modal.find('tbody');

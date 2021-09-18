@@ -48,6 +48,8 @@ def qualified_certificate(val):
     info["Nøkkelbruk"] = val.get_key_usages()
     eku = val.get_extended_key_usages()
     info["Utvidet nøkkelbruk"] = eku if eku != None else "(ingen)"
+    key_info = val.get_key_info()
+    info["Nøkkeltype"] = key_info if key_info is not None else "Ukjent"
 
     # If the type is unknown only the OID is present in the description
     if val.type == CertType.UNKNOWN:
