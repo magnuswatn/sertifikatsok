@@ -31,9 +31,9 @@ docker build \
   -t "${container_tag}" \
   "${DIR}/../api"
 
-docker rm "${CONTAINER_BACKUP_NAME}" || $true
-docker stop "${CONTAINER_NAME}" || $true
-docker rename "${CONTAINER_NAME}" "${CONTAINER_BACKUP_NAME}" || $true
+docker rm "${CONTAINER_BACKUP_NAME}" || true
+docker stop "${CONTAINER_NAME}" || true
+docker rename "${CONTAINER_NAME}" "${CONTAINER_BACKUP_NAME}" || true
 docker run -d \
   --restart always \
   -v "${CRL_DIR}:/opt/sertifikatsok/api/crls" \
