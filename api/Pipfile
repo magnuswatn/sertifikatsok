@@ -12,7 +12,7 @@ attrs = "*"
 
 [dev-packages]
 pytest = "*"
-black = "==21.7b0"
+black = "==21.12b0"
 mypy = "*"
 aiohttp-swagger = "*"
 isort = "*"
