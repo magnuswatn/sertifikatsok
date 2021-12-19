@@ -22,7 +22,7 @@ from .constants import (
     UNDERENHET_REGEX,
 )
 from .crypto import CertValidator
-from .enums import CertificateRoles, CertificateStatus, CertType, SearchAttribute
+from .enums import SEID, CertificateRoles, CertificateStatus, CertType, SearchAttribute
 from .errors import MalformedCertificateError
 from .utils import create_ldap_filter, get_subject_order, stringify_x509_name
 
@@ -44,7 +44,7 @@ class QualifiedCertificate:
         self.cert: x509.Certificate = cert
         self.cert_serial = cert_serial
         self.issuer = stringify_x509_name(self.cert.issuer)
-        self.type, self.description = self._get_type()
+        self.type, self.description, self.seid = self._get_type()
         self.roles = self._get_roles()
         self.ldap_params = ldap_params
         self.status = cert_status
@@ -64,7 +64,7 @@ class QualifiedCertificate:
 
         return cls(cert, cert_serial, ldap_params, cert_status, revocation_date)
 
-    def _get_type(self) -> Tuple[CertType, str]:
+    def _get_type(self) -> Tuple[CertType, str, SEID]:
         """Returns the type of certificate, based on issuer and Policy OID"""
         cert_policies = cast(
             x509.CertificatePolicies,
@@ -84,7 +84,7 @@ class QualifiedCertificate:
 
         logger.warn("Unknown certificate type. OIDs=%s Issuer='%s'", oids, self.issuer)
 
-        return (CertType.UNKNOWN, ", ".join(oids))
+        return (CertType.UNKNOWN, ", ".join(oids), SEID.UNKNOWN)
 
     def _get_roles(self) -> List[CertificateRoles]:
         """
@@ -143,14 +143,13 @@ class QualifiedCertificate:
             subject.sort(key=get_subject_order)
         return ", ".join(list(subject))
 
-    def get_orgnumber(self) -> Tuple[Optional[str], bool, bool]:
+    def get_orgnumber(self) -> Tuple[Optional[str], bool]:
         """
         Gets the organization number from the cert,
-        and returns the organization number, if it's an "underenhet"
-        and if it's a SEIDv2 cert.
+        and returns the organization number and if it's an "underenhet".
         """
         if self.type != CertType.ENTERPRISE:
-            return None, False, False
+            return None, False
 
         serial_number_attr = self.cert.subject.get_attributes_for_oid(
             NameOID.SERIAL_NUMBER
@@ -163,15 +162,13 @@ class QualifiedCertificate:
             organization_identifier = organization_identifier_attr[0].value
             if organization_identifier.startswith("NTRNO-"):
                 org_number = organization_identifier[6:]
-                seid2 = True
             else:
                 logger.warn(
                     "Semantic Identifier is not NTRNO: %s", organization_identifier
                 )
-                return None, False, True
+                return None, False
         elif serial_number_attr:
             org_number = serial_number_attr[0].value
-            seid2 = False
         else:
             logger.error(
                 "Malformed cert: %s", self.cert.public_bytes(Encoding.PEM).decode()
@@ -183,14 +180,14 @@ class QualifiedCertificate:
                 NameOID.ORGANIZATIONAL_UNIT_NAME
             )[0].value
         except IndexError:
-            return org_number, False, seid2
+            return org_number, False
 
         ou_number = UNDERENHET_REGEX.search(ou_field)
 
         if ou_number and org_number != ou_number[0]:
-            return ou_number[0], True, seid2
+            return ou_number[0], True
 
-        return org_number, False, seid2
+        return org_number, False
 
     def get_key_info(self) -> Optional[str]:
         pub_key = self.cert.public_key()
@@ -267,7 +264,8 @@ class QualifiedCertificateSet:
                 status = cert.status
                 revocation_date = cert.revocation_date
 
-        org_number, underenhet, seid2 = main_cert.get_orgnumber()
+        org_number, underenhet = main_cert.get_orgnumber()
+        seid2 = bool(main_cert.seid == SEID.SEID2)
         return cls(
             certs, main_cert, status, revocation_date, org_number, underenhet, seid2
         )

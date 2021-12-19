@@ -39,3 +39,9 @@ class SearchAttribute(Enum):
 class CertificateAuthority(Enum):
     BUYPASS = "buypass"
     COMMFIDES = "commfides"
+
+
+class SEID(Enum):
+    UNKNOWN = 0
+    SEID1 = 1
+    SEID2 = 2
