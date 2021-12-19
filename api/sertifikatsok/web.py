@@ -80,7 +80,7 @@ async def api_endpoint(request):
         - in: query
           name: attr
           type: string
-          enum: [cn, mail, ou, o, serialNumber, certificateSerialNumber]
+          enum: [cn, mail, ou, o, serialNumber, certificateSerialNumber, organizationIdentifier]
           description: The ldap attribute to search by (optional)
         - in: query
           name: query

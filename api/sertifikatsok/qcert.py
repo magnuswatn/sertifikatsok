@@ -19,9 +19,9 @@ from .constants import (
     UNDERENHET_REGEX,
 )
 from .crypto import CertValidator
-from .enums import CertificateRoles, CertificateStatus, CertType
+from .enums import CertificateRoles, CertificateStatus, CertType, SearchAttribute
 from .errors import MalformedCertificateError
-from .utils import get_subject_order, stringify_x509_name
+from .utils import create_ldap_filter, get_subject_order, stringify_x509_name
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ class QualifiedCertificate:
 
     def __init__(self, cert, ldap_params, cert_status, revocation_date):
 
-        self.cert = cert
+        self.cert: x509.Certificate = cert
         self.issuer = stringify_x509_name(self.cert.issuer)
         self.type, self.description = self._get_type()
         self.roles = self._get_roles()
@@ -348,11 +348,11 @@ class QualifiedCertificateSet:
     @property
     def ldap(self) -> str:
         """Creates an LDAP url (RFC 1959) for the certificate set"""
-        filter_parts = []
-        for cert in self.certs:
-            filter_parts.append(f"certificateSerialNumber={cert.cert.serial_number}")
-        ldap_filter = ")(".join(filter_parts)
-        ldap_url = "ldap://{}/{}?usercertificate;binary?sub?(|({}))".format(
+
+        ldap_filter = create_ldap_filter(
+            [(SearchAttribute.CSN, str(cert.cert.serial_number)) for cert in self.certs]
+        )
+        ldap_url = "ldap://{}/{}?usercertificate;binary?sub?{}".format(
             self.certs[0].ldap_params[0],
             urllib.parse.quote(self.certs[0].ldap_params[1], safe="=,"),
             ldap_filter,
