@@ -291,7 +291,7 @@ class CertificateSearch:
                     base,
                     self.ldap_params.scope,
                     search_filter,
-                    attrlist=["userCertificate;binary"],
+                    attrlist=["userCertificate;binary", "certificateSerialNumber"],
                 )
                 all_results += results
 
@@ -329,9 +329,14 @@ class CertificateSearch:
                 # Commfides have entries in their LDAP without a cert...
                 continue
 
+            if len(cert_serials := result.get("certificateSerialNumber")) > 0:
+                cert_serial = cert_serials[0]
+            else:
+                cert_serial = None
+
             try:
                 qualified_cert = await QualifiedCertificate.create(
-                    raw_cert[0], (server, base), self.cert_validator
+                    raw_cert[0], cert_serial, (server, base), self.cert_validator
                 )
             except ValueError:
                 # https://github.com/magnuswatn/sertifikatsok/issues/22

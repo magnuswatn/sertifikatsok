@@ -16,6 +16,7 @@ class TestQualifiedCertificateSet:
         certs = [
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
+                "",
                 ("", ""),
                 CertificateStatus.EXPIRED,
                 None,
@@ -35,6 +36,7 @@ class TestQualifiedCertificateSet:
         certs = [
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
+                "",
                 ("", ""),
                 CertificateStatus.EXPIRED,
                 None,
@@ -54,6 +56,7 @@ class TestQualifiedCertificateSet:
         certs = [
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
+                "",
                 ("", ""),
                 CertificateStatus.EXPIRED,
                 None,
@@ -82,6 +85,7 @@ class TestQualifiedCertificateSet:
         certs = [
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
+                "",
                 ("", ""),
                 CertificateStatus.EXPIRED,
                 None,

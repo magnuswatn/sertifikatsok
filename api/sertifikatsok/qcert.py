@@ -35,12 +35,14 @@ class QualifiedCertificate:
     def __init__(
         self,
         cert: x509.Certificate,
+        cert_serial: Optional[str],
         ldap_params: Tuple[str, str],
         cert_status: CertificateStatus,
         revocation_date: Optional[datetime],
     ):
 
         self.cert: x509.Certificate = cert
+        self.cert_serial = cert_serial
         self.issuer = stringify_x509_name(self.cert.issuer)
         self.type, self.description = self._get_type()
         self.roles = self._get_roles()
@@ -49,12 +51,18 @@ class QualifiedCertificate:
         self.revocation_date = revocation_date
 
     @classmethod
-    async def create(cls, raw_cert: bytes, ldap_params, cert_validator: CertValidator):
+    async def create(
+        cls,
+        raw_cert: bytes,
+        cert_serial: Optional[str],
+        ldap_params: Tuple[str, str],
+        cert_validator: CertValidator,
+    ):
 
         cert = x509.load_der_x509_certificate(raw_cert)
         cert_status, revocation_date = await cert_validator.validate_cert(cert)
 
-        return cls(cert, ldap_params, cert_status, revocation_date)
+        return cls(cert, cert_serial, ldap_params, cert_status, revocation_date)
 
     def _get_type(self) -> Tuple[CertType, str]:
         """Returns the type of certificate, based on issuer and Policy OID"""
@@ -363,7 +371,11 @@ class QualifiedCertificateSet:
         """Creates an LDAP url (RFC 1959) for the certificate set"""
 
         ldap_filter = create_ldap_filter(
-            [(SearchAttribute.CSN, str(cert.cert.serial_number)) for cert in self.certs]
+            [
+                (SearchAttribute.CSN, str(cert.cert_serial))
+                for cert in self.certs
+                if cert.cert_serial
+            ]
         )
         ldap_url = "ldap://{}/{}?usercertificate;binary?sub?{}".format(
             self.certs[0].ldap_params[0],
