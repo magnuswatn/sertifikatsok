@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import logging
 import urllib.parse
 from datetime import datetime
-from typing import List, Optional, Tuple
+from operator import attrgetter
+from typing import List, Optional, Tuple, cast
 
 import attr
 from cryptography import x509
@@ -29,7 +32,13 @@ logger = logging.getLogger(__name__)
 class QualifiedCertificate:
     """Represents a Norwegian Qualified Certificate"""
 
-    def __init__(self, cert, ldap_params, cert_status, revocation_date):
+    def __init__(
+        self,
+        cert: x509.Certificate,
+        ldap_params: Tuple[str, str],
+        cert_status: CertificateStatus,
+        revocation_date: Optional[datetime],
+    ):
 
         self.cert: x509.Certificate = cert
         self.issuer = stringify_x509_name(self.cert.issuer)
@@ -49,9 +58,12 @@ class QualifiedCertificate:
 
     def _get_type(self) -> Tuple[CertType, str]:
         """Returns the type of certificate, based on issuer and Policy OID"""
-        cert_policies = self.cert.extensions.get_extension_for_oid(
-            ExtensionOID.CERTIFICATE_POLICIES
-        ).value
+        cert_policies = cast(
+            x509.CertificatePolicies,
+            self.cert.extensions.get_extension_for_oid(
+                ExtensionOID.CERTIFICATE_POLICIES
+            ).value,
+        )
 
         for policy in cert_policies:
             try:
@@ -80,9 +92,11 @@ class QualifiedCertificate:
         This function returns which role(s) this certificate has.
         """
         cert_roles = []
-        key_usage = self.cert.extensions.get_extension_for_oid(
-            ExtensionOID.KEY_USAGE
-        ).value
+        key_usage = cast(
+            x509.KeyUsage,
+            self.cert.extensions.get_extension_for_oid(ExtensionOID.KEY_USAGE).value,
+        )
+
         if key_usage.digital_signature:
             cert_roles.append(CertificateRoles.AUTH)
         if key_usage.content_commitment:
@@ -195,9 +209,12 @@ class QualifiedCertificate:
     def get_extended_key_usages(self) -> Optional[str]:
         """Returns a string with the extended key usages from the cert"""
         try:
-            cert_eku = self.cert.extensions.get_extension_for_oid(
-                ExtensionOID.EXTENDED_KEY_USAGE
-            ).value
+            cert_eku = cast(
+                x509.ExtendedKeyUsage,
+                self.cert.extensions.get_extension_for_oid(
+                    ExtensionOID.EXTENDED_KEY_USAGE
+                ).value,
+            )
         except x509.ExtensionNotFound:
             return None
 
@@ -220,12 +237,12 @@ class QualifiedCertificateSet:
     main_cert: QualifiedCertificate = attr.ib()
     status: CertificateStatus = attr.ib()
     revocation_date: Optional[datetime] = attr.ib()
-    org_number: str = attr.ib()
+    org_number: Optional[str] = attr.ib()
     underenhet: bool = attr.ib()
     seid2: bool = attr.ib()
 
     @classmethod
-    def create(cls, certs):
+    def create(cls, certs) -> QualifiedCertificateSet:
 
         # Commfides issues encryption certs with longer validity than
         # the rest of the certificates in the set, so we shouldn't use
@@ -250,14 +267,13 @@ class QualifiedCertificateSet:
     @classmethod
     def create_sets_from_certs(
         cls, certs: List[QualifiedCertificate]
-    ) -> List["QualifiedCertificateSet"]:
+    ) -> List[QualifiedCertificateSet]:
         """
         This creates a list of QualifiedCertificateSet
         from a list of QualifiedCertificate.
 
         This is quite hard as there isn't anything that ties the certs together.
-        But they (usually?) come right after each other from the LDAP server,
-        and the subjects should be the same (except the serialNumber on non-Enterprise
+        But the subjects should be the same (except the serialNumber on non-Enterprise
         certs from Commfides) and they should be issued at the same time
         (except encryption certificates from Commfides)... *sigh*
         """
@@ -265,13 +281,11 @@ class QualifiedCertificateSet:
             return []
 
         cert_sets: List[QualifiedCertificateSet] = []
+
         cert_set: List[QualifiedCertificate] = []
         cert_set_roles: List[CertificateRoles] = []
 
-        counter = 0
-        while counter < len(certs):
-
-            cert = certs[counter]
+        for cert in sorted(certs, key=attrgetter("cert.not_valid_before")):
 
             if not cert_set:
                 cert_set_roles = cert.roles.copy()
@@ -304,7 +318,6 @@ class QualifiedCertificateSet:
                 cert_set_roles += cert.roles
 
             cert_set.append(cert)
-            counter += 1
 
         cert_sets.append(cls.create(cert_set))
         return cert_sets
