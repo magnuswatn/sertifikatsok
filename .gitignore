@@ -2,7 +2,7 @@
 .vscode/*
 .eslintrc.json
 node_modules/
-api/__pycache__/*
+**/__pycache__
 api/sertifikatsok/__pycache__/*
 api/.env
 www/Caddyfile

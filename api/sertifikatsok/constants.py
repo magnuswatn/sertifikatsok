@@ -16,8 +16,10 @@ ORG_NUMBER_REGEX = re.compile(r"(\d\s?){9}")
 UNDERENHET_REGEX = re.compile(r"(?<!\d)\d{9}(?!\d)")
 PERSONAL_SERIAL_REGEX = re.compile(r"9578-(4505|4050|4510)-[A-z0-9]+")
 # (This is a bad email regex, but it's good enough
-# for thise use case.)
+# for this use case.)
 EMAIL_REGEX = re.compile(r"[^\s@]+@[\w\d]+(\.[\w\d]+)+")
+HEX_SERIAL_REGEX = re.compile(r"([0-9a-fA-F][\s:]?){16,}")
+INT_SERIAL_REGEX = re.compile(r"([0-9]){19,}")
 
 ORGANIZATION_IDENTIFIER = ObjectIdentifier("2.5.4.97")
 

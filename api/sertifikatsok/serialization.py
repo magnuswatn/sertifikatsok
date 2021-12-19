@@ -16,6 +16,7 @@ from .enums import (
     Environment,
     SearchAttribute,
 )
+from .logging import correlation_id_var
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
 from .search import CertificateSearchResponse
 
@@ -27,7 +28,7 @@ def sertifikatsok_serialization(val):
 
 
 @sertifikatsok_serialization.register(QualifiedCertificate)
-def qualified_certificate(val):
+def qualified_certificate(val: QualifiedCertificate):
 
     dumped: Dict[str, Union[str, Dict[str, str]]] = {}
     name, usage = _get_norwegian_display_name(val)
@@ -47,7 +48,7 @@ def qualified_certificate(val):
     info["Gyldig til"] = val.cert.not_valid_after.isoformat()
     info["Nøkkelbruk"] = val.get_key_usages()
     eku = val.get_extended_key_usages()
-    info["Utvidet nøkkelbruk"] = eku if eku != None else "(ingen)"
+    info["Utvidet nøkkelbruk"] = eku if eku is not None else "(ingen)"
     key_info = val.get_key_info()
     info["Nøkkeltype"] = key_info if key_info is not None else "Ukjent"
 
@@ -68,7 +69,7 @@ def qualified_certificate(val):
 
 
 @sertifikatsok_serialization.register(QualifiedCertificateSet)
-def qualified_certificate_set(val):
+def qualified_certificate_set(val: QualifiedCertificateSet):
     dumped = {}
 
     dumped["notices"] = []
@@ -102,7 +103,7 @@ def qualified_certificate_set(val):
 
 
 @sertifikatsok_serialization.register(CertificateSearchResponse)
-def certificate_search(val):
+def certificate_search(val: CertificateSearchResponse):
     result = {}
 
     errors = set()
@@ -119,8 +120,8 @@ def certificate_search(val):
 
     # this is horrible and must be replaced.
     if (
-        val.search.typ == CertType.ENTERPRISE
-        and val.search.search_attr == SearchAttribute.SN
+        val.search.search_params.typ == CertType.ENTERPRISE
+        and val.search.search_params.attr == SearchAttribute.SN
         and val.search.results
     ):
         subject = result["certificate_sets"][0].subject.split(",")
@@ -129,32 +130,34 @@ def certificate_search(val):
                 part.split("=")[1] for part in subject if part.startswith(" O=")
             ][0]
         except IndexError:
-            result["subject"] = val.search.query
+            result["subject"] = val.search.search_params.query
         else:
-            result["subject"] = "{} ({})".format(org_name, val.search.query)
+            result["subject"] = "{} ({})".format(
+                org_name, val.search.search_params.query
+            )
     else:
-        result["subject"] = val.search.query
+        result["subject"] = val.search.search_params.query
 
-    if val.search.env == Environment.TEST:
+    if val.search.search_params.env == Environment.TEST:
         search_env = "Test"
-    elif val.search.env == Environment.PROD:
+    elif val.search.search_params.env == Environment.PROD:
         search_env = "Produksjon"
     else:
         search_env = "Ukjent"
 
-    if val.search.typ == CertType.PERSONAL:
+    if val.search.search_params.typ == CertType.PERSONAL:
         search_type = "Personlig sertifikater"
-    elif val.search.typ == CertType.ENTERPRISE:
+    elif val.search.search_params.typ == CertType.ENTERPRISE:
         search_type = "Virksomhetssertifikater"
     else:
         search_type = "Ukjent"
 
     result["searchDetails"] = {
         "Type": search_type,
-        "Søkefilter": val.search.search_filter,
+        "Søkefilter": val.search.ldap_params.ldap_query,
         "Miljø": search_env,
         "LDAP-servere forespurt": ", ".join(val.search._ldap_servers),
-        "Korrelasjonsid": val.search.correlation_id,
+        "Korrelasjonsid": correlation_id_var.get(),
     }
 
     return result
@@ -217,5 +220,10 @@ def _get_norwegian_error_message(error_code: str) -> str:
         return (
             "Det er kun Buypass som støtter søk på e-postadresse, "
             "så eventuelle Commfides-sertifikater vil ikke vises på slike søk"
+        )
+    if error_code == "ERR-007":
+        return (
+            "Det er p.t. begrenset støtte for søk etter ldap-url, "
+            "ikke alle detaljene fra url-en blir med i søket"
         )
     return "Det har skjedd en ukjent feil"

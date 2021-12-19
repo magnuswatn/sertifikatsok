@@ -34,3 +34,8 @@ class SearchAttribute(Enum):
     SN = "serialNumber"
     CSN = "certificateSerialNumber"
     ORGID = "organizationIdentifier"
+
+
+class CertificateAuthority(Enum):
+    BUYPASS = "buypass"
+    COMMFIDES = "commfides"
