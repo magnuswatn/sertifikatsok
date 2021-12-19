@@ -55,8 +55,7 @@ class AppCrlRetriever:
         Returns a retriever suitable for a single request,
         based on this retriever
         """
-        # https://github.com/python-attrs/attrs/issues/795
-        return RequestCrlRetriever(self)  # type: ignore
+        return RequestCrlRetriever(self)
 
     def _get_cached_crl(
         self, url: str, issuer: x509.Certificate
@@ -137,6 +136,11 @@ class AppCrlRetriever:
     def _validate(crl: x509.CertificateRevocationList, issuer: x509.Certificate):
         """Validates a crl against a issuer certificate"""
 
+        if crl.next_update is None:
+            # rfc5280: Conforming CRL issuers MUST
+            # include the nextUpdate field in all CRLs.
+            raise CouldNotGetValidCRLError("CRL is missing next update field")
+
         if not (
             crl.next_update > datetime.utcnow() and crl.last_update < datetime.utcnow()
         ):
@@ -152,17 +156,10 @@ class AppCrlRetriever:
                 f"Actual: {stringify_x509_name(crl.issuer)}."
             )
 
-        try:
-            # cast because mypy. The type of key is checked
-            # when it is loaded in CertRetriever.
-            cast(RSAPublicKey, issuer.public_key()).verify(
-                crl.signature,
-                crl.tbs_certlist_bytes,
-                PKCS1v15(),
-                crl.signature_hash_algorithm,
-            )
-        except InvalidSignature as error:
-            raise CouldNotGetValidCRLError("CRL failed signature validation") from error
+        # cast because mypy. The type of key is checked
+        # when it is loaded in CertRetriever.
+        if not crl.is_signature_valid(cast(RSAPublicKey, issuer.public_key())):
+            raise CouldNotGetValidCRLError("CRL failed signature validation")
 
 
 @attr.frozen

@@ -6,7 +6,7 @@ from functools import wraps
 
 audit_logger = logging.getLogger("audit")
 performance_logger = logging.getLogger("performance")
-correlation_id_var = ContextVar("correlation_id", default=None)
+correlation_id_var = ContextVar("correlation_id", default="")
 
 
 class CorrelationFilter(logging.Filter):
@@ -69,7 +69,7 @@ def configure_logging(log_level, log_files):
             "audit": {"level": "INFO", "handlers": ["audit"], "propagate": False},
         },
     }
-    logging.config.dictConfig(log_settings)
+    logging.config.dictConfig(log_settings)  # type:ignore
 
 
 def performance_log(id_param=None):
