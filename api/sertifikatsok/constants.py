@@ -198,6 +198,80 @@ KNOWN_CERT_TYPES: Dict[Tuple[str, str], Tuple[CertType, str]] = {
     ("CN=Commfides CPN Person-High SHA256 CA - TEST, OU=Commfides Trust Environment(C) 2014 Commfides Norge AS - TEST, OU=CPN Person High SHA256 CA - TEST, O=Commfides Norge AS - 988 312 495, C=NO", "2.16.578.1.29.912.32.1.0"):
     (CertType.PERSONAL, "Commfides TEST ansatt-sertifikat, distribuert"),
 
+    ######################################
+    ############ Commfides G3 ############
+    ######################################
+    # https://pds.commfides.com/G3/
+
+    # Virksomhet
+    # prod
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Legal Person - G3 - TEST","2.16.578.1.29.913.200.1.0"): # sign
+    (CertType.ENTERPRISE, "Commfides TEST virksomhetssertifikat (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Legal Person - G3 - TEST","2.16.578.1.29.913.210.1.0"): # auth
+    (CertType.ENTERPRISE, "Commfides TEST virksomhetssertifikat (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Legal Person - G3 - TEST","2.16.578.1.29.913.220.1.0"): # crypt
+    (CertType.ENTERPRISE, "Commfides TEST virksomhetssertifikat (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Legal Person - G3 - TEST","2.16.578.1.29.913.300.1.0"): # sign
+    (CertType.ENTERPRISE, "Commfides TEST virksomhetssertifikat LCP (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Legal Person - G3 - TEST","2.16.578.1.29.913.310.1.0"): # auth
+    (CertType.ENTERPRISE, "Commfides TEST virksomhetssertifikat LCP (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Legal Person - G3 - TEST","2.16.578.1.29.913.320.1.0"): # crypt
+    (CertType.ENTERPRISE, "Commfides TEST virksomhetssertifikat LCP (SEID v2)"),
+
+    # test
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Legal Person - G3","2.16.578.1.29.13.200.1.0"): # sign
+    (CertType.ENTERPRISE, "Commfides TEST virksomhetssertifikat (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Legal Person - G3","2.16.578.1.29.13.210.1.0"): # auth
+    (CertType.ENTERPRISE, "Commfides TEST virksomhetssertifikat (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Legal Person - G3","2.16.578.1.29.13.220.1.0"): # crypt
+    (CertType.ENTERPRISE, "Commfides TEST virksomhetssertifikat (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Legal Person - G3","2.16.578.1.29.13.300.1.0"): # sign
+    (CertType.ENTERPRISE, "Commfides TEST virksomhetssertifikat LCP (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Legal Person - G3","2.16.578.1.29.13.310.1.0"): # auth
+    (CertType.ENTERPRISE, "Commfides TEST virksomhetssertifikat LCP (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Legal Person - G3","2.16.578.1.29.13.320.1.0"): # crypt
+    (CertType.ENTERPRISE, "Commfides TEST virksomhetssertifikat LCP (SEID v2)"),
+
+    # Person
+    # prod
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3","2.16.578.1.29.12.100.1.0"): # sign
+    (CertType.PERSONAL, "Commfides person-sertifikat, sentralisert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3","2.16.578.1.29.12.110.1.0"): # auth
+    (CertType.PERSONAL, "Commfides person-sertifikat, sentralisert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3","2.16.578.1.29.12.120.1.0"): # crypt
+    (CertType.PERSONAL, "Commfides person-sertifikat, sentralisert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3","2.16.578.1.29.12.200.1.0"): # sign
+    (CertType.PERSONAL, "Commfides ansatt-sertifikat, sentralisert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3","2.16.578.1.29.12.210.1.0"): # auth
+    (CertType.PERSONAL, "Commfides ansatt-sertifikat, sentralisert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3","2.16.578.1.29.12.220.1.0"): # crypt
+    (CertType.PERSONAL, "Commfides ansatt-sertifikat, sentralisert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3","2.16.578.1.29.12.300.1.0"): # sign
+    (CertType.PERSONAL, "Commfides ansatt-sertifikat, distribuert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3","2.16.578.1.29.12.310.1.0"): # auth
+    (CertType.PERSONAL, "Commfides ansatt-sertifikat, distribuert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3","2.16.578.1.29.12.320.1.0"): # crypt
+    (CertType.PERSONAL, "Commfides ansatt-sertifikat, distribuert (SEID v2)"),
+
+    # test
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3 - TEST","2.16.578.1.29.912.100.1.0"): # sign
+    (CertType.PERSONAL, "Commfides TEST person-sertifikat, sentralisert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3 - TEST","2.16.578.1.29.912.110.1.0"): # auth
+    (CertType.PERSONAL, "Commfides TEST person-sertifikat, sentralisert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3 - TEST","2.16.578.1.29.912.120.1.0"): # crypt
+    (CertType.PERSONAL, "Commfides TEST person-sertifikat, sentralisert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3 - TEST","2.16.578.1.29.912.200.1.0"): # sign
+    (CertType.PERSONAL, "Commfides TEST ansatt-sertifikat, sentralisert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3 - TEST","2.16.578.1.29.912.210.1.0"): # auth
+    (CertType.PERSONAL, "Commfides TEST ansatt-sertifikat, sentralisert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3 - TEST","2.16.578.1.29.912.220.1.0"): # crypt
+    (CertType.PERSONAL, "Commfides TEST ansatt-sertifikat, sentralisert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3 - TEST","2.16.578.1.29.912.300.1.0"): # sign
+    (CertType.PERSONAL, "Commfides TEST ansatt-sertifikat, distribuert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3 - TEST","2.16.578.1.29.912.310.1.0"): # auth
+    (CertType.PERSONAL, "Commfides TEST ansatt-sertifikat, distribuert (SEID v2)"),
+    ("C=NO, O=Commfides Norge AS, organizationIdentifier=NTRNO-988312495, CN=Commfides Natural Person - G3 - TEST","2.16.578.1.29.912.320.1.0"): # crypt
+    (CertType.PERSONAL, "Commfides TEST ansatt-sertifikat, distribuert (SEID v2)"),
 }
 
 # fmt: on

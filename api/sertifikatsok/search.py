@@ -255,12 +255,7 @@ class CertificateSearch:
         else:
             server = "ldap.commfides.com"
 
-        if self.search_params.typ == CertType.PERSONAL:
-            # We only search for Person-High
-            # because Person-Normal certs just doesn't exist
-            base = "ou=Person-High,dc=commfides,dc=com"
-        else:
-            base = "dc=commfides,dc=com"
+        base = "dc=commfides,dc=com"
 
         self._ldap_servers.append(server)
 
