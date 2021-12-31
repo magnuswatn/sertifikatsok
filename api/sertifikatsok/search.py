@@ -329,7 +329,8 @@ class CertificateSearch:
                 # Commfides have entries in their LDAP without a cert...
                 continue
 
-            if len(cert_serials := result.get("certificateSerialNumber")) > 0:
+            cert_serials = result.get("certificateSerialNumber")
+            if cert_serials is not None and len(cert_serials) > 0:
                 cert_serial = cert_serials[0]
             else:
                 cert_serial = None
