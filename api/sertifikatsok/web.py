@@ -113,7 +113,7 @@ async def api_endpoint(request):
         content_type="application/json",
     )
 
-    if search_response.cacheable:
+    if search_response.cacheable and not request.app["dev"]:
         cache_control = "public, max-age=300"
     else:
         cache_control = "no-cache, no-store, must-revalidate, private, s-maxage=0"
@@ -147,10 +147,13 @@ def run():
     app = web.Application(middlewares=[error_middleware, correlation_middleware])
     app.router.add_get("/api", api_endpoint)
     app.on_startup.append(init_app)
+    app["dev"] = False
 
     if args.dev:
         from aiohttp_swagger import setup_swagger
 
         setup_swagger(app)
+
+        app["dev"] = True
 
     web.run_app(app, port=args.port, host=args.host, path=args.path)
