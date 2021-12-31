@@ -6,7 +6,7 @@ from datetime import datetime
 from operator import attrgetter
 from typing import List, Optional, Tuple, cast
 
-import attr
+from attrs import frozen
 from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
@@ -234,17 +234,17 @@ class QualifiedCertificate:
         return ", ".join(ekus)
 
 
-@attr.frozen
+@frozen
 class QualifiedCertificateSet:
     """Represents a set of Norwegian qualified certificates"""
 
-    certs: List[QualifiedCertificate] = attr.ib()
-    main_cert: QualifiedCertificate = attr.ib()
-    status: CertificateStatus = attr.ib()
-    revocation_date: Optional[datetime] = attr.ib()
-    org_number: Optional[str] = attr.ib()
-    underenhet: bool = attr.ib()
-    seid2: bool = attr.ib()
+    certs: List[QualifiedCertificate]
+    main_cert: QualifiedCertificate
+    status: CertificateStatus
+    revocation_date: Optional[datetime]
+    org_number: Optional[str]
+    underenhet: bool
+    seid2: bool
 
     @classmethod
     def create(cls, certs) -> QualifiedCertificateSet:

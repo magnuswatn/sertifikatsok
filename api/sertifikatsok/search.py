@@ -5,9 +5,9 @@ import logging
 from typing import List, Optional
 from urllib.parse import urlparse
 
-import attr
 import bonsai
 from aiohttp.web import Request
+from attrs import field, frozen, mutable
 
 from .constants import (
     EMAIL_REGEX,
@@ -28,7 +28,7 @@ from .utils import convert_hex_serial_to_int, create_ldap_filter
 logger = logging.getLogger(__name__)
 
 
-@attr.frozen
+@frozen
 class SearchParams:
     env: Environment
     typ: CertType
@@ -66,7 +66,7 @@ class SearchParams:
         return cls(env, typ, query, attr)
 
 
-@attr.frozen
+@frozen
 class LdapSearchParams:
     ldap_query: str
     scope: bonsai.LDAPSearchScope
@@ -205,15 +205,15 @@ class LdapSearchParams:
         return cls(filtr, scope, ca_s, ["ERR-007"])
 
 
-@attr.mutable
+@mutable
 class CertificateSearch:
     search_params: SearchParams
     ldap_params: LdapSearchParams
     cert_validator: CertValidator
-    errors: List[str] = attr.ib(factory=list)
-    warnings: List[str] = attr.ib(factory=list)
-    _ldap_servers: List[str] = attr.ib(factory=list)
-    results: List[QualifiedCertificate] = attr.ib(factory=list)
+    errors: List[str] = field(factory=list)
+    warnings: List[str] = field(factory=list)
+    _ldap_servers: List[str] = field(factory=list)
+    results: List[QualifiedCertificate] = field(factory=list)
 
     @classmethod
     def create_from_request(cls, request) -> CertificateSearch:
@@ -370,7 +370,7 @@ class CertificateSearch:
         return CertificateSearchResponse.create(self)
 
 
-@attr.frozen
+@frozen
 class CertificateSearchResponse:
     search: CertificateSearch
     cert_sets: List[QualifiedCertificateSet]

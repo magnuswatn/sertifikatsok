@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, cast
 
 import aiohttp
-import attr
+from attrs import field, frozen
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
@@ -21,7 +21,7 @@ from .utils import stringify_x509_name
 logger = logging.getLogger(__name__)
 
 
-@attr.frozen
+@frozen
 class AppCrlRetriever:
     """
     CRL retriever for an app instance.
@@ -31,7 +31,7 @@ class AppCrlRetriever:
     Only returns valid CRLs.
     """
 
-    crls: Dict[str, x509.CertificateRevocationList] = attr.ib(factory=dict)
+    crls: Dict[str, x509.CertificateRevocationList] = field(factory=dict)
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
@@ -162,7 +162,7 @@ class AppCrlRetriever:
             raise CouldNotGetValidCRLError("CRL failed signature validation")
 
 
-@attr.frozen
+@frozen
 class RequestCrlRetriever:
     """
     CRL retriever for a single request.
@@ -172,8 +172,8 @@ class RequestCrlRetriever:
     """
 
     crl_retriever: AppCrlRetriever
-    crls: Dict[str, Optional[x509.CertificateRevocationList]] = attr.ib(factory=dict)
-    errors: List[str] = attr.ib(factory=list)
+    crls: Dict[str, Optional[x509.CertificateRevocationList]] = field(factory=dict)
+    errors: List[str] = field(factory=list)
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
@@ -201,7 +201,7 @@ class RequestCrlRetriever:
         return crl
 
 
-@attr.frozen
+@frozen
 class CertRetriever:
     env: Environment
     certs: Dict[x509.Name, x509.Certificate]
@@ -251,7 +251,7 @@ class CertRetriever:
         return certs
 
 
-@attr.frozen
+@frozen
 class CertValidator:
     _cert_retriever: CertRetriever
     _crl_retriever: RequestCrlRetriever
