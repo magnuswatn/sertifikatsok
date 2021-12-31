@@ -113,12 +113,12 @@ class AppCrlRetriever:
                 f"Got status code {resp.status} for url {url}"
             )
 
-        if resp.headers["Content-Type"] not in (
+        if content_type := resp.headers.get("Content-Type") not in {
             "application/pkix-crl",
             "application/x-pkcs7-crl",
-        ):
+        }:
             raise CouldNotGetValidCRLError(
-                f"Got content type: {resp.headers['Content-Type']} for url {url}"
+                f"Got content type: {content_type} for url {url}"
             )
 
         try:
