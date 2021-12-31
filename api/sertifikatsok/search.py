@@ -115,6 +115,9 @@ class LdapSearchParams:
         # for it in the serialNumber field, both without (SEID 1) and with (SEID 2)
         # the "UN:NO-" prefix.
         elif typ == CertType.PERSONAL and PERSONAL_SERIAL_REGEX.fullmatch(query):
+            if query.startswith("UN:NO-"):
+                query = query[6:]
+
             ldap_query = create_ldap_filter(
                 [
                     (SearchAttribute.SN, query),
