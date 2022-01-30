@@ -104,7 +104,10 @@ class LdapSearchParams:
             ldap_query = create_ldap_filter(
                 [
                     (SearchAttribute.SN, query),
-                    (SearchAttribute.ORGID, f"NTRNO-{query}"),
+                    # Commented out for the time being, as this does not work
+                    # in production atm. And the Buypass LDAP server gets real mad
+                    # if you try to search for it.
+                    # (SearchAttribute.ORGID, f"NTRNO-{query}"),
                 ]
             )
 
