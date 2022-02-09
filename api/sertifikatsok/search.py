@@ -291,7 +291,7 @@ class CertificateSearch:
                     base,
                     self.ldap_params.scope,
                     search_filter,
-                    attrlist=["userCertificate;binary", "certificateSerialNumber"],
+                    attrlist=["certificateSerialNumber", "userCertificate;binary"],
                 )
                 all_results += results
 
