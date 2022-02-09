@@ -506,7 +506,11 @@ $(document.body).on('click', '#hjelp-button', function () {
     return false;
 });
 
-$(document.body).on('click', '#logo', function () {
+$(document.body).on('click', '#logo', function (e) {
+    if (e.ctrlKey) {
+        window.open(window.location.origin);
+        return false;
+    }
     history.pushState(null, 'Sertifikatsøk', '/');
     loadPage();
     return false;
