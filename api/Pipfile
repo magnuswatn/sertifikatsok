@@ -12,7 +12,7 @@ attrs = ">=21.3.0"
 
 [dev-packages]
 pytest = "*"
-black = "==21.12b0"
+black = "*"
 mypy = "*"
 aiohttp-swagger = "*"
 isort = "*"
