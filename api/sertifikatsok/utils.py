@@ -26,7 +26,7 @@ def get_subject_order(field: str) -> int:
     try:
         return order[field_name]
     except KeyError:
-        return 10
+        return 100
 
 
 def stringify_x509_name(name: Name) -> str:
