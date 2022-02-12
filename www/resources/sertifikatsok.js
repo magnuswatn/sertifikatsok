@@ -293,7 +293,8 @@ const loadResultGUI = function (response) {
     showCertificateSets(response.certificate_sets);
     loadMaterialize();
     if (window.location.hash !== '#!') {
-        $(window.location.hash).modal('open');
+        const lowerHash = window.location.hash.toLowerCase();
+        $(lowerHash).modal('open');
     }
 };
 
