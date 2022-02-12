@@ -10,16 +10,17 @@ from .enums import SearchAttribute
 def get_subject_order(field: str) -> int:
     """Returns the order of the subject element, for pretty printing"""
     order = {
-        "serialNumber": 0,
-        "email": 1,
-        "CN": 2,
-        "GN": 3,
-        "SN": 4,
-        "OU": 5,
-        "O": 6,
-        "L": 7,
-        "ST": 8,
-        "C": 9,
+        "organizationIdentifier": 0,
+        "serialNumber": 1,
+        "email": 2,
+        "CN": 3,
+        "GN": 4,
+        "SN": 5,
+        "OU": 6,
+        "O": 7,
+        "L": 8,
+        "ST": 9,
+        "C": 10,
     }
     field_name = field.split("=")[0]
     try:
