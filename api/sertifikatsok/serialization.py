@@ -4,7 +4,7 @@ import codecs
 from datetime import datetime
 from functools import singledispatch
 from operator import attrgetter
-from typing import Dict, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import Encoding
@@ -164,7 +164,7 @@ def certificate_search(val: CertificateSearchResponse):
 
 
 def _get_norwegian_cert_status(
-    cert_status: CertificateStatus, revocation_date: datetime
+    cert_status: CertificateStatus, revocation_date: Optional[datetime]
 ):
     if cert_status == CertificateStatus.OK:
         return "OK"
