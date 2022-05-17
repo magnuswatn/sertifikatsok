@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, cast
 
-import aiohttp
+import httpx
 from attrs import field, frozen
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature
@@ -95,21 +95,19 @@ class AppCrlRetriever:
     ) -> x509.CertificateRevocationList:
         """Downloads a crl from the specified url"""
         headers = {"user-agent": "sertifikatsok.no"}
-        crl_timeout = aiohttp.ClientTimeout(total=5)
 
         logger.info("Downloading CRL %s", url)
-        async with aiohttp.ClientSession(timeout=crl_timeout) as session:
+        async with httpx.AsyncClient() as client:
             try:
-                resp = await session.get(url, headers=headers)
-                crl_bytes = await resp.read()
-            except (aiohttp.ClientError, asyncio.TimeoutError) as error:
+                resp = await client.get(url, headers=headers)
+            except (httpx.RequestError, asyncio.TimeoutError) as error:
                 raise CouldNotGetValidCRLError() from error
 
         logger.debug("Finishined downloading CRL %s", url)
 
-        if resp.status != 200:
+        if resp.status_code != 200:
             raise CouldNotGetValidCRLError(
-                f"Got status code {resp.status} for url {url}"
+                f"Got status code {resp.status_code} for url {url}"
             )
 
         if content_type := resp.headers.get("Content-Type") not in {
@@ -121,13 +119,13 @@ class AppCrlRetriever:
             )
 
         try:
-            crl = x509.load_der_x509_crl(crl_bytes)
+            crl = x509.load_der_x509_crl(resp.content)
         except ValueError as error:
             raise CouldNotGetValidCRLError(error) from error
 
         self._validate(crl, issuer)
 
-        Path("crls", urllib.parse.quote_plus(url)).write_bytes(crl_bytes)
+        Path("crls", urllib.parse.quote_plus(url)).write_bytes(resp.content)
 
         return crl
 

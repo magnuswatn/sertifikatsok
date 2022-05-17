@@ -2,9 +2,10 @@ from enum import Enum
 
 
 class CertType(Enum):
-    PERSONAL = 1
-    ENTERPRISE = 2
-    UNKNOWN = 3
+    # TODO: sjekk person vs. personal
+    PERSONAL = "person"
+    ENTERPRISE = "enterprise"
+    UNKNOWN = "unknown"
 
 
 class Environment(Enum):

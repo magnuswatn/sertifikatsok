@@ -1,159 +1,137 @@
-import argparse
-import asyncio
 import json
 import logging
+import os
 import uuid
+from functools import lru_cache
+from typing import Optional
 
-import uvloop
-from aiohttp import web
+from fastapi import Depends, FastAPI, Request, Response
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
-from .crypto import AppCrlRetriever, CertRetriever
-from .enums import Environment
+from .crypto import AppCrlRetriever, CertRetriever, CertValidator
+from .enums import CertType, Environment, SearchAttribute
 from .errors import ClientError
 from .logging import configure_logging, correlation_id_var, performance_log
-from .search import CertificateSearch
+from .search import CertificateSearch, SearchParams
 from .serialization import sertifikatsok_serialization
+from .starlette_precompressed_static import PreCompressedStaticFiles
 
 logger = logging.getLogger(__name__)
 
-
-@web.middleware
-async def error_middleware(request, handler):
-    try:
-        return await handler(request)
-    except web.HTTPException:  # pylint: disable=E0705
-        raise
-    except ClientError as error:
-        return web.Response(
-            text=json.dumps({"error": error.args[0]}, ensure_ascii=False),
-            status=400,
-            content_type="application/json",
-        )
-    except Exception:
-        logger.exception("An exception occured:")
-        return web.Response(
-            text=json.dumps(
-                {"error": "En ukjent feil oppstod. Vennligst prøv igjen."},
-                ensure_ascii=False,
-            ),
-            status=500,
-            content_type="application/json",
-        )
+app = FastAPI()
 
 
-@web.middleware
-async def correlation_middleware(request, handler):
+@app.middleware("http")
+async def correlation_middleware(request: Request, call_next):
     correlation_id = str(uuid.uuid4())
     correlation_id_var.set(correlation_id)
-    request["correlation_id"] = correlation_id
-    response = await handler(request)
+    response = await call_next(request)
     response.headers["Correlation-Id"] = correlation_id
     return response
 
 
-async def init_app(app):
-    app["CrlRetriever"] = AppCrlRetriever()
-    app["CertRetrievers"] = {
-        Environment.TEST: CertRetriever.create(Environment.TEST),
-        Environment.PROD: CertRetriever.create(Environment.PROD),
-    }
+@lru_cache
+def cert_retriever(env: Environment) -> CertRetriever:
+    return CertRetriever.create(env)
+
+
+@lru_cache
+def crl_retriever() -> AppCrlRetriever:
+    return AppCrlRetriever()
+
+
+def cert_validator(
+    cert_retriever: CertRetriever = Depends(cert_retriever),
+    crl_retriever: AppCrlRetriever = Depends(crl_retriever),
+) -> CertValidator:
+    return CertValidator(cert_retriever, crl_retriever.get_retriever_for_request())
+
+
+@app.on_event("startup")
+async def init_app():
+    debug = bool(os.getenv("SERTIFIKATSOK_DEBUG"))
+    log_file = os.getenv("SERTIFIKATSOK_LOGFILE")
+
+    if debug:
+        configure_logging(logging.DEBUG, log_file)
+    else:
+        configure_logging(logging.INFO, log_file)
+
+    # Initialize these, so that they are
+    # ready before the first request.
+    crl_retriever()
+    # We need to use kwargs here so the
+    # lru_cache works as intended, as that
+    # is what FastAPI does.
+    cert_retriever(env=Environment.TEST)
+    cert_retriever(env=Environment.PROD)
 
 
 @performance_log()
-async def api_endpoint(request):
-    """
-    ---
-    description: Search after certificates.
-    parameters:
-        - in: query
-          name: env
-          type: string
-          required: true
-          enum: [test, prod]
-          description: The environment to search in
-        - in: query
-          name: type
-          required: true
-          type: string
-          enum: [personal, enterprise]
-          description: The type of certificate
-        - in: query
-          name: attr
-          type: string
-          enum: [cn, mail, ou, o, serialNumber, certificateSerialNumber, organizationIdentifier]
-          description: The ldap attribute to search by (optional)
-        - in: query
-          name: query
-          required: true
-          type: string
-          description: The search query
-
-    produces:
-        - application/json
-    responses:
-        "200":
-            description: Search OK.
-        "400":
-            description: Invalid parameters.
-        "500":
-            description: Technical error in the API.
-    """
-
-    certificate_search = CertificateSearch.create_from_request(request)
+@app.get("/api")
+async def api_endpoint(
+    env: Environment,
+    type: CertType,
+    query: str,
+    attr: Optional[SearchAttribute] = None,
+    cert_validator: CertValidator = Depends(cert_validator),
+):
+    search_params = SearchParams(env, type, query, attr)
+    certificate_search = CertificateSearch.create(search_params, cert_validator)
 
     search_response = await certificate_search.get_response()
 
-    # web.json_response() doesn't set ensure_ascii = False
-    # so the æøås get messed up
-    response = web.Response(
-        text=json.dumps(
-            search_response, ensure_ascii=False, default=sertifikatsok_serialization
-        ),
-        status=200,
-        content_type="application/json",
+    # TODO
+    dev = True
+
+    cache_control = (
+        "no-cache, no-store, must-revalidate, private, s-maxage=0"
+        if dev
+        else "public, max-age=300"
     )
 
-    if search_response.cacheable and not request.app["dev"]:
-        cache_control = "public, max-age=300"
-    else:
-        cache_control = "no-cache, no-store, must-revalidate, private, s-maxage=0"
+    return Response(
+        content=json.dumps(
+            search_response, ensure_ascii=False, default=sertifikatsok_serialization
+        ),
+        media_type="application/json",
+        headers={"Cache-Control": cache_control},
+    )
 
-    response.headers["Cache-Control"] = cache_control
 
-    return response
+static_files = PreCompressedStaticFiles(directory="../www")
 
 
-def run():
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+@app.get("/")
+async def root(request: Request):
+    # Can't use html mode with PreCompressedStaticFiles, but the only "magic"
+    # we need is that index.html is served from the root, so let's just do it
+    # ourselves.
+    return await static_files.get_response("index.html", request.scope)
 
-    parser = argparse.ArgumentParser(description="Sertifikatsok API")
-    parser.add_argument("--host")
-    parser.add_argument("--path")
-    parser.add_argument("--port")
-    parser.add_argument("--log-level")
-    parser.add_argument("--log-files")
-    parser.add_argument("--dev", action="store_true")
 
-    args = parser.parse_args()
+app.mount("/", static_files, name="static")
 
-    if args.log_level:
-        log_level = getattr(logging, args.log_level)
-    elif args.dev:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.INFO
-    configure_logging(log_level, args.log_files)
 
-    app = web.Application(middlewares=[error_middleware, correlation_middleware])
-    app.router.add_get("/api", api_endpoint)
-    app.on_startup.append(init_app)
-    app["dev"] = False
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(_, exc):
+    first_error = exc.errors()[0]
+    field = first_error["loc"][1]
+    org_msg = first_error["msg"]
+    return JSONResponse(
+        {"error": f"Error in field '{field}': {org_msg}"}, status_code=400
+    )
 
-    if args.dev:
-        from aiohttp_swagger import setup_swagger
 
-        setup_swagger(app)
+@app.exception_handler(ClientError)
+async def client_error_exception_handler(_, exc):
+    return JSONResponse({"error": exc.args[0]}, status_code=400)
 
-        app["dev"] = True
 
-    web.run_app(app, port=args.port, host=args.host, path=args.path)
+@app.exception_handler(Exception)
+async def general_exception_handler(_, exc):
+    return JSONResponse(
+        {"error": "En ukjent feil oppstod. Vennligst prøv igjen."}, status_code=500
+    )

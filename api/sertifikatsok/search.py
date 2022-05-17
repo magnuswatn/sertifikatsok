@@ -18,7 +18,7 @@ from .constants import (
     ORG_NUMBER_REGEX,
     PERSONAL_SERIAL_REGEX,
 )
-from .crypto import CertValidator
+from .crypto import AppCrlRetriever, CertRetriever, CertValidator, RequestCrlRetriever
 from .enums import CertificateAuthority, CertType, Environment, SearchAttribute
 from .errors import ClientError
 from .ldap import LdapServer
@@ -270,17 +270,13 @@ class CertificateSearch:
     results: List[QualifiedCertificate] = field(factory=list)
 
     @classmethod
-    def create_from_request(cls, request) -> CertificateSearch:
+    def create(
+        cls, search_params: SearchParams, cert_validator: CertValidator
+    ) -> CertificateSearch:
 
-        search_params = SearchParams.create_from_request(request)
         ldap_params = LdapSearchParams.create(search_params)
 
-        cert_validator = CertValidator(
-            request.app["CertRetrievers"][search_params.env],
-            request.app["CrlRetriever"].get_retriever_for_request(),
-        )
-
-        audit_log(request)
+        # audit_log(request)
 
         return cls(search_params, ldap_params, cert_validator)
 
