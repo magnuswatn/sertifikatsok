@@ -60,6 +60,11 @@ class QualifiedCertificate:
     ):
 
         cert = x509.load_der_x509_certificate(raw_cert)
+        # access the subject, so that we fail here if it's malformed,
+        # instead of at a "random" place later on.
+        # See https://github.com/magnuswatn/sertifikatsok/issues/132
+        cert.subject
+
         cert_status, revocation_date = await cert_validator.validate_cert(cert)
 
         return cls(cert, cert_serial, ldap_params, cert_status, revocation_date)
