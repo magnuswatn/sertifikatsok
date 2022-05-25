@@ -37,6 +37,20 @@ RUN set -x \
 COPY . /opt/sertifikatsok/api
 
 #
+# Node container for frontend "building"
+#
+FROM node:lts-buster-slim as frontendbuild
+
+# Requirements for bonsai.
+RUN set -x \
+    && apt-get update \
+    && apt-get install --no-install-recommends -y \
+        brotli
+
+COPY ../www /tmp/Pipfile
+COPY Pipfile.lock /tmp/Pipfile.lock
+
+#
 # PROD container
 #
 FROM python:3.9-slim-bullseye

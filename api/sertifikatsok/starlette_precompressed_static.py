@@ -5,6 +5,8 @@ import mimetypes
 from enum import Enum
 from typing import Set
 
+
+from starlette.exceptions import HTTPException
 from starlette.datastructures import Headers
 from starlette.responses import FileResponse, Response
 from starlette.staticfiles import NotModifiedResponse, StaticFiles
@@ -30,7 +32,7 @@ class PreCompressedStaticFiles(StaticFiles):
 
         super().__init__(**kwargs)
 
-    async def get_response(self, path: str, scope: Scope) -> Response:
+    async def get_response(self, org_path: str, scope: Scope) -> Response:
 
         request_headers = Headers(scope=scope)
         accepted_encodings = self.__get_accepted_encodings(
@@ -38,15 +40,24 @@ class PreCompressedStaticFiles(StaticFiles):
         )
 
         if self.brotli is True and "br" in accepted_encodings:
-            path = f"{path}.br"
+            path = f"{org_path}.br"
             encoding = Encoding.BROTLI
         elif self.gzip is True and "gzip" in accepted_encodings:
-            path = f"{path}.gz"
+            path = f"{org_path}.gz"
             encoding = Encoding.GZIP
         else:
             encoding = None
+            path = org_path
 
-        response = await super().get_response(path, scope)
+        try:
+            response = await super().get_response(path, scope)
+        except HTTPException as error:
+            if error.status_code == 404 and encoding is not None:
+                # We may just be missing the compressed version
+                encoding = None
+                response = await super().get_response(org_path, scope)
+            else:
+                raise
 
         if isinstance(response, (FileResponse, NotModifiedResponse)):
             if encoding == Encoding.BROTLI:
