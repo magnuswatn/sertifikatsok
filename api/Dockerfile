@@ -1,7 +1,7 @@
 #
 # Python container for building
 #
-FROM python:3.8.2-slim-buster as build
+FROM python:3.8-slim-buster as build
 
 # Requirements for bonsai.
 RUN set -x \
@@ -32,14 +32,14 @@ COPY Pipfile.lock /tmp/Pipfile.lock
 
 RUN set -x \
     && cd /tmp \
-    && /tmp/pipenv-venv/bin/pipenv install --deploy --system
+    && VIRTUAL_ENV=/opt/sertifikatsok/venv /tmp/pipenv-venv/bin/pipenv install --deploy
 
 COPY . /opt/sertifikatsok/api
 
 #
 # PROD container
 #
-FROM python:3.8.2-slim-buster
+FROM python:3.8-slim-buster
 
 # Requirements for bonsai.
 RUN set -x \
