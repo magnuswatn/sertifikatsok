@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+DEV = False
+
 
 @app.middleware("http")
 async def correlation_middleware(request: Request, call_next):
@@ -51,13 +53,13 @@ def cert_validator(
 
 @app.on_event("startup")
 async def init_app():
-    debug = bool(os.getenv("SERTIFIKATSOK_DEBUG"))
-    log_file = os.getenv("SERTIFIKATSOK_LOGFILE")
+    global DEV
+    DEV = bool(os.getenv("SERTIFIKATSOK_DEBUG"))
 
-    if debug:
-        configure_logging(logging.DEBUG, log_file)
-    else:
-        configure_logging(logging.INFO, log_file)
+    configure_logging(
+        logging.DEBUG if DEV else logging.INFO,
+        os.getenv("SERTIFIKATSOK_LOGFILE"),
+    )
 
     # Initialize these, so that they are
     # ready before the first request.
@@ -83,12 +85,9 @@ async def api_endpoint(
 
     search_response = await certificate_search.get_response()
 
-    # TODO
-    dev = True
-
     cache_control = (
         "no-cache, no-store, must-revalidate, private, s-maxage=0"
-        if dev
+        if DEV
         else "public, max-age=300"
     )
 
