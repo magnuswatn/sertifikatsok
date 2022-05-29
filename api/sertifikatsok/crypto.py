@@ -16,7 +16,6 @@ from cryptography.hazmat.primitives.hashes import HashAlgorithm
 from .enums import CertificateStatus, Environment
 from .errors import ConfigurationError, CouldNotGetValidCRLError
 from .logging import performance_log
-from .utils import stringify_x509_name
 
 logger = logging.getLogger(__name__)
 
@@ -152,8 +151,8 @@ class AppCrlRetriever:
         if not crl.issuer == issuer.subject:
             raise CouldNotGetValidCRLError(
                 f"CRL failed issuer validation. "
-                f"Expected: {stringify_x509_name(issuer.subject)} "
-                f"Actual: {stringify_x509_name(crl.issuer)}."
+                f"Expected: {issuer.subject.rfc4514_string()} "
+                f"Actual: {crl.issuer.rfc4514_string()}."
             )
 
         # cast because mypy. The type of key is checked
@@ -230,7 +229,7 @@ class CertRetriever:
         certs[cert.subject] = cert
         logger.debug(
             "Loaded trusted certificate '%s' from '%s'",
-            stringify_x509_name(cert.subject),
+            cert.subject.rfc4514_string(),
             path,
         )
 
@@ -306,8 +305,8 @@ class CertValidator:
         except x509.ExtensionNotFound:
             logger.warn(
                 "Certificate without CDP extension: Subject: '%s' Issuer:'%s'",
-                stringify_x509_name(cert.subject),
-                stringify_x509_name(cert.issuer),
+                cert.subject.rfc4514_string(),
+                cert.issuer.rfc4514_string(),
             )
             return None
         http_cdp = None

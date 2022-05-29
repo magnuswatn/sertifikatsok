@@ -1,9 +1,7 @@
 from typing import List, Tuple
 
 from bonsai import escape_filter_exp
-from cryptography.x509 import Name
 
-from .constants import SUBJECT_FIELDS
 from .enums import SearchAttribute
 
 
@@ -23,23 +21,7 @@ def get_subject_order(field: str) -> int:
         "C": 10,
     }
     field_name = field.split("=")[0]
-    try:
-        return order[field_name]
-    except KeyError:
-        return 100
-
-
-def stringify_x509_name(name: Name) -> str:
-    subject = []
-    for field in name:
-        try:
-            subject.append(
-                "{}={}".format(SUBJECT_FIELDS[field.oid.dotted_string], field.value)
-            )
-        except KeyError:
-            # If we don't recognize the field, we just print the dotted string
-            subject.append("{}={}".format(field.oid.dotted_string, field.value))
-    return ", ".join(list(subject))
+    return order.get(field_name, 100)
 
 
 def create_ldap_filter(params: List[Tuple[SearchAttribute, str]]) -> str:

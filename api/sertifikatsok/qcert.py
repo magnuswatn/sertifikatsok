@@ -24,7 +24,7 @@ from .constants import (
 from .crypto import CertValidator
 from .enums import SEID, CertificateRoles, CertificateStatus, CertType, SearchAttribute
 from .errors import MalformedCertificateError
-from .utils import create_ldap_filter, get_subject_order, stringify_x509_name
+from .utils import create_ldap_filter, get_subject_order
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class QualifiedCertificate:
 
         self.cert: x509.Certificate = cert
         self.cert_serial = cert_serial
-        self.issuer = stringify_x509_name(self.cert.issuer)
+        self.issuer = self.cert.issuer.rfc4514_string(SUBJECT_FIELDS)
         self.type, self.description, self.seid = self._get_type()
         self.roles = self._get_roles()
         self.ldap_params = ldap_params
@@ -128,24 +128,35 @@ class QualifiedCertificate:
         for all Person certificates, so they are not very useful
         and also different within a set.
         """
+
+        if not full and self.type == CertType.PERSONAL and "Commfides" in self.issuer:
+            # Create new subject without the serialNumber field
+            # for personal certs from Commfides
+            subject_name = x509.Name(
+                [
+                    name
+                    for name in self.cert.subject
+                    if not name.oid == NameOID.SERIAL_NUMBER
+                ]
+            )
+        else:
+            subject_name = self.cert.subject
+
+        if full:
+            return subject_name.rfc4514_string(SUBJECT_FIELDS)
+
         subject = []
-        for field in self.cert.subject:
-            if field.oid.dotted_string == "2.5.4.5" and not full:
-                # Skip serialNumber if Personal cert from Commfides
-                if "Commfides" in self.issuer and self.type == CertType.PERSONAL:
-                    continue
-            try:
-                subject.append(
-                    "{}={}".format(SUBJECT_FIELDS[field.oid.dotted_string], field.value)
+        for field in subject_name:
+            subject.append(
+                "{}={}".format(
+                    SUBJECT_FIELDS.get(field.oid, field.oid.dotted_string),
+                    cast(str, field.value),
                 )
-            except KeyError:
-                # If we don't recognize the field, we just print the dotted string
-                subject.append("{}={}".format(field.oid.dotted_string, field.value))
+            )
 
         # If not full (e.g. used for pretty printing),
         # we order the fields in an uniform order
-        if not full:
-            subject.sort(key=get_subject_order)
+        subject.sort(key=get_subject_order)
         return ", ".join(list(subject))
 
     def get_orgnumber(self) -> Tuple[Optional[str], bool]:
