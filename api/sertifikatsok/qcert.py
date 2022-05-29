@@ -263,7 +263,7 @@ class QualifiedCertificateSet:
     seid2: bool
 
     @classmethod
-    def create(cls, certs) -> QualifiedCertificateSet:
+    def create(cls, certs: List[QualifiedCertificate]) -> QualifiedCertificateSet:
 
         # Commfides issues encryption certs with longer validity than
         # the rest of the certificates in the set, so we shouldn't use
@@ -345,7 +345,9 @@ class QualifiedCertificateSet:
         return cert_sets
 
     @staticmethod
-    def _get_non_encryption_cert(certs) -> QualifiedCertificate:
+    def _get_non_encryption_cert(
+        certs: List[QualifiedCertificate],
+    ) -> QualifiedCertificate:
         """
         This tries to find an non-encryption certificate in the
         certificate set and return that.
@@ -353,10 +355,7 @@ class QualifiedCertificateSet:
         If none is found, the first cert in the set is returned.
         """
         for cert in certs:
-            key_usage = cert.cert.extensions.get_extension_for_oid(
-                ExtensionOID.KEY_USAGE
-            ).value
-            if not key_usage.data_encipherment:
+            if CertificateRoles.CRYPT not in cert.roles:
                 return cert
         return certs[0]
 
