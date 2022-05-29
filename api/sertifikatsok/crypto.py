@@ -279,7 +279,7 @@ class CertValidator:
             # info should not occur in this eco system, it's
             # OK, me thinks.
             crl = await self._get_crl(cert, issuer)
-            if not crl:
+            if crl is None:
                 status = CertificateStatus.UNKNOWN
             else:
                 revoked_cert = crl.get_revoked_certificate_by_serial_number(
