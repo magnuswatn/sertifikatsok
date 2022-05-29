@@ -58,7 +58,10 @@ class TestLdapSearchParams:
         assert ldap_search_params.scope == LDAPSearchScope.SUB
         assert len(ldap_search_params.limitations) == 0
         assert len(ldap_search_params.ca_s) == 2
-        assert ldap_search_params.ldap_query == "(serialNumber=995546973)"
+        assert (
+            ldap_search_params.ldap_query
+            == "(|(serialNumber=995546973)(organizationIdentifier=NTRNO-995546973))"
+        )
 
     def test_should_auto_detect_personal_serial_number(self):
         search_params = SearchParams(
