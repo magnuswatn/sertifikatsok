@@ -129,7 +129,10 @@ class QualifiedCertificate:
         and also different within a set.
         """
 
-        if not full and self.type == CertType.PERSONAL and "Commfides" in self.issuer:
+        if full:
+            return self.cert.subject.rfc4514_string(SUBJECT_FIELDS)
+
+        if self.type == CertType.PERSONAL and "Commfides" in self.issuer:
             # Create new subject without the serialNumber field
             # for personal certs from Commfides
             subject_name = x509.Name(
@@ -141,9 +144,6 @@ class QualifiedCertificate:
             )
         else:
             subject_name = self.cert.subject
-
-        if full:
-            return subject_name.rfc4514_string(SUBJECT_FIELDS)
 
         subject = []
         for field in subject_name:
@@ -175,7 +175,7 @@ class QualifiedCertificate:
         )
 
         if organization_identifier_attr:
-            organization_identifier = organization_identifier_attr[0].value
+            organization_identifier = cast(str, organization_identifier_attr[0].value)
             if organization_identifier.startswith("NTRNO-"):
                 org_number = organization_identifier[6:]
             else:
@@ -184,7 +184,7 @@ class QualifiedCertificate:
                 )
                 return None, False
         elif serial_number_attr:
-            org_number = serial_number_attr[0].value
+            org_number = cast(str, serial_number_attr[0].value)
         else:
             logger.error(
                 "Malformed cert: %s", self.cert.public_bytes(Encoding.PEM).decode()
@@ -192,9 +192,12 @@ class QualifiedCertificate:
             raise MalformedCertificateError("Missing org number in subject")
 
         try:
-            ou_field = self.cert.subject.get_attributes_for_oid(
-                NameOID.ORGANIZATIONAL_UNIT_NAME
-            )[0].value
+            ou_field = cast(
+                str,
+                self.cert.subject.get_attributes_for_oid(
+                    NameOID.ORGANIZATIONAL_UNIT_NAME
+                )[0].value,
+            )
         except IndexError:
             return org_number, False
 
