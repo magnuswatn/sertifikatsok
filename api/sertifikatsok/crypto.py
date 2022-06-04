@@ -213,10 +213,7 @@ class CertRetriever:
         """
         Retrieves the CA certificate with the specified name
         """
-        try:
-            return self.certs[name]
-        except KeyError:
-            return None
+        return self.certs.get(name)
 
     @staticmethod
     def _load_certificate(path: Path, certs: Dict[x509.Name, x509.Certificate]):
@@ -310,6 +307,7 @@ class CertValidator:
             )
             return None
         http_cdp = None
+        cdp: x509.DistributionPoint
         for cdp in cdps:
             if cdp.full_name is not None:
                 url = urllib.parse.urlparse(cdp.full_name[0].value)

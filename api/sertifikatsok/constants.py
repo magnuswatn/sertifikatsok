@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple
 
 from cryptography.x509 import NameOID
 from cryptography.x509.oid import ObjectIdentifier
@@ -38,7 +38,7 @@ SUBJECT_FIELDS = {
     ORGANIZATION_IDENTIFIER: "organizationIdentifier",
 }
 
-KEY_USAGES = [
+KEY_USAGES: List[Tuple[str, str]] = [
     ("digital_signature", "Digital signature"),
     # Using Non-repudiation as it's the established name
     ("content_commitment", "Non-repudiation"),
