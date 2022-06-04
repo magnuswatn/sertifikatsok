@@ -1,7 +1,7 @@
 #
 # Python container for building
 #
-FROM python:3.8-slim-buster as build
+FROM python:3.9-slim-bullseye as build
 
 # Requirements for bonsai.
 RUN set -x \
@@ -39,7 +39,7 @@ COPY . /opt/sertifikatsok/api
 #
 # PROD container
 #
-FROM python:3.8-slim-buster
+FROM python:3.9-slim-bullseye
 
 # Requirements for bonsai.
 RUN set -x \
