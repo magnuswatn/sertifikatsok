@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-DEV = False
+DEV = bool(os.getenv("SERTIFIKATSOK_DEBUG"))
 
 
 @app.middleware("http")
@@ -53,8 +53,6 @@ def cert_validator(
 
 @app.on_event("startup")
 async def init_app():
-    global DEV
-    DEV = bool(os.getenv("SERTIFIKATSOK_DEBUG"))
 
     configure_logging(
         logging.DEBUG if DEV else logging.INFO,
