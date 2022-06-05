@@ -156,7 +156,12 @@ def certificate_search(val: CertificateSearchResponse):
         "Type": search_type,
         "Søkefilter": val.search.ldap_params.ldap_query,
         "Miljø": search_env,
-        "LDAP-servere forespurt": ", ".join(val.search._ldap_servers),
+        "LDAP-servere forespurt": ", ".join(
+            [
+                ldap_server.hostname
+                for ldap_server in val.search.ldap_params.ldap_servers
+            ]
+        ),
         "Korrelasjonsid": correlation_id_var.get(),
     }
 
@@ -221,9 +226,14 @@ def _get_norwegian_error_message(error_code: str) -> str:
             "Det er kun Buypass som støtter søk på e-postadresse, "
             "så eventuelle Commfides-sertifikater vil ikke vises på slike søk"
         )
-    if error_code == "ERR-007":
+    if error_code == "ERR-008":
         return (
-            "Det er p.t. begrenset støtte for søk etter ldap-url, "
-            "ikke alle detaljene fra url-en blir med i søket"
+            "Ldap-url-en matcher ikke miljøet du søkte i, "
+            "sertifikatene vil derfor ikke være tiltrodde"
+        )
+    if error_code == "ERR-009":
+        return (
+            "Søket returnerte sertifikater, men de ble filtrert bort pga. de var"
+            " av feil type. Pass på at du søker på riktig type (person/virksomhet)"
         )
     return "Det har skjedd en ukjent feil"

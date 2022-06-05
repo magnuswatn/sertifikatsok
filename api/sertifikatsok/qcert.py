@@ -24,6 +24,7 @@ from .constants import (
 from .crypto import CertValidator
 from .enums import SEID, CertificateRoles, CertificateStatus, CertType, SearchAttribute
 from .errors import MalformedCertificateError
+from .ldap import LdapServer
 from .utils import create_ldap_filter, get_subject_order
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ class QualifiedCertificate:
         self,
         cert: x509.Certificate,
         cert_serial: Optional[str],
-        ldap_params: Tuple[str, str],
+        ldap_server: LdapServer,
         cert_status: CertificateStatus,
         revocation_date: Optional[datetime],
     ):
@@ -46,7 +47,7 @@ class QualifiedCertificate:
         self.issuer = self.cert.issuer.rfc4514_string(SUBJECT_FIELDS)
         self.type, self.description, self.seid = self._get_type()
         self.roles = self._get_roles()
-        self.ldap_params = ldap_params
+        self.ldap_server = ldap_server
         self.status = cert_status
         self.revocation_date = revocation_date
 
@@ -55,7 +56,7 @@ class QualifiedCertificate:
         cls,
         raw_cert: bytes,
         cert_serial: Optional[str],
-        ldap_params: Tuple[str, str],
+        ldap_server: LdapServer,
         cert_validator: CertValidator,
     ):
 
@@ -67,7 +68,7 @@ class QualifiedCertificate:
 
         cert_status, revocation_date = await cert_validator.validate_cert(cert)
 
-        return cls(cert, cert_serial, ldap_params, cert_status, revocation_date)
+        return cls(cert, cert_serial, ldap_server, cert_status, revocation_date)
 
     def _get_type(self) -> Tuple[CertType, str, SEID]:
         """Returns the type of certificate, based on issuer and Policy OID"""
@@ -394,8 +395,8 @@ class QualifiedCertificateSet:
             ]
         )
         ldap_url = "ldap://{}/{}?usercertificate;binary?sub?{}".format(
-            self.certs[0].ldap_params[0],
-            urllib.parse.quote(self.certs[0].ldap_params[1], safe="=,"),
+            self.certs[0].ldap_server.hostname,
+            urllib.parse.quote(self.certs[0].ldap_server.base, safe="=,"),
             ldap_filter,
         )
         return ldap_url

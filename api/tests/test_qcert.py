@@ -2,7 +2,12 @@ from base64 import b64decode
 
 from cryptography import x509
 
-from sertifikatsok.enums import CertificateRoles, CertificateStatus
+from sertifikatsok.enums import (
+    CertificateAuthority,
+    CertificateRoles,
+    CertificateStatus,
+)
+from sertifikatsok.ldap import LdapServer
 from sertifikatsok.qcert import QualifiedCertificate, QualifiedCertificateSet
 
 
@@ -18,7 +23,7 @@ class TestQualifiedCertificateSet:
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
                 "",
-                ("", ""),
+                LdapServer("", "", CertificateAuthority.BUYPASS),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -38,7 +43,7 @@ class TestQualifiedCertificateSet:
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
                 "",
-                ("", ""),
+                LdapServer("", "", CertificateAuthority.COMMFIDES),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -58,7 +63,7 @@ class TestQualifiedCertificateSet:
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
                 "",
-                ("", ""),
+                LdapServer("", "", CertificateAuthority.COMMFIDES),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -87,7 +92,7 @@ class TestQualifiedCertificateSet:
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
                 "",
-                ("", ""),
+                LdapServer("", "", CertificateAuthority.COMMFIDES),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -110,7 +115,7 @@ class TestQualifiedCertificateSet:
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
                 "",
-                ("", ""),
+                LdapServer("", "", CertificateAuthority.COMMFIDES),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -131,7 +136,7 @@ class TestQualifiedCertificateSet:
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
                 "",
-                ("", ""),
+                LdapServer("", "", CertificateAuthority.BUYPASS),
                 CertificateStatus.EXPIRED,
                 None,
             )

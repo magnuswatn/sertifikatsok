@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from typing import List, Optional
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 import bonsai
 from aiohttp.web import Request
@@ -21,11 +21,40 @@ from .constants import (
 from .crypto import CertValidator
 from .enums import CertificateAuthority, CertType, Environment, SearchAttribute
 from .errors import ClientError
+from .ldap import LdapServer
 from .logging import audit_log, performance_log
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
 from .utils import convert_hex_serial_to_int, create_ldap_filter
 
 logger = logging.getLogger(__name__)
+
+
+LDAP_SERVERS = {
+    Environment.TEST: [
+        LdapServer(
+            "ldap.test4.buypass.no",
+            "dc=Buypass,dc=no,CN=Buypass Class 3 Test4",
+            CertificateAuthority.BUYPASS,
+        ),
+        LdapServer(
+            "ldap.test.commfides.com",
+            "dc=commfides,dc=com",
+            CertificateAuthority.COMMFIDES,
+        ),
+    ],
+    Environment.PROD: [
+        LdapServer(
+            "ldap.buypass.no",
+            "dc=Buypass,dc=no,CN=Buypass Class 3",
+            CertificateAuthority.BUYPASS,
+        ),
+        LdapServer(
+            "ldap.commfides.com",
+            "dc=commfides,dc=com",
+            CertificateAuthority.COMMFIDES,
+        ),
+    ],
+}
 
 
 @frozen
@@ -70,7 +99,7 @@ class SearchParams:
 class LdapSearchParams:
     ldap_query: str
     scope: bonsai.LDAPSearchScope
-    ca_s: List[CertificateAuthority]
+    ldap_servers: List[LdapServer]
     limitations: List[str]
 
     @classmethod
@@ -78,11 +107,11 @@ class LdapSearchParams:
 
         if search_params.attr is not None:
             scope = bonsai.LDAPSearchScope.SUBTREE
-            ca_s = [CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES]
+            ldap_servers = LDAP_SERVERS[search_params.env]
 
             ldap_query = create_ldap_filter([(search_params.attr, search_params.query)])
 
-            return cls(ldap_query, scope, ca_s, [])
+            return cls(ldap_query, scope, ldap_servers, [])
 
         if search_params.query.startswith("ldap://"):
             return cls._parse_ldap_url(search_params)
@@ -92,7 +121,7 @@ class LdapSearchParams:
     @classmethod
     def _guess_search_params(cls, search_params: SearchParams) -> LdapSearchParams:
 
-        ca_s = [CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES]
+        ldap_servers = LDAP_SERVERS[search_params.env]
         typ, query = search_params.typ, search_params.query
         limitations: List[str] = []
 
@@ -126,9 +155,17 @@ class LdapSearchParams:
             # we can limit our search to only the relevant CA.
             ca_id = query.split("-")[1]
             if ca_id in {"4050"}:
-                ca_s = [CertificateAuthority.BUYPASS]
+                ldap_servers = [
+                    ldap_server
+                    for ldap_server in ldap_servers
+                    if ldap_server.ca == CertificateAuthority.BUYPASS
+                ]
             elif ca_id in {"4505", "4510"}:
-                ca_s = [CertificateAuthority.COMMFIDES]
+                ldap_servers = [
+                    ldap_server
+                    for ldap_server in ldap_servers
+                    if ldap_server.ca == CertificateAuthority.COMMFIDES
+                ]
 
         # If the query looks like an email address, we search for it in the
         # MAIL attribute.
@@ -136,7 +173,11 @@ class LdapSearchParams:
             ldap_query = create_ldap_filter([(SearchAttribute.MAIL, query)])
 
             # Only Buypass have the mail attribute in their LDAP catalog.
-            ca_s = [CertificateAuthority.BUYPASS]
+            ldap_servers = [
+                ldap_server
+                for ldap_server in ldap_servers
+                if ldap_server.ca == CertificateAuthority.BUYPASS
+            ]
             limitations.append("ERR-006")
 
         # Try the certificateSerialNumber field, if it looks like a serial number.
@@ -150,13 +191,15 @@ class LdapSearchParams:
         else:
             ldap_query = create_ldap_filter([(SearchAttribute.CN, query)])
 
-        return cls(ldap_query, bonsai.LDAPSearchScope.SUBTREE, ca_s, limitations)
+        return cls(
+            ldap_query, bonsai.LDAPSearchScope.SUBTREE, ldap_servers, limitations
+        )
 
     @classmethod
     def _parse_ldap_url(cls, search_params: SearchParams) -> LdapSearchParams:
-        # This parsing should be improved, so that
-        # we actually use the base, and the ldap server
-        # (if it is pre-approved).
+
+        limitations = []
+
         parsed_url = urlparse(search_params.query)
 
         if parsed_url.scheme != "ldap":
@@ -166,14 +209,28 @@ class LdapSearchParams:
         if parsed_url.hostname is None:
             raise ClientError("Hostname missing in ldap url")
 
-        # TODO: fix this somehow. Dunno what env we should prefer
-        # if the server and the environment differ ¯\_(ツ)_/¯
-        if CertificateAuthority.BUYPASS.value in parsed_url.hostname:
-            ca_s = [CertificateAuthority.BUYPASS]
-        elif CertificateAuthority.COMMFIDES.value in parsed_url.hostname:
-            ca_s = [CertificateAuthority.COMMFIDES]
-        else:
+        allowed_ldap_servers_match = [
+            (env, ldap_server)
+            for env, ldap_servers in LDAP_SERVERS.items()
+            for ldap_server in ldap_servers
+            if ldap_server.hostname == parsed_url.hostname.lower()
+        ]
+
+        if not allowed_ldap_servers_match:
             raise ClientError("Unsupported hostname in ldap url")
+
+        pre_allowed_ldap_server_env = allowed_ldap_servers_match[0][0]
+        pre_allowed_ldap_server = allowed_ldap_servers_match[0][1]
+
+        if search_params.env != pre_allowed_ldap_server_env:
+            limitations.append("ERR-008")
+
+        ldap_server = LdapServer(
+            pre_allowed_ldap_server.hostname,
+            # strip leading /
+            unquote(parsed_url.path[1:]),
+            pre_allowed_ldap_server.ca,
+        )
 
         parsed_query = parsed_url.query.split("?")
         if len(parsed_query) != 3:
@@ -199,7 +256,7 @@ class LdapSearchParams:
         if len(filtr) > 150 or filtr.count("(") != filtr.count(")"):
             raise ClientError("Invalid filter in url")
 
-        return cls(filtr, scope, ca_s, ["ERR-007"])
+        return cls(filtr, scope, [ldap_server], limitations)
 
 
 @mutable
@@ -207,9 +264,9 @@ class CertificateSearch:
     search_params: SearchParams
     ldap_params: LdapSearchParams
     cert_validator: CertValidator
+    filtered_results: bool = field(default=False)
     errors: List[str] = field(factory=list)
     warnings: List[str] = field(factory=list)
-    _ldap_servers: List[str] = field(factory=list)
     results: List[QualifiedCertificate] = field(factory=list)
 
     @classmethod
@@ -227,47 +284,30 @@ class CertificateSearch:
 
         return cls(search_params, ldap_params, cert_validator)
 
-    @performance_log()
-    async def query_buypass(self):
-        logger.debug("Starting: Buypass query")
-        if self.search_params.env == Environment.TEST:
-            server = "ldap.test4.buypass.no"
-            base = "dc=Buypass,dc=no,CN=Buypass Class 3 Test4"
-        else:
-            server = "ldap.buypass.no"
-            base = "dc=Buypass,dc=no,CN=Buypass Class 3"
-
-        self._ldap_servers.append(server)
+    @performance_log(id_param=1)
+    async def query_ca(self, ldap_server: LdapServer):
+        logger.debug("Start: query against %s", ldap_server.hostname)
 
         try:
-            self.results.extend(await self.do_ldap_search(server, base, retry=True))
+            self.results.extend(
+                await self.do_ldap_search(
+                    ldap_server,
+                    retry=ldap_server.ca == CertificateAuthority.BUYPASS,
+                )
+            )
         except (bonsai.LDAPError, asyncio.TimeoutError):
-            logger.exception("Could not retrieve certificates from Buypass")
-            self.errors.append("ERR-001")
+            if ldap_server.ca == CertificateAuthority.BUYPASS:
+                logger.exception("Could not retrieve certificates from Buypass")
+                self.errors.append("ERR-001")
+            elif ldap_server.ca == CertificateAuthority.COMMFIDES:
+                logger.exception("Could not retrieve certificates from Commfides")
+                self.errors.append("ERR-002")
+            else:
+                raise RuntimeError(f"Unexpeced ca: {ldap_server.ca}")
         else:
-            logger.debug("Ending: Buypass query")
+            logger.debug("End: query against %s", ldap_server.hostname)
 
-    @performance_log()
-    async def query_commfides(self):
-        logger.debug("Starting: Commfides query")
-        if self.search_params.env == Environment.TEST:
-            server = "ldap.test.commfides.com"
-        else:
-            server = "ldap.commfides.com"
-
-        base = "dc=commfides,dc=com"
-
-        self._ldap_servers.append(server)
-
-        try:
-            self.results.extend(await self.do_ldap_search(server, base))
-        except (bonsai.LDAPError, asyncio.TimeoutError):
-            logger.exception("Could not retrieve certificates from Commfides")
-            self.errors.append("ERR-002")
-        else:
-            logger.debug("Ending: Commfides query")
-
-    async def do_ldap_search(self, server, base, retry=False):
+    async def do_ldap_search(self, ldap_server: LdapServer, retry=False):
         """
         Searches the specified LDAP server after certificates
 
@@ -276,19 +316,21 @@ class CertificateSearch:
         certs we have already gotten. The queries get uglier and uglier,
         so this shouldn't be repeatet too many times
         """
-        client = bonsai.LDAPClient(f"ldap://{server}")
+        client = bonsai.LDAPClient(f"ldap://{ldap_server.hostname}")
         count = 0
         results = []
         all_results = []
         search_filter = self.ldap_params.ldap_query
-        logger.debug("Starting: ldap search against: %s", server)
+        logger.debug("Starting: ldap search against: %s", ldap_server.hostname)
         with (await client.connect(is_async=True, timeout=LDAP_TIMEOUT)) as conn:  # type: ignore
             while count < LDAP_RETRIES:
                 logger.debug(
-                    'Doing search with filter "%s" against "%s"', search_filter, server
+                    'Doing search with filter "%s" against "%s"',
+                    search_filter,
+                    ldap_server.hostname,
                 )
                 results = await conn.search(
-                    base,
+                    ldap_server.base,
                     self.ldap_params.scope,
                     search_filter,
                     attrlist=["certificateSerialNumber", "userCertificate;binary"],
@@ -304,23 +346,23 @@ class CertificateSearch:
                 else:
                     count = LDAP_RETRIES + 1
 
-            logger.debug("Ending: ldap search against: %s", server)
+            logger.debug("Ending: ldap search against: %s", ldap_server.hostname)
             # If we got 20 on our last search (of several),
             # there may be more certs out there...
             if len(results) == 20 and retry:
                 logger.warning(
                     "Exceeded max count for search with filter %s against %s",
                     self.ldap_params.ldap_query,
-                    server,
+                    ldap_server.hostname,
                 )
                 self.warnings.append("ERR-004")
 
-        return await self._parse_ldap_results(all_results, server, base)
+        return await self._parse_ldap_results(all_results, ldap_server)
 
     @performance_log(id_param=2)
-    async def _parse_ldap_results(self, search_results, server, base):
+    async def _parse_ldap_results(self, search_results, ldap_server: LdapServer):
         """Takes a ldap response and creates a list of QualifiedCertificateSet"""
-        logger.debug("Start: parsing certificates from %s", server)
+        logger.debug("Start: parsing certificates from %s", ldap_server.hostname)
 
         qualified_certs = []
         for result in search_results:
@@ -337,7 +379,7 @@ class CertificateSearch:
 
             try:
                 qualified_cert = await QualifiedCertificate.create(
-                    raw_cert[0], cert_serial, (server, base), self.cert_validator
+                    raw_cert[0], cert_serial, ldap_server, self.cert_validator
                 )
             except ValueError:
                 # https://github.com/magnuswatn/sertifikatsok/issues/22
@@ -350,20 +392,24 @@ class CertificateSearch:
                 CertType.UNKNOWN,
             }:
                 qualified_certs.append(qualified_cert)
+            else:
+                self.filtered_results = True
 
-        logger.debug("End: parsing certificates from %s", server)
+        logger.debug("End: parsing certificates from %s", ldap_server.hostname)
         return qualified_certs
 
     async def get_response(self):
-        tasks = []
-        if CertificateAuthority.BUYPASS in self.ldap_params.ca_s:
-            tasks.append(self.query_buypass)
-        if CertificateAuthority.COMMFIDES in self.ldap_params.ca_s:
-            tasks.append(self.query_commfides)
-
-        await asyncio.gather(*[task() for task in tasks])
+        await asyncio.gather(
+            *[
+                self.query_ca(ldap_server)
+                for ldap_server in self.ldap_params.ldap_servers
+            ]
+        )
         self.errors.extend(self.cert_validator.errors)
         self.warnings.extend(self.ldap_params.limitations)
+        if len(self.results) == 0 and self.filtered_results:
+            self.warnings.append("ERR-009")
+
         return CertificateSearchResponse.create(self)
 
 
