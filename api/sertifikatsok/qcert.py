@@ -139,7 +139,7 @@ class QualifiedCertificate:
                 [
                     name
                     for name in self.cert.subject
-                    if not name.oid == NameOID.SERIAL_NUMBER
+                    if name.oid != NameOID.SERIAL_NUMBER
                 ]
             )
         else:
@@ -284,7 +284,7 @@ class QualifiedCertificateSet:
                 revocation_date = cert.revocation_date
 
         org_number, underenhet = main_cert.get_orgnumber()
-        seid2 = bool(main_cert.seid == SEID.SEID2)
+        seid2 = main_cert.seid == SEID.SEID2
         return cls(
             certs, main_cert, status, revocation_date, org_number, underenhet, seid2
         )

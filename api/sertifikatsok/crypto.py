@@ -261,7 +261,7 @@ class CertValidator:
         revocation_date = None
 
         issuer = self._cert_retriever.retrieve(cert.issuer)
-        if not issuer:
+        if issuer is None:  # noqa: SIM114
             # TODO: Should this be UNKNOWN? We don't
             # trust the issuer, but others might...
             status = CertificateStatus.INVALID
@@ -282,7 +282,7 @@ class CertValidator:
                 revoked_cert = crl.get_revoked_certificate_by_serial_number(
                     cert.serial_number
                 )
-                if revoked_cert:
+                if revoked_cert is not None:
                     status = CertificateStatus.REVOKED
                     revocation_date = revoked_cert.revocation_date
                 else:
@@ -334,7 +334,7 @@ class CertValidator:
     ) -> bool:
         """Validates a certificate against it's (alleged) issuer"""
 
-        if not cert.issuer == issuer.subject:
+        if cert.issuer != issuer.subject:
             return False
         try:
             # casts because mypy. The type of key is checked

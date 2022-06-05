@@ -1,10 +1,11 @@
+from bonsai import LDAPSearchScope
+
 from sertifikatsok.enums import (
     CertificateAuthority,
     CertType,
     Environment,
     SearchAttribute,
 )
-from bonsai import LDAPSearchScope
 from sertifikatsok.search import LdapSearchParams, SearchParams
 
 

@@ -4,7 +4,7 @@ import codecs
 from datetime import datetime
 from functools import singledispatch
 from operator import attrgetter
-from typing import Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import Encoding
@@ -22,9 +22,9 @@ from .search import CertificateSearchResponse
 
 
 @singledispatch
-def sertifikatsok_serialization(val):
+def sertifikatsok_serialization(val) -> Dict[Any, Any]:
     """default"""
-    return str(val)
+    raise NotImplementedError()
 
 
 @sertifikatsok_serialization.register(QualifiedCertificate)
@@ -33,7 +33,7 @@ def qualified_certificate(val: QualifiedCertificate):
     dumped: Dict[str, Union[str, Dict[str, str]]] = {}
     name, usage = _get_norwegian_display_name(val)
     dumped["name"] = name
-    info = {}
+    info = {}  # noqa: SIM904
     info["Bruksområde(r)"] = usage
     info["Serienummer (hex)"] = format(val.cert.serial_number, "x")
     info["Serienummer (int)"] = str(val.cert.serial_number)
@@ -70,7 +70,7 @@ def qualified_certificate(val: QualifiedCertificate):
 
 @sertifikatsok_serialization.register(QualifiedCertificateSet)
 def qualified_certificate_set(val: QualifiedCertificateSet):
-    dumped = {}
+    dumped = {}  # noqa: SIM904
 
     dumped["notices"] = []
     if val.underenhet:

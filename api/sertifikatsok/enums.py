@@ -30,7 +30,7 @@ class SearchAttribute(Enum):
     CN = "cn"
     MAIL = "mail"
     OU = "ou"
-    O = "o"
+    O = "o"  # noqa:E741
     SN = "serialNumber"
     CSN = "certificateSerialNumber"
     ORGID = "organizationIdentifier"

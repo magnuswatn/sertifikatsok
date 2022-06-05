@@ -29,7 +29,7 @@ async def error_middleware(request, handler):
             status=400,
             content_type="application/json",
         )
-    except:
+    except Exception:
         logger.exception("An exception occured:")
         return web.Response(
             text=json.dumps(

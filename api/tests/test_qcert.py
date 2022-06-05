@@ -1,8 +1,9 @@
-from cryptography.x509.base import Certificate
-from sertifikatsok.enums import CertType, CertificateRoles, CertificateStatus
-from sertifikatsok.qcert import QualifiedCertificate, QualifiedCertificateSet
-from cryptography import x509
 from base64 import b64decode
+
+from cryptography import x509
+
+from sertifikatsok.enums import CertificateRoles, CertificateStatus
+from sertifikatsok.qcert import QualifiedCertificate, QualifiedCertificateSet
 
 
 class TestQualifiedCertificateSet:
