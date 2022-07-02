@@ -236,4 +236,9 @@ def _get_norwegian_error_message(error_code: str) -> str:
             "Søket returnerte sertifikater, men de ble filtrert bort pga. de var"
             " av feil type. Pass på at du søker på riktig type (person/virksomhet)"
         )
+    if error_code == "ERR-010":
+        return (
+            "Søk på avtrykk/thumbprint er ikke helt pålitelig, og resultatet kan"
+            " variere"
+        )
     return "Det har skjedd en ukjent feil"

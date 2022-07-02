@@ -96,6 +96,30 @@ def performance_log(id_param=None):
     return config_decorator
 
 
+def performance_log_sync(id_param=None):
+    def config_decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            start = time.perf_counter()
+            return_value = func(*args, **kwargs)
+
+            time_taken = (time.perf_counter() - start) * 1000
+            id_arg = args[id_param] if id_param is not None else ".."
+            method = f"{func.__qualname__}({id_arg})"
+
+            performance_logger.info(
+                "METHOD=%s TIME_TAKEN=%d CORRELATION_ID=%s",
+                method,
+                time_taken,
+                correlation_id_var.get(),
+            )
+            return return_value
+
+        return wrapper
+
+    return config_decorator
+
+
 def audit_log(request):
     ip = request.headers.get("X-Forwarded-For")
     if not ip:

@@ -8,6 +8,7 @@ import uvloop
 from aiohttp import web
 
 from .crypto import AppCrlRetriever, CertRetriever
+from .db import Database
 from .enums import Environment
 from .errors import ClientError
 from .logging import configure_logging, correlation_id_var, performance_log
@@ -57,6 +58,7 @@ async def init_app(app):
         Environment.TEST: CertRetriever.create(Environment.TEST),
         Environment.PROD: CertRetriever.create(Environment.PROD),
     }
+    app["Database"] = Database.connect_to_database()
 
 
 @performance_log()
