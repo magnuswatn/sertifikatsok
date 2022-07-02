@@ -1,7 +1,7 @@
 import logging
 import logging.config
+import time
 from contextvars import ContextVar
-from datetime import datetime
 from functools import wraps
 
 audit_logger = logging.getLogger("audit")
@@ -76,10 +76,10 @@ def performance_log(id_param=None):
     def config_decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            start = datetime.now()
+            start = time.perf_counter()
             return_value = await func(*args, **kwargs)
 
-            time_taken = int((datetime.now() - start).total_seconds() * 1000)
+            time_taken = (time.perf_counter() - start) * 1000
             id_arg = args[id_param] if id_param is not None else ".."
             method = f"{func.__qualname__}({id_arg})"
 
