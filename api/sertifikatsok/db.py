@@ -20,6 +20,8 @@ class Database:
     def connect_to_database(cls, database_file=DATABASE_FILE):
         connection = sqlite3.connect(database_file)
 
+        connection.execute("PRAGMA foreign_keys = ON")
+
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS ldap_server (
