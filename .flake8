@@ -2,3 +2,4 @@
 max-line-length = 88
 extend-select = B950
 extend-ignore = E501, W503, W504, E203, SIM105
+extend-immutable-calls = Depends

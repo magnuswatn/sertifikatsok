@@ -12,3 +12,4 @@ api/.cache/
 .mypy_cache/
 api/log_*.log
 .pytest_cache/
+*.db

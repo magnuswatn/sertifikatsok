@@ -8,15 +8,18 @@ from typing import Optional
 from fastapi import Depends, FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 
 from .crypto import AppCrlRetriever, CertRetriever, CertValidator
+from .db import Database
 from .enums import CertType, Environment, SearchAttribute
 from .errors import ClientError
 from .logging import configure_logging, correlation_id_var, performance_log
 from .search import CertificateSearch, SearchParams
 from .serialization import sertifikatsok_serialization
 from .starlette_precompressed_static import PreCompressedStaticFiles
+
+# from fastapi.staticfiles import StaticFiles
+
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +47,11 @@ def crl_retriever() -> AppCrlRetriever:
     return AppCrlRetriever()
 
 
+@lru_cache
+def database() -> Database:
+    return Database.connect_to_database()
+
+
 def cert_validator(
     cert_retriever: CertRetriever = Depends(cert_retriever),
     crl_retriever: AppCrlRetriever = Depends(crl_retriever),
@@ -62,6 +70,7 @@ async def init_app():
     # Initialize these, so that they are
     # ready before the first request.
     crl_retriever()
+    database()
     # We need to use kwargs here so the
     # lru_cache works as intended, as that
     # is what FastAPI does.
@@ -77,9 +86,12 @@ async def api_endpoint(
     query: str,
     attr: Optional[SearchAttribute] = None,
     cert_validator: CertValidator = Depends(cert_validator),
+    database: Database = Depends(database),
 ):
     search_params = SearchParams(env, type, query, attr)
-    certificate_search = CertificateSearch.create(search_params, cert_validator)
+    certificate_search = CertificateSearch.create(
+        search_params, cert_validator, database
+    )
 
     search_response = await certificate_search.get_response()
 

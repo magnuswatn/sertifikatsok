@@ -36,9 +36,3 @@ def create_ldap_filter(params: List[Tuple[SearchAttribute, str]]) -> str:
         search_params = f"(|{search_params})"
 
     return search_params
-
-
-def convert_hex_serial_to_int(serial_number: str) -> str:
-    serial_number = serial_number.replace(":", "").replace(" ", "")
-    serial_number = str(int(serial_number, 16))
-    return serial_number

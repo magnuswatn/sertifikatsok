@@ -4,6 +4,7 @@ set -Eeuo pipefail
 DIR="$( cd "$( dirname "$0" )" && pwd )"
 BIN_DIR="$(readlink -f "$DIR/../../")"
 CRL_DIR="$(readlink -f "$DIR/../api/crls")"
+DB_DIR="$(readlink -f "$DIR/../api/database")"
 
 UGLIFY_ES=$BIN_DIR/node_modules/uglify-es/bin/uglifyjs
 CSSO=$BIN_DIR/node_modules/csso-cli/bin/csso
@@ -37,6 +38,7 @@ docker rename "${CONTAINER_NAME}" "${CONTAINER_BACKUP_NAME}" || true
 docker run -d \
   --restart always \
   -v "${CRL_DIR}:/opt/sertifikatsok/api/crls" \
+  -v "${DB_DIR}:/opt/sertifikatsok/api/database" \
   -v "/var/log/caddy/:/logs" \
   -p 127.0.0.1:7001:7001 \
   --name "${CONTAINER_NAME}" \

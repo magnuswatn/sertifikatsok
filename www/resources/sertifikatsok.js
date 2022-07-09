@@ -588,7 +588,7 @@ $(document.body).on('keyup', '#enterprise-search-value', async function () {
     }
     searchTimeout = window.setTimeout(async function () {
         const searchValue = $field.val().split('\'').join('');
-        if (searchValue.length > 3) {
+        if (searchValue.length > 3 && !searchValue.startsWith("ldap://")) {
             const companies = await getCompanies(searchValue);
             $field.autocomplete({
                 data: companies,

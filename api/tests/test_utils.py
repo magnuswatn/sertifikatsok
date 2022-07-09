@@ -28,21 +28,3 @@ def test_create_ldap_filter_several_params_escape():
     ]
     filter = utils.create_ldap_filter(params)
     assert filter == r"(|(cn=\28)(ou=\2A)(o=\29))"
-
-
-def test_convert_hex_serial_to_int_hex_continuous():
-    hex = "13fd31a62aa611afb68982"
-    int = "24165265156868740537026946"
-    assert utils.convert_hex_serial_to_int(hex) == int
-
-
-def test_convert_hex_serial_to_int_hex_spaces():
-    hex = "13 fd 31 a6 2a a6 11 af b6 89 82"
-    int = "24165265156868740537026946"
-    assert utils.convert_hex_serial_to_int(hex) == int
-
-
-def test_convert_hex_serial_to_int_hex_colon():
-    hex = "13:fd:31:a6:2a:a6:11:af:b6:89:82"
-    int = "24165265156868740537026946"
-    assert utils.convert_hex_serial_to_int(hex) == int

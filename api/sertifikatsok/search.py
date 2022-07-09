@@ -18,43 +18,16 @@ from .constants import (
     ORG_NUMBER_REGEX,
     PERSONAL_SERIAL_REGEX,
 )
-from .crypto import AppCrlRetriever, CertRetriever, CertValidator, RequestCrlRetriever
+from .crypto import CertValidator
+from .db import Database
 from .enums import CertificateAuthority, CertType, Environment, SearchAttribute
 from .errors import ClientError
-from .ldap import LdapServer
-from .logging import audit_log, performance_log
+from .ldap import LDAP_SERVERS, LdapServer
+from .logging import performance_log  # , audit_log
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
-from .utils import convert_hex_serial_to_int, create_ldap_filter
+from .utils import create_ldap_filter
 
 logger = logging.getLogger(__name__)
-
-
-LDAP_SERVERS = {
-    Environment.TEST: [
-        LdapServer(
-            "ldap.test4.buypass.no",
-            "dc=Buypass,dc=no,CN=Buypass Class 3 Test4",
-            CertificateAuthority.BUYPASS,
-        ),
-        LdapServer(
-            "ldap.test.commfides.com",
-            "dc=commfides,dc=com",
-            CertificateAuthority.COMMFIDES,
-        ),
-    ],
-    Environment.PROD: [
-        LdapServer(
-            "ldap.buypass.no",
-            "dc=Buypass,dc=no,CN=Buypass Class 3",
-            CertificateAuthority.BUYPASS,
-        ),
-        LdapServer(
-            "ldap.commfides.com",
-            "dc=commfides,dc=com",
-            CertificateAuthority.COMMFIDES,
-        ),
-    ],
-}
 
 
 @frozen
@@ -103,7 +76,9 @@ class LdapSearchParams:
     limitations: List[str]
 
     @classmethod
-    def create(cls, search_params: SearchParams) -> LdapSearchParams:
+    def create(
+        cls, search_params: SearchParams, database: Database
+    ) -> LdapSearchParams:
 
         if search_params.attr is not None:
             scope = bonsai.LDAPSearchScope.SUBTREE
@@ -116,10 +91,12 @@ class LdapSearchParams:
         if search_params.query.startswith("ldap://"):
             return cls._parse_ldap_url(search_params)
         else:
-            return cls._guess_search_params(search_params)
+            return cls._guess_search_params(search_params, database)
 
     @classmethod
-    def _guess_search_params(cls, search_params: SearchParams) -> LdapSearchParams:
+    def _guess_search_params(
+        cls, search_params: SearchParams, database: Database
+    ) -> LdapSearchParams:
 
         ldap_servers = LDAP_SERVERS[search_params.env]
         typ, query = search_params.typ, search_params.query
@@ -129,6 +106,9 @@ class LdapSearchParams:
         # for it in the SERIALNUMBER field (SEID 1), and the
         # ORGANIZATION_IDENTIFIER field with a prefix (SEID 2).
         if typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
+            if query.startswith("NTRNO-"):
+                query = query[6:]
+
             query = query.replace(" ", "")
             ldap_query = create_ldap_filter(
                 [
@@ -180,12 +160,33 @@ class LdapSearchParams:
             ]
             limitations.append("ERR-006")
 
-        # Try the certificateSerialNumber field, if it looks like a serial number.
+        # Try the certificateSerialNumber field, if it looks like a serial number,
+        # or check the database after the thumbprint if it looks like a hash.
         elif INT_SERIAL_REGEX.fullmatch(query):
             ldap_query = create_ldap_filter([(SearchAttribute.CSN, query)])
         elif HEX_SERIAL_REGEX.fullmatch(query):
-            serial_number = convert_hex_serial_to_int(query)
-            ldap_query = create_ldap_filter([(SearchAttribute.CSN, serial_number)])
+
+            cleaned_query = query.replace(":", "").replace(" ", "").lower()
+
+            if len(cleaned_query) == 40:
+                # matches the length of a SHA1 thumbprint
+                ldap_servers = database.find_cert_from_sha1(
+                    cleaned_query, search_params.env
+                )
+                ldap_query = ""
+                limitations.append("ERR-010")
+
+            elif len(cleaned_query) == 64:
+                # matches the length of a SHA256 thumbprint
+                ldap_servers = database.find_cert_from_sha2(
+                    cleaned_query, search_params.env
+                )
+                ldap_query = ""
+                limitations.append("ERR-010")
+
+            else:
+                serial_number = str(int(cleaned_query, 16))
+                ldap_query = create_ldap_filter([(SearchAttribute.CSN, serial_number)])
 
         # Fallback to the Common Name field.
         else:
@@ -264,6 +265,7 @@ class CertificateSearch:
     search_params: SearchParams
     ldap_params: LdapSearchParams
     cert_validator: CertValidator
+    database: Database
     filtered_results: bool = field(default=False)
     errors: List[str] = field(factory=list)
     warnings: List[str] = field(factory=list)
@@ -271,14 +273,17 @@ class CertificateSearch:
 
     @classmethod
     def create(
-        cls, search_params: SearchParams, cert_validator: CertValidator
+        cls,
+        search_params: SearchParams,
+        cert_validator: CertValidator,
+        database: Database,
     ) -> CertificateSearch:
 
-        ldap_params = LdapSearchParams.create(search_params)
+        ldap_params = LdapSearchParams.create(search_params, database)
 
         # audit_log(request)
 
-        return cls(search_params, ldap_params, cert_validator)
+        return cls(search_params, ldap_params, cert_validator, database)
 
     @performance_log(id_param=1)
     async def query_ca(self, ldap_server: LdapServer):
@@ -321,9 +326,10 @@ class CertificateSearch:
         with (await client.connect(is_async=True, timeout=LDAP_TIMEOUT)) as conn:  # type: ignore
             while count < LDAP_RETRIES:
                 logger.debug(
-                    'Doing search with filter "%s" against "%s"',
+                    'Doing search with filter "%s" against "%s" in "%s"',
                     search_filter,
                     ldap_server.hostname,
+                    ldap_server.base,
                 )
                 results = await conn.search(
                     ldap_server.base,
@@ -359,6 +365,14 @@ class CertificateSearch:
     async def _parse_ldap_results(self, search_results, ldap_server: LdapServer):
         """Takes a ldap response and creates a list of QualifiedCertificateSet"""
         logger.debug("Start: parsing certificates from %s", ldap_server.hostname)
+
+        self.database.insert_certificates(
+            [
+                (str(result.dn), result.get("userCertificate;binary"))
+                for result in search_results
+            ],
+            ldap_server.hostname,
+        )
 
         qualified_certs = []
         for result in search_results:
