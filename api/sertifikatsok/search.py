@@ -106,6 +106,9 @@ class LdapSearchParams:
         # for it in the SERIALNUMBER field (SEID 1), and the
         # ORGANIZATION_IDENTIFIER field with a prefix (SEID 2).
         if typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
+            if query.startswith("NTRNO-"):
+                query = query[6:]
+
             query = query.replace(" ", "")
             ldap_query = create_ldap_filter(
                 [

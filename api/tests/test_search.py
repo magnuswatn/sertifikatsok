@@ -230,11 +230,48 @@ class TestLdapSearchParams:
             == "(|(serialNumber=995546973)(organizationIdentifier=NTRNO-995546973))"
         )
 
+    def test_should_auto_detect_org_nr_seid2(self, database: Database):
+        search_params = SearchParams(
+            Environment.PROD,
+            CertType.ENTERPRISE,
+            "NTRNO-995546973",
+            None,
+        )
+
+        ldap_search_params = LdapSearchParams.create(search_params, database)
+        assert ldap_search_params.scope == LDAPSearchScope.SUB
+        assert len(ldap_search_params.limitations) == 0
+        assert len(ldap_search_params.ldap_servers) == 2
+        assert (
+            ldap_search_params.ldap_query
+            == "(|(serialNumber=995546973)(organizationIdentifier=NTRNO-995546973))"
+        )
+
     def test_should_auto_detect_personal_serial_number(self, database: Database):
         search_params = SearchParams(
             Environment.PROD,
             CertType.PERSONAL,
             "9578-4505-00001pdEkL7",
+            None,
+        )
+
+        ldap_search_params = LdapSearchParams.create(search_params, database)
+        assert ldap_search_params.scope == LDAPSearchScope.SUB
+        assert len(ldap_search_params.limitations) == 0
+        assert (
+            len(ldap_search_params.ldap_servers) == 1
+            and CertificateAuthority.COMMFIDES == ldap_search_params.ldap_servers[0].ca
+        )
+        assert (
+            ldap_search_params.ldap_query
+            == "(|(serialNumber=9578-4505-00001pdEkL7)(serialNumber=UN:NO-9578-4505-00001pdEkL7))"
+        )
+
+    def test_should_auto_detect_personal_serial_number_seid2(self, database: Database):
+        search_params = SearchParams(
+            Environment.PROD,
+            CertType.PERSONAL,
+            "UN:NO-9578-4505-00001pdEkL7",
             None,
         )
 
