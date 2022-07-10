@@ -113,7 +113,7 @@ async def api_endpoint(
 static_files = PreCompressedStaticFiles(directory="../www")
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 async def root(request: Request):
     # Can't use html mode with PreCompressedStaticFiles, but the only "magic"
     # we need is that index.html is served from the root, so let's just do it
