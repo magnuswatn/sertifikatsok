@@ -44,7 +44,7 @@ def cert_retriever(env: Environment) -> CertRetriever:
 
 @lru_cache
 def crl_retriever() -> AppCrlRetriever:
-    return AppCrlRetriever()
+    return AppCrlRetriever.create()
 
 
 @lru_cache

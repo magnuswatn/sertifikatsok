@@ -27,28 +27,29 @@ RUN set -x && python3 -m venv /opt/sertifikatsok/venv
 RUN set -x && pip --no-cache-dir --disable-pip-version-check install --upgrade pip
 ENV PATH="/opt/sertifikatsok/venv/bin:${PATH}"
 
-COPY Pipfile /tmp/Pipfile
-COPY Pipfile.lock /tmp/Pipfile.lock
+COPY ./api/Pipfile /tmp/Pipfile
+COPY ./api/Pipfile.lock /tmp/Pipfile.lock
 
 RUN set -x \
     && cd /tmp \
     && VIRTUAL_ENV=/opt/sertifikatsok/venv /tmp/pipenv-venv/bin/pipenv install --deploy
 
-COPY . /opt/sertifikatsok/api
+COPY ./api /opt/sertifikatsok/api
 
 #
 # Node container for frontend "building"
 #
 FROM node:lts-buster-slim as frontendbuild
 
-# Requirements for bonsai.
+# Requirements for building.
 RUN set -x \
     && apt-get update \
     && apt-get install --no-install-recommends -y \
         brotli
 
-COPY ../www /tmp/Pipfile
-COPY Pipfile.lock /tmp/Pipfile.lock
+COPY ./www /opt/sertifikatsok/www
+
+RUN find /opt/sertifikatsok/www -type f -not -name '*.png' -exec brotli '{}' \;
 
 #
 # PROD container
@@ -67,5 +68,6 @@ WORKDIR /opt/sertifikatsok/api
 
 COPY --from=build /opt/sertifikatsok/venv/ /opt/sertifikatsok/venv/
 COPY --from=build /opt/sertifikatsok/api/ /opt/sertifikatsok/api/
+COPY --from=frontendbuild /opt/sertifikatsok/www /opt/sertifikatsok/www
 
-ENTRYPOINT ["python", "-um", "sertifikatsok"]
+ENTRYPOINT ["python", "-um", "uvicorn", "sertifikatsok.web:app", "--host", "0.0.0.0", "--port", "8080"]

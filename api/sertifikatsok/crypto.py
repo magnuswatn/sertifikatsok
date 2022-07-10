@@ -19,6 +19,8 @@ from .logging import performance_log
 
 logger = logging.getLogger(__name__)
 
+CRL_FOLDER = Path("data/crls")
+
 
 @frozen
 class AppCrlRetriever:
@@ -31,6 +33,15 @@ class AppCrlRetriever:
     """
 
     crls: Dict[str, x509.CertificateRevocationList] = field(factory=dict)
+
+    @classmethod
+    def create(cls):
+        if not CRL_FOLDER.exists():
+            CRL_FOLDER.mkdir()
+            logger.info(f"Created {CRL_FOLDER}")
+        elif not CRL_FOLDER.is_dir():
+            raise EnvironmentError(f"Expected {CRL_FOLDER} to be a directory")
+        return cls()
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
@@ -75,7 +86,7 @@ class AppCrlRetriever:
     ) -> x509.CertificateRevocationList:
         """Retrieves a CRL from disk"""
         try:
-            crl_bytes = Path("crls", urllib.parse.quote_plus(url)).read_bytes()
+            crl_bytes = CRL_FOLDER.joinpath(urllib.parse.quote_plus(url)).read_bytes()
         except FileNotFoundError:
             raise CouldNotGetValidCRLError("Not found on disk")
 
@@ -125,7 +136,7 @@ class AppCrlRetriever:
 
         self._validate(crl, issuer)
 
-        Path("crls", urllib.parse.quote_plus(url)).write_bytes(resp.content)
+        CRL_FOLDER.joinpath(urllib.parse.quote_plus(url)).write_bytes(resp.content)
 
         return crl
 

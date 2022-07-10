@@ -9,7 +9,7 @@ from .logging import performance_log_sync
 
 logger = logging.getLogger(__name__)
 
-DATABASE_FILE = "database/database.db"
+DATABASE_FILE = "data/database.db"
 
 
 class Database:
