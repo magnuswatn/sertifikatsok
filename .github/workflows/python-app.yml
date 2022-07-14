@@ -26,6 +26,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        cd api
         pip install pipenv
         pipenv install --dev
     - name: Lint with flake8
