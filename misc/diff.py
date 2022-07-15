@@ -2,8 +2,8 @@
 """
 Quick script to compare results from old and new API.
 """
-import os
 import json
+import os
 import subprocess
 
 import requests
