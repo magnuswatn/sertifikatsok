@@ -82,7 +82,11 @@ class LdapSearchParams:
 
         if search_params.attr is not None:
             scope = bonsai.LDAPSearchScope.SUBTREE
-            ldap_servers = LDAP_SERVERS[search_params.env]
+            ldap_servers = [
+                ldap_server
+                for ldap_server in LDAP_SERVERS[search_params.env]
+                if search_params.typ in ldap_server.cert_types
+            ]
 
             ldap_query = create_ldap_filter([(search_params.attr, search_params.query)])
 
@@ -98,7 +102,11 @@ class LdapSearchParams:
         cls, search_params: SearchParams, database: Database
     ) -> LdapSearchParams:
 
-        ldap_servers = LDAP_SERVERS[search_params.env]
+        ldap_servers = [
+            ldap_server
+            for ldap_server in LDAP_SERVERS[search_params.env]
+            if search_params.typ in ldap_server.cert_types
+        ]
         typ, query = search_params.typ, search_params.query
         limitations: List[str] = []
 
@@ -228,6 +236,7 @@ class LdapSearchParams:
             # strip leading /
             unquote(parsed_url.path[1:]),
             pre_allowed_ldap_server.ca,
+            [],
         )
 
         parsed_query = parsed_url.query.split("?")
@@ -287,7 +296,7 @@ class CertificateSearch:
 
     @performance_log(id_param=1)
     async def query_ca(self, ldap_server: LdapServer):
-        logger.debug("Start: query against %s", ldap_server.hostname)
+        logger.debug("Start: query against %s", ldap_server)
 
         try:
             self.results.extend(
@@ -297,16 +306,15 @@ class CertificateSearch:
                 )
             )
         except (bonsai.LDAPError, asyncio.TimeoutError):
+            logger.exception("Error during ldap query against '%s'", ldap_server)
             if ldap_server.ca == CertificateAuthority.BUYPASS:
-                logger.exception("Could not retrieve certificates from Buypass")
                 self.errors.append("ERR-001")
             elif ldap_server.ca == CertificateAuthority.COMMFIDES:
-                logger.exception("Could not retrieve certificates from Commfides")
                 self.errors.append("ERR-002")
             else:
                 raise RuntimeError(f"Unexpeced ca: {ldap_server.ca}")
         else:
-            logger.debug("End: query against %s", ldap_server.hostname)
+            logger.debug("End: query against %s", ldap_server)
 
     async def do_ldap_search(self, ldap_server: LdapServer, retry=False):
         """
@@ -322,14 +330,13 @@ class CertificateSearch:
         results = []
         all_results = []
         search_filter = self.ldap_params.ldap_query
-        logger.debug("Starting: ldap search against: %s", ldap_server.hostname)
+        logger.debug("Starting: ldap search against: %s", ldap_server)
         with (await client.connect(is_async=True, timeout=LDAP_TIMEOUT)) as conn:  # type: ignore
             while count < LDAP_RETRIES:
                 logger.debug(
-                    'Doing search with filter "%s" against "%s" in "%s"',
+                    'Doing search with filter "%s" against "%s"',
                     search_filter,
-                    ldap_server.hostname,
-                    ldap_server.base,
+                    ldap_server,
                 )
                 results = await conn.search(
                     ldap_server.base,
@@ -348,14 +355,14 @@ class CertificateSearch:
                 else:
                     count = LDAP_RETRIES + 1
 
-            logger.debug("Ending: ldap search against: %s", ldap_server.hostname)
+            logger.debug("Ending: ldap search against: %s", ldap_server)
             # If we got 20 on our last search (of several),
             # there may be more certs out there...
             if len(results) == 20 and retry:
                 logger.warning(
                     "Exceeded max count for search with filter %s against %s",
                     self.ldap_params.ldap_query,
-                    ldap_server.hostname,
+                    ldap_server,
                 )
                 self.warnings.append("ERR-004")
 
@@ -364,7 +371,7 @@ class CertificateSearch:
     @performance_log(id_param=2)
     async def _parse_ldap_results(self, search_results, ldap_server: LdapServer):
         """Takes a ldap response and creates a list of QualifiedCertificateSet"""
-        logger.debug("Start: parsing certificates from %s", ldap_server.hostname)
+        logger.debug("Start: parsing certificates from %s", ldap_server)
 
         self.database.insert_certificates(
             [
@@ -405,7 +412,7 @@ class CertificateSearch:
             else:
                 self.filtered_results = True
 
-        logger.debug("End: parsing certificates from %s", ldap_server.hostname)
+        logger.debug("End: parsing certificates from %s", ldap_server)
         return qualified_certs
 
     async def get_response(self):

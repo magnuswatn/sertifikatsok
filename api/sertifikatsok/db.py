@@ -130,6 +130,7 @@ class Database:
                     result[0],
                     result[1],
                     CertificateAuthority(result[2]),
+                    [],
                 )
             ]
         logger.info("No match in database for thumbprint")
@@ -161,6 +162,7 @@ class Database:
                     result[0],
                     result[1],
                     CertificateAuthority(result[2]),
+                    [],
                 )
             ]
         logger.info("No match in database for thumbprint")

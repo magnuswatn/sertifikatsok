@@ -108,7 +108,13 @@ class TestLdapSearchParams:
         ldap_search_params = LdapSearchParams.create(search_params, database)
         assert ldap_search_params.scope == LDAPSearchScope.SUB
         assert len(ldap_search_params.limitations) == 0
-        assert len(ldap_search_params.ldap_servers) == 2
+        assert all(
+            CertType.PERSONAL in ldap_server.cert_types
+            for ldap_server in ldap_search_params.ldap_servers
+        )
+        assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
+            {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
+        )
         assert (
             ldap_search_params.ldap_query
             == "(certificateSerialNumber=17499973611207260349135611)"
@@ -125,7 +131,13 @@ class TestLdapSearchParams:
         ldap_search_params = LdapSearchParams.create(search_params, database)
         assert ldap_search_params.scope == LDAPSearchScope.SUB
         assert len(ldap_search_params.limitations) == 0
-        assert len(ldap_search_params.ldap_servers) == 2
+        assert all(
+            CertType.PERSONAL in ldap_server.cert_types
+            for ldap_server in ldap_search_params.ldap_servers
+        )
+        assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
+            {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
+        )
         assert (
             ldap_search_params.ldap_query
             == "(certificateSerialNumber=24165265156868740537026946)"
@@ -142,7 +154,13 @@ class TestLdapSearchParams:
         ldap_search_params = LdapSearchParams.create(search_params, database)
         assert ldap_search_params.scope == LDAPSearchScope.SUB
         assert len(ldap_search_params.limitations) == 0
-        assert len(ldap_search_params.ldap_servers) == 2
+        assert all(
+            CertType.PERSONAL in ldap_server.cert_types
+            for ldap_server in ldap_search_params.ldap_servers
+        )
+        assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
+            {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
+        )
         assert (
             ldap_search_params.ldap_query
             == "(certificateSerialNumber=24165265156868740537026946)"
@@ -224,7 +242,13 @@ class TestLdapSearchParams:
         ldap_search_params = LdapSearchParams.create(search_params, database)
         assert ldap_search_params.scope == LDAPSearchScope.SUB
         assert len(ldap_search_params.limitations) == 0
-        assert len(ldap_search_params.ldap_servers) == 2
+        assert all(
+            CertType.ENTERPRISE in ldap_server.cert_types
+            for ldap_server in ldap_search_params.ldap_servers
+        )
+        assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
+            {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
+        )
         assert (
             ldap_search_params.ldap_query
             == "(|(serialNumber=995546973)(organizationIdentifier=NTRNO-995546973))"
@@ -240,10 +264,13 @@ class TestLdapSearchParams:
 
         ldap_search_params = LdapSearchParams.create(search_params, database)
         assert ldap_search_params.scope == LDAPSearchScope.SUB
-        assert len(ldap_search_params.limitations) == 0
-        assert (
-            len(ldap_search_params.ldap_servers) == 1
-            and CertificateAuthority.COMMFIDES == ldap_search_params.ldap_servers[0].ca
+        assert all(
+            CertType.PERSONAL in ldap_server.cert_types
+            for ldap_server in ldap_search_params.ldap_servers
+        )
+        assert all(
+            CertificateAuthority.COMMFIDES == ldap_server.ca
+            for ldap_server in ldap_search_params.ldap_servers
         )
         assert (
             ldap_search_params.ldap_query
@@ -261,9 +288,13 @@ class TestLdapSearchParams:
         ldap_search_params = LdapSearchParams.create(search_params, database)
         assert ldap_search_params.scope == LDAPSearchScope.SUB
         assert "ERR-006" in ldap_search_params.limitations
-        assert (
-            len(ldap_search_params.ldap_servers) == 1
-            and CertificateAuthority.BUYPASS == ldap_search_params.ldap_servers[0].ca
+        assert all(
+            CertType.PERSONAL in ldap_server.cert_types
+            for ldap_server in ldap_search_params.ldap_servers
+        )
+        assert all(
+            CertificateAuthority.BUYPASS == ldap_server.ca
+            for ldap_server in ldap_search_params.ldap_servers
         )
         assert ldap_search_params.ldap_query == "(mail=fornavn@etternavn.no)"
 
@@ -278,7 +309,13 @@ class TestLdapSearchParams:
         ldap_search_params = LdapSearchParams.create(search_params, database)
         assert ldap_search_params.scope == LDAPSearchScope.SUB
         assert len(ldap_search_params.limitations) == 0
-        assert len(ldap_search_params.ldap_servers) == 2
+        assert all(
+            CertType.PERSONAL in ldap_server.cert_types
+            for ldap_server in ldap_search_params.ldap_servers
+        )
+        assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
+            {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
+        )
         assert ldap_search_params.ldap_query == "(cn=Min supertjeneste)"
 
     def test_should_respect_attribute(self, database: Database):
@@ -292,5 +329,11 @@ class TestLdapSearchParams:
         ldap_search_params = LdapSearchParams.create(search_params, database)
         assert ldap_search_params.scope == LDAPSearchScope.SUB
         assert len(ldap_search_params.limitations) == 0
-        assert len(ldap_search_params.ldap_servers) == 2
+        assert all(
+            CertType.ENTERPRISE in ldap_server.cert_types
+            for ldap_server in ldap_search_params.ldap_servers
+        )
+        assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
+            {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
+        )
         assert ldap_search_params.ldap_query == "(ou=Min superunderenhet)"
