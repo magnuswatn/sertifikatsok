@@ -7,7 +7,7 @@ import uuid
 import uvloop
 from aiohttp import web
 
-from .crypto import AppCrlRetriever, CertRetriever
+from .crypto import AppCrlRetriever, CertRetriever, CrlDownloader
 from .db import Database
 from .enums import Environment
 from .errors import ClientError
@@ -53,7 +53,7 @@ async def correlation_middleware(request, handler):
 
 
 async def init_app(app):
-    app["CrlRetriever"] = AppCrlRetriever()
+    app["CrlRetriever"] = AppCrlRetriever(CrlDownloader())
     app["CertRetrievers"] = {
         Environment.TEST: CertRetriever.create(Environment.TEST),
         Environment.PROD: CertRetriever.create(Environment.PROD),
