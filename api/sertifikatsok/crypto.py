@@ -210,7 +210,9 @@ class RequestCrlRetriever:
     """
 
     crl_retriever: AppCrlRetrieverProto
-    crls: Dict[str, Optional[x509.CertificateRevocationList]] = field(factory=dict)
+    crls: Dict[Tuple[str, x509.Name], Optional[x509.CertificateRevocationList]] = field(
+        factory=dict
+    )
     errors: List[str] = field(factory=list)
 
     async def retrieve(
@@ -218,7 +220,7 @@ class RequestCrlRetriever:
     ) -> Optional[x509.CertificateRevocationList]:
         """Retrieves the CRL from the specified url."""
         try:
-            return self.crls[url]
+            return self.crls[url, issuer.subject]
         except KeyError:
             pass
 
@@ -235,7 +237,7 @@ class RequestCrlRetriever:
             self.errors.append("ERR-003")
             crl = None
 
-        self.crls[url] = crl
+        self.crls[url, issuer.subject] = crl
         return crl
 
 

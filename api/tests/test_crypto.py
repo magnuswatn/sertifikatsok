@@ -251,6 +251,47 @@ class TestRequestCrlRetriever:
         # Errors should also be cached, so that we don't spam the crl server
         assert dummy_app_crl_retriever.count == 1
 
+    async def test_wrong_url_in_cert(self, ca: CertificateAuthority):
+        """
+        The issuer should be included in the cache, so that if a certificate
+        from issuer A has a cdp extension pointing to the crl from issuer B,
+        certs from issuer A and issuer B should not get the same CRL (or lack of)
+        in return.
+        """
+        ca2 = CertificateAuthority.create("sertifikatsok.no CA2")
+        crl = ca.generate_crl([])
+
+        class DummyAppCrlRetriever:
+            async def retrieve(
+                self, url: str, issuer: x509.Certificate
+            ) -> x509.CertificateRevocationList:
+                if issuer == ca2.cert:
+                    raise CouldNotGetValidCRLError("CRL did not validate")
+                else:
+                    return crl
+
+        # Retrieve the valid first, and then invalid. Invalid should get None
+        request_crl_retriever1 = RequestCrlRetriever(DummyAppCrlRetriever())
+        retrieved_crl1_1 = await request_crl_retriever1.retrieve(
+            "http://crl.watn.no/sertifikatsok.no+CA.crl", ca.cert
+        )
+        retrieved_crl1_2 = await request_crl_retriever1.retrieve(
+            "http://crl.watn.no/sertifikatsok.no+CA.crl", ca2.cert
+        )
+        assert retrieved_crl1_1 == crl
+        assert retrieved_crl1_2 is None
+
+        # Retrieve the invalid first, and then validg. Valid should get a fresh CRL
+        request_crl_retriever2 = RequestCrlRetriever(DummyAppCrlRetriever())
+        retrieved_crl2_1 = await request_crl_retriever2.retrieve(
+            "http://crl.watn.no/sertifikatsok.no+CA.crl", ca2.cert
+        )
+        retrieved_crl2_2 = await request_crl_retriever2.retrieve(
+            "http://crl.watn.no/sertifikatsok.no+CA.crl", ca.cert
+        )
+        assert retrieved_crl2_1 is None
+        assert retrieved_crl2_2 == crl
+
 
 @pytest.mark.asyncio
 class TestCertValidator:
