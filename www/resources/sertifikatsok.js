@@ -278,9 +278,11 @@ const loadResultGUI = function (response) {
     $('#body-container').empty();
     handleWarnings(response.errors);
 
+    const certType = response.searchDetails.Type.toLowerCase();
+
     $amountMessage = $('<h5/>', { 'class': 'center-align' });
     $amountMessage.text(`Fant ${response.certificate_sets.length} ` +
-        `sett med sertifikater for ${response.subject}`);
+        `sett med ${certType} for ${response.subject}`);
     $('#body-container').append($amountMessage);
 
     $searchDetails = $('<p/>', { 'class': 'link-text', 'id': 'searchDetailsTxt' });

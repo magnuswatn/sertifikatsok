@@ -146,7 +146,7 @@ def certificate_search(val: CertificateSearchResponse):
         search_env = "Ukjent"
 
     if val.search.search_params.typ == CertType.PERSONAL:
-        search_type = "Personlig sertifikater"
+        search_type = "Personsertifikater"
     elif val.search.search_params.typ == CertType.ENTERPRISE:
         search_type = "Virksomhetssertifikater"
     else:
