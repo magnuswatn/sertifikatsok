@@ -590,7 +590,7 @@ $(document.body).on('keyup', '#enterprise-search-value', async function () {
     }
     searchTimeout = window.setTimeout(async function () {
         const searchValue = $field.val().split('\'').join('');
-        if (searchValue.length > 3) {
+        if (isBrregSearchable(searchValue)) {
             const companies = await getCompanies(searchValue);
             $field.autocomplete({
                 data: companies,
@@ -600,6 +600,22 @@ $(document.body).on('keyup', '#enterprise-search-value', async function () {
         };
     }, 500);
 });
+
+const isBrregSearchable = function (query) {
+    if (query.length < 4 || query.startsWith("ldap://")) {
+        return false;
+    }
+
+    // Only numeric is normally org numbers or serial numbers
+    // and hex are thumbprints or serial numbers.
+    const onlyNumericRegex = /^\d+$/;
+    const hexSerialRegex = /(?:[0-9a-fA-F][\s:]?){16,}/;
+    if (onlyNumericRegex.exec(query) || hexSerialRegex.exec(query)) {
+        return false;
+    }
+
+    return true;
+}
 
 const getCompanies = async function (startOfName) {
     const url = 'https://data.brreg.no/enhetsregisteret/api/enheter';
