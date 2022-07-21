@@ -327,8 +327,8 @@ class CertificateSearch:
         """
         client = bonsai.LDAPClient(f"ldap://{ldap_server.hostname}")
         count = 0
-        results = []
-        all_results = []
+        results: List[bonsai.LDAPEntry] = []
+        all_results: List[bonsai.LDAPEntry] = []
         search_filter = self.ldap_params.ldap_query
         logger.debug("Starting: ldap search against: %s", ldap_server)
         with (await client.connect(is_async=True, timeout=LDAP_TIMEOUT)) as conn:  # type: ignore
@@ -349,7 +349,7 @@ class CertificateSearch:
                 if len(results) == 20 and retry:
                     certs_to_exclude = ""
                     for result in results:
-                        certs_to_exclude += f"(!({str(result.dn).split(',')[0]}))"
+                        certs_to_exclude += f"(!({result.dn[0]}))"
                     search_filter = "(&{}{})".format(search_filter, certs_to_exclude)
                     count += 1
                 else:
