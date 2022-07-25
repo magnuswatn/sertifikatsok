@@ -231,11 +231,77 @@ class TestLdapSearchParams:
         assert len(ldap_search_params.ldap_servers) == 0
         assert ldap_search_params.ldap_query == ""
 
-    def test_should_auto_detect_org_nr(self, database: Database):
+    def test_should_auto_detect_org_nr_not_in_db(self, database: Database):
         search_params = SearchParams(
             Environment.PROD,
             CertType.ENTERPRISE,
             "995 546 973",
+            None,
+        )
+
+        ldap_search_params = LdapSearchParams.create(search_params, database)
+        assert ldap_search_params.scope == LDAPSearchScope.SUB
+        assert len(ldap_search_params.limitations) == 0
+        assert all(
+            CertType.ENTERPRISE in ldap_server.cert_types
+            for ldap_server in ldap_search_params.ldap_servers
+        )
+        assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
+            {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
+        )
+        assert (
+            ldap_search_params.ldap_query
+            == "(|(serialNumber=995546973)(organizationIdentifier=NTRNO-995546973))"
+        )
+
+    def test_should_auto_detect_org_nr_child(self, database: Database):
+
+        database._connection.execute(
+            """
+            INSERT OR REPLACE
+            INTO organization (orgnr, name, parent_orgnr)
+            values ('991056505', 'APOTEK 1 ULRIKSDAL', '983044778')
+            """
+        )
+        database._connection.commit()
+
+        search_params = SearchParams(
+            Environment.PROD,
+            CertType.ENTERPRISE,
+            "991 056 505",
+            None,
+        )
+
+        ldap_search_params = LdapSearchParams.create(search_params, database)
+        assert ldap_search_params.scope == LDAPSearchScope.SUB
+        assert len(ldap_search_params.limitations) == 0
+        assert all(
+            CertType.ENTERPRISE in ldap_server.cert_types
+            for ldap_server in ldap_search_params.ldap_servers
+        )
+        assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
+            {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
+        )
+        assert (
+            ldap_search_params.ldap_query
+            == "(&(|(serialNumber=983044778)(organizationIdentifier=NTRNO-983044778))(ou=*991056505*))"
+        )
+
+    def test_should_auto_detect_org_nr_parent(self, database: Database):
+
+        database._connection.execute(
+            """
+            INSERT OR REPLACE
+            INTO organization (orgnr, name)
+            values ('995546973', 'WATN IT SYSTEM Magnus Horsgård Watn')
+            """
+        )
+        database._connection.commit()
+
+        search_params = SearchParams(
+            Environment.PROD,
+            CertType.ENTERPRISE,
+            "995 5469 73",
             None,
         )
 

@@ -8,6 +8,7 @@ from urllib.parse import unquote, urlparse
 import bonsai
 from aiohttp.web import Request
 from attrs import field, frozen, mutable
+from bonsai import escape_filter_exp
 
 from .constants import (
     EMAIL_REGEX,
@@ -114,13 +115,32 @@ class LdapSearchParams:
         # for it in the SERIALNUMBER field (SEID 1), and the
         # ORGANIZATION_IDENTIFIER field with a prefix (SEID 2).
         if typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
+            # (spaces allowed by the regex)
             query = query.replace(" ", "")
-            ldap_query = create_ldap_filter(
-                [
-                    (SearchAttribute.SN, query),
-                    (SearchAttribute.ORGID, f"NTRNO-{query}"),
-                ]
-            )
+
+            organization = database.get_organization(query)
+            if organization is not None and organization.parent_orgnr is not None:
+                # child org, we must query the parent
+                base_ldap_query = create_ldap_filter(
+                    [
+                        (SearchAttribute.SN, organization.parent_orgnr),
+                        (SearchAttribute.ORGID, f"NTRNO-{organization.parent_orgnr}"),
+                    ]
+                )
+                # We must create the filter "by hand" here (not by using
+                # create_ldap_filter), because we need the unescaped * char.
+                ldap_query = (
+                    f"(&{base_ldap_query}"
+                    f"({SearchAttribute.OU.value}="
+                    f"*{escape_filter_exp(organization.orgnr)}*))"
+                )
+            else:
+                ldap_query = create_ldap_filter(
+                    [
+                        (SearchAttribute.SN, query),
+                        (SearchAttribute.ORGID, f"NTRNO-{query}"),
+                    ]
+                )
 
         # If the query is a norwegian personal serial number, we must search
         # for it in the serialNumber field, both without (SEID 1) and with (SEID 2)
