@@ -23,7 +23,7 @@ class TestQualifiedCertificateSet:
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
                 "",
-                LdapServer("", "", CertificateAuthority.BUYPASS),
+                LdapServer("", "", CertificateAuthority.BUYPASS, []),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -43,7 +43,7 @@ class TestQualifiedCertificateSet:
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
                 "",
-                LdapServer("", "", CertificateAuthority.COMMFIDES),
+                LdapServer("", "", CertificateAuthority.COMMFIDES, []),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -63,7 +63,7 @@ class TestQualifiedCertificateSet:
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
                 "",
-                LdapServer("", "", CertificateAuthority.COMMFIDES),
+                LdapServer("", "", CertificateAuthority.COMMFIDES, []),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -92,7 +92,7 @@ class TestQualifiedCertificateSet:
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
                 "",
-                LdapServer("", "", CertificateAuthority.COMMFIDES),
+                LdapServer("", "", CertificateAuthority.COMMFIDES, []),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -115,7 +115,7 @@ class TestQualifiedCertificateSet:
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
                 "",
-                LdapServer("", "", CertificateAuthority.COMMFIDES),
+                LdapServer("", "", CertificateAuthority.COMMFIDES, []),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -136,7 +136,7 @@ class TestQualifiedCertificateSet:
             QualifiedCertificate(
                 x509.load_der_x509_certificate(b64decode(cert)),
                 "",
-                LdapServer("", "", CertificateAuthority.BUYPASS),
+                LdapServer("", "", CertificateAuthority.BUYPASS, []),
                 CertificateStatus.EXPIRED,
                 None,
             )

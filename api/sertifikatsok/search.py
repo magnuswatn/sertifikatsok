@@ -8,6 +8,7 @@ from urllib.parse import unquote, urlparse
 import bonsai
 from aiohttp.web import Request
 from attrs import field, frozen, mutable
+from bonsai import escape_filter_exp
 
 from .constants import (
     EMAIL_REGEX,
@@ -82,7 +83,11 @@ class LdapSearchParams:
 
         if search_params.attr is not None:
             scope = bonsai.LDAPSearchScope.SUBTREE
-            ldap_servers = LDAP_SERVERS[search_params.env]
+            ldap_servers = [
+                ldap_server
+                for ldap_server in LDAP_SERVERS[search_params.env]
+                if search_params.typ in ldap_server.cert_types
+            ]
 
             ldap_query = create_ldap_filter([(search_params.attr, search_params.query)])
 
@@ -98,7 +103,11 @@ class LdapSearchParams:
         cls, search_params: SearchParams, database: Database
     ) -> LdapSearchParams:
 
-        ldap_servers = LDAP_SERVERS[search_params.env]
+        ldap_servers = [
+            ldap_server
+            for ldap_server in LDAP_SERVERS[search_params.env]
+            if search_params.typ in ldap_server.cert_types
+        ]
         typ, query = search_params.typ, search_params.query
         limitations: List[str] = []
 
@@ -106,16 +115,32 @@ class LdapSearchParams:
         # for it in the SERIALNUMBER field (SEID 1), and the
         # ORGANIZATION_IDENTIFIER field with a prefix (SEID 2).
         if typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
-            if query.startswith("NTRNO-"):
-                query = query[6:]
-
+            # (spaces allowed by the regex)
             query = query.replace(" ", "")
-            ldap_query = create_ldap_filter(
-                [
-                    (SearchAttribute.SN, query),
-                    (SearchAttribute.ORGID, f"NTRNO-{query}"),
-                ]
-            )
+
+            organization = database.get_organization(query)
+            if organization is not None and organization.parent_orgnr is not None:
+                # child org, we must query the parent
+                base_ldap_query = create_ldap_filter(
+                    [
+                        (SearchAttribute.SN, organization.parent_orgnr),
+                        (SearchAttribute.ORGID, f"NTRNO-{organization.parent_orgnr}"),
+                    ]
+                )
+                # We must create the filter "by hand" here (not by using
+                # create_ldap_filter), because we need the unescaped * char.
+                ldap_query = (
+                    f"(&{base_ldap_query}"
+                    f"({SearchAttribute.OU.value}="
+                    f"*{escape_filter_exp(organization.orgnr)}*))"
+                )
+            else:
+                ldap_query = create_ldap_filter(
+                    [
+                        (SearchAttribute.SN, query),
+                        (SearchAttribute.ORGID, f"NTRNO-{query}"),
+                    ]
+                )
 
         # If the query is a norwegian personal serial number, we must search
         # for it in the serialNumber field, both without (SEID 1) and with (SEID 2)
@@ -231,6 +256,7 @@ class LdapSearchParams:
             # strip leading /
             unquote(parsed_url.path[1:]),
             pre_allowed_ldap_server.ca,
+            [],
         )
 
         parsed_query = parsed_url.query.split("?")
@@ -287,7 +313,7 @@ class CertificateSearch:
 
     @performance_log(id_param=1)
     async def query_ca(self, ldap_server: LdapServer):
-        logger.debug("Start: query against %s", ldap_server.hostname)
+        logger.debug("Start: query against %s", ldap_server)
 
         try:
             self.results.extend(
@@ -297,16 +323,15 @@ class CertificateSearch:
                 )
             )
         except (bonsai.LDAPError, asyncio.TimeoutError):
+            logger.exception("Error during ldap query against '%s'", ldap_server)
             if ldap_server.ca == CertificateAuthority.BUYPASS:
-                logger.exception("Could not retrieve certificates from Buypass")
                 self.errors.append("ERR-001")
             elif ldap_server.ca == CertificateAuthority.COMMFIDES:
-                logger.exception("Could not retrieve certificates from Commfides")
                 self.errors.append("ERR-002")
             else:
                 raise RuntimeError(f"Unexpeced ca: {ldap_server.ca}")
         else:
-            logger.debug("End: query against %s", ldap_server.hostname)
+            logger.debug("End: query against %s", ldap_server)
 
     async def do_ldap_search(self, ldap_server: LdapServer, retry=False):
         """
@@ -319,17 +344,16 @@ class CertificateSearch:
         """
         client = bonsai.LDAPClient(f"ldap://{ldap_server.hostname}")
         count = 0
-        results = []
-        all_results = []
+        results: List[bonsai.LDAPEntry] = []
+        all_results: List[bonsai.LDAPEntry] = []
         search_filter = self.ldap_params.ldap_query
-        logger.debug("Starting: ldap search against: %s", ldap_server.hostname)
+        logger.debug("Starting: ldap search against: %s", ldap_server)
         with (await client.connect(is_async=True, timeout=LDAP_TIMEOUT)) as conn:  # type: ignore
             while count < LDAP_RETRIES:
                 logger.debug(
-                    'Doing search with filter "%s" against "%s" in "%s"',
+                    'Doing search with filter "%s" against "%s"',
                     search_filter,
-                    ldap_server.hostname,
-                    ldap_server.base,
+                    ldap_server,
                 )
                 results = await conn.search(
                     ldap_server.base,
@@ -342,20 +366,20 @@ class CertificateSearch:
                 if len(results) == 20 and retry:
                     certs_to_exclude = ""
                     for result in results:
-                        certs_to_exclude += f"(!({str(result.dn).split(',')[0]}))"
+                        certs_to_exclude += f"(!({result.dn[0]}))"
                     search_filter = "(&{}{})".format(search_filter, certs_to_exclude)
                     count += 1
                 else:
                     count = LDAP_RETRIES + 1
 
-            logger.debug("Ending: ldap search against: %s", ldap_server.hostname)
+            logger.debug("Ending: ldap search against: %s", ldap_server)
             # If we got 20 on our last search (of several),
             # there may be more certs out there...
             if len(results) == 20 and retry:
                 logger.warning(
                     "Exceeded max count for search with filter %s against %s",
                     self.ldap_params.ldap_query,
-                    ldap_server.hostname,
+                    ldap_server,
                 )
                 self.warnings.append("ERR-004")
 
@@ -364,7 +388,7 @@ class CertificateSearch:
     @performance_log(id_param=2)
     async def _parse_ldap_results(self, search_results, ldap_server: LdapServer):
         """Takes a ldap response and creates a list of QualifiedCertificateSet"""
-        logger.debug("Start: parsing certificates from %s", ldap_server.hostname)
+        logger.debug("Start: parsing certificates from %s", ldap_server)
 
         self.database.insert_certificates(
             [
@@ -405,7 +429,7 @@ class CertificateSearch:
             else:
                 self.filtered_results = True
 
-        logger.debug("End: parsing certificates from %s", ldap_server.hostname)
+        logger.debug("End: parsing certificates from %s", ldap_server)
         return qualified_certs
 
     async def get_response(self):

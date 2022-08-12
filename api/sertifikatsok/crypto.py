@@ -3,7 +3,7 @@ import logging
 import urllib.parse
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, cast
+from typing import Dict, List, Optional, Protocol, Tuple, cast
 
 import httpx
 from attrs import field, frozen
@@ -19,7 +19,66 @@ from .logging import performance_log
 
 logger = logging.getLogger(__name__)
 
-CRL_FOLDER = Path("data/crls")
+CRL_FOLDER = Path("./crls")
+
+
+class CrlDownloaderProto(Protocol):
+    async def download_crl(self, url: str) -> bytes:
+        ...
+
+
+class AppCrlRetrieverProto(Protocol):
+    """
+    Only returns validated CRLs.
+    """
+
+    async def retrieve(
+        self, url: str, issuer: x509.Certificate
+    ) -> x509.CertificateRevocationList:
+        ...
+
+
+class RequestCrlRetrieverProto(Protocol):
+    """
+    Cached CRLs are returned without validation,
+    so objects should not be long-lived.
+    """
+
+    errors: List[str]
+
+    async def retrieve(
+        self, url: str, issuer: x509.Certificate
+    ) -> Optional[x509.CertificateRevocationList]:
+        ...
+
+
+class CrlDownloader:
+    HEADERS = {"user-agent": "sertifikatsok.no"}
+
+    async def download_crl(self, url: str) -> bytes:
+
+        logger.info("Downloading CRL %s", url)
+        async with httpx.AsyncClient() as client:
+            try:
+                resp = await client.get(url, headers=self.HEADERS)
+            except (httpx.HTTPError, asyncio.TimeoutError) as error:
+                raise CouldNotGetValidCRLError() from error
+
+        logger.debug("Finishined downloading CRL %s", url)
+
+        if resp.status_code != 200:
+            raise CouldNotGetValidCRLError(
+                f"Got status code {resp.status_code} for url {url}"
+            )
+
+        if content_type := resp.headers.get("Content-Type") not in {
+            "application/pkix-crl",
+            "application/x-pkcs7-crl",
+        }:
+            raise CouldNotGetValidCRLError(
+                f"Got content type: {content_type} for url {url}"
+            )
+        return resp.content
 
 
 @frozen
@@ -32,16 +91,17 @@ class AppCrlRetriever:
     Only returns valid CRLs.
     """
 
+    crl_downloader: CrlDownloaderProto
     crls: Dict[str, x509.CertificateRevocationList] = field(factory=dict)
 
     @classmethod
-    def create(cls):
+    def create(cls, crl_downloader: CrlDownloaderProto):
         if not CRL_FOLDER.exists():
             CRL_FOLDER.mkdir()
             logger.info(f"Created {CRL_FOLDER}")
         elif not CRL_FOLDER.is_dir():
             raise EnvironmentError(f"Expected {CRL_FOLDER} to be a directory")
-        return cls()
+        return cls(crl_downloader)
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
@@ -105,44 +165,23 @@ class AppCrlRetriever:
         self, url: str, issuer: x509.Certificate
     ) -> x509.CertificateRevocationList:
         """Downloads a crl from the specified url"""
-        headers = {"user-agent": "sertifikatsok.no"}
 
-        logger.info("Downloading CRL %s", url)
-        async with httpx.AsyncClient() as client:
-            try:
-                resp = await client.get(url, headers=headers)
-            except (httpx.RequestError, asyncio.TimeoutError) as error:
-                raise CouldNotGetValidCRLError() from error
-
-        logger.debug("Finishined downloading CRL %s", url)
-
-        if resp.status_code != 200:
-            raise CouldNotGetValidCRLError(
-                f"Got status code {resp.status_code} for url {url}"
-            )
-
-        if content_type := resp.headers.get("Content-Type") not in {
-            "application/pkix-crl",
-            "application/x-pkcs7-crl",
-        }:
-            raise CouldNotGetValidCRLError(
-                f"Got content type: {content_type} for url {url}"
-            )
+        crl_bytes = await self.crl_downloader.download_crl(url)
 
         try:
-            crl = x509.load_der_x509_crl(resp.content)
+            crl = x509.load_der_x509_crl(crl_bytes)
         except ValueError as error:
             raise CouldNotGetValidCRLError(error) from error
 
         self._validate(crl, issuer)
 
-        CRL_FOLDER.joinpath(urllib.parse.quote_plus(url)).write_bytes(resp.content)
+        CRL_FOLDER.joinpath(urllib.parse.quote_plus(url)).write_bytes(crl_bytes)
 
         return crl
 
     @staticmethod
     def _validate(crl: x509.CertificateRevocationList, issuer: x509.Certificate):
-        """Validates a crl against a issuer certificate"""
+        """Validates a crl against an issuer certificate"""
 
         if crl.next_update is None:
             # rfc5280: Conforming CRL issuers MUST
@@ -179,8 +218,10 @@ class RequestCrlRetriever:
     so objects should not be long-lived.
     """
 
-    crl_retriever: AppCrlRetriever
-    crls: Dict[str, Optional[x509.CertificateRevocationList]] = field(factory=dict)
+    crl_retriever: AppCrlRetrieverProto
+    crls: Dict[Tuple[str, x509.Name], Optional[x509.CertificateRevocationList]] = field(
+        factory=dict
+    )
     errors: List[str] = field(factory=list)
 
     async def retrieve(
@@ -188,7 +229,7 @@ class RequestCrlRetriever:
     ) -> Optional[x509.CertificateRevocationList]:
         """Retrieves the CRL from the specified url."""
         try:
-            return self.crls[url]
+            return self.crls[url, issuer.subject]
         except KeyError:
             pass
 
@@ -205,18 +246,17 @@ class RequestCrlRetriever:
             self.errors.append("ERR-003")
             crl = None
 
-        self.crls[url] = crl
+        self.crls[url, issuer.subject] = crl
         return crl
 
 
 @frozen
 class CertRetriever:
-    env: Environment
     certs: Dict[x509.Name, x509.Certificate]
 
     @classmethod
     def create(cls, env: Environment):
-        return cls(env, cls._load_all_certs(env))
+        return cls(cls._load_all_certs(env))
 
     def retrieve(self, name: x509.Name) -> Optional[x509.Certificate]:
         """
@@ -259,13 +299,15 @@ class CertRetriever:
 @frozen
 class CertValidator:
     _cert_retriever: CertRetriever
-    _crl_retriever: RequestCrlRetriever
+    _crl_retriever: RequestCrlRetrieverProto
 
     @property
     def errors(self):
         return self._crl_retriever.errors
 
-    async def validate_cert(self, cert: x509.Certificate):
+    async def validate_cert(
+        self, cert: x509.Certificate
+    ) -> Tuple[CertificateStatus, Optional[datetime]]:
         status = CertificateStatus.UNKNOWN
         revocation_date = None
 

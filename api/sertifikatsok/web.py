@@ -9,7 +9,7 @@ from fastapi import Depends, FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from .crypto import AppCrlRetriever, CertRetriever, CertValidator
+from .crypto import AppCrlRetriever, CertRetriever, CertValidator, CrlDownloader
 from .db import Database
 from .enums import CertType, Environment, SearchAttribute
 from .errors import ClientError
@@ -44,7 +44,7 @@ def cert_retriever(env: Environment) -> CertRetriever:
 
 @lru_cache
 def crl_retriever() -> AppCrlRetriever:
-    return AppCrlRetriever.create()
+    return AppCrlRetriever.create(CrlDownloader())
 
 
 @lru_cache

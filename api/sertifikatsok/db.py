@@ -3,6 +3,8 @@ import logging
 import sqlite3
 from typing import List, Optional, Tuple
 
+from attrs import frozen
+
 from .enums import CertificateAuthority, Environment
 from .ldap import LDAP_SERVERS, LdapServer
 from .logging import performance_log_sync
@@ -10,6 +12,13 @@ from .logging import performance_log_sync
 logger = logging.getLogger(__name__)
 
 DATABASE_FILE = "data/database.db"
+
+
+@frozen
+class Organization:
+    orgnr: str
+    name: str
+    parent_orgnr: Optional[str]
 
 
 class Database:
@@ -42,6 +51,17 @@ class Database:
                 DISTINGUISHED_NAME TEXT NOT NULL,
                 L_ID INTEGER NOT NULL,
                 FOREIGN KEY(l_id) REFERENCES ldap_server(id)
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS organization (
+                ID INTEGER PRIMARY KEY,
+                ORGNR TEXT NOT NULL UNIQUE,
+                NAME TEXT NOT NULL,
+                PARENT_ORGNR TEXT
             )
             """
         )
@@ -130,6 +150,7 @@ class Database:
                     result[0],
                     result[1],
                     CertificateAuthority(result[2]),
+                    [],
                 )
             ]
         logger.info("No match in database for thumbprint")
@@ -161,7 +182,30 @@ class Database:
                     result[0],
                     result[1],
                     CertificateAuthority(result[2]),
+                    [],
                 )
             ]
         logger.info("No match in database for thumbprint")
         return []
+
+    @performance_log_sync()
+    def get_organization(self, orgnr: str) -> Optional[Organization]:
+        result = self._connection.execute(
+            """
+            SELECT
+              orgnr,
+              name,
+              parent_orgnr
+            FROM
+              organization
+            WHERE
+              orgnr = :orgnr
+            """,
+            {"orgnr": orgnr},
+        ).fetchone()
+
+        if result is not None:
+            logger.debug("Found organization: %s", result)
+            return Organization(result[0], result[1], result[2])
+        logger.warning("Organization with orgnr %s not found in local db", orgnr)
+        return None
