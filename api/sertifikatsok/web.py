@@ -2,28 +2,32 @@ import json
 import logging
 import os
 import uuid
-from functools import lru_cache
+from functools import cache
 from typing import Optional
 
-from fastapi import Depends, FastAPI, Request, Response
+from fastapi.applications import FastAPI
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.param_functions import Depends
+from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
+from starlette_precompressed_static import PreCompressedStaticFiles
 
 from .crypto import AppCrlRetriever, CertRetriever, CertValidator, CrlDownloader
 from .db import Database
 from .enums import CertType, Environment, SearchAttribute
 from .errors import ClientError
-from .logging import configure_logging, correlation_id_var, performance_log
-from .search import CertificateSearch, SearchParams
+from .logging import (
+    audit_logger,
+    configure_logging,
+    correlation_id_var,
+    performance_log,
+)
+from .search import CertificateSearch, CertificateSearchResponse, SearchParams
 from .serialization import sertifikatsok_serialization
-from .starlette_precompressed_static import PreCompressedStaticFiles
-
-# from fastapi.staticfiles import StaticFiles
-
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+app = FastAPI(title="Sertifikatsøk")
 
 DEV = bool(os.getenv("SERTIFIKATSOK_DEBUG"))
 
@@ -37,17 +41,17 @@ async def correlation_middleware(request: Request, call_next):
     return response
 
 
-@lru_cache
+@cache
 def cert_retriever(env: Environment) -> CertRetriever:
     return CertRetriever.create(env)
 
 
-@lru_cache
+@cache
 def crl_retriever() -> AppCrlRetriever:
     return AppCrlRetriever.create(CrlDownloader())
 
 
-@lru_cache
+@cache
 def database() -> Database:
     return Database.connect_to_database()
 
@@ -69,31 +73,37 @@ async def init_app():
 
     # Initialize these, so that they are
     # ready before the first request.
-    crl_retriever()
     database()
+    crl_retriever()
     # We need to use kwargs here so the
-    # lru_cache works as intended, as that
+    # @cache works as intended, as that
     # is what FastAPI does.
     cert_retriever(env=Environment.TEST)
     cert_retriever(env=Environment.PROD)
 
 
+def search_params(
+    env: Environment, type: CertType, query: str, attr: Optional[SearchAttribute] = None
+):
+    return SearchParams(env, type, query, attr)
+
+
 @performance_log()
 @app.get("/api")
 async def api_endpoint(
-    env: Environment,
-    type: CertType,
-    query: str,
-    attr: Optional[SearchAttribute] = None,
+    search_params: SearchParams = Depends(search_params),
     cert_validator: CertValidator = Depends(cert_validator),
     database: Database = Depends(database),
 ):
-    search_params = SearchParams(env, type, query, attr)
     certificate_search = CertificateSearch.create(
         search_params, cert_validator, database
     )
 
-    search_response = await certificate_search.get_response()
+    search_response = None
+    try:
+        search_response = await certificate_search.get_response()
+    finally:
+        audit_log(search_params, search_response)
 
     cache_control = (
         "no-cache, no-store, must-revalidate, private, s-maxage=0"
@@ -113,6 +123,7 @@ async def api_endpoint(
 static_files = PreCompressedStaticFiles(directory="../www")
 
 
+@app.head("/", include_in_schema=False)
 @app.get("/", include_in_schema=False)
 async def root(request: Request):
     # Can't use html mode with PreCompressedStaticFiles, but the only "magic"
@@ -143,4 +154,26 @@ async def client_error_exception_handler(_, exc):
 async def general_exception_handler(_, exc):
     return JSONResponse(
         {"error": "En ukjent feil oppstod. Vennligst prøv igjen."}, status_code=500
+    )
+
+
+def audit_log(
+    search_params: SearchParams, response: Optional[CertificateSearchResponse]
+):
+    # ip = request.headers.get("X-Forwarded-For")
+    # if not ip:
+    # ip = request.remote
+
+    status = "OK" if response is not None else "FAIL"
+
+    audit_logger.info(
+        "STATUS=%s IP=%s ENV=%s TYPE=%s QUERY='%s' ATTR='%s' RESULTS=%d CORRELATION_ID=%s",
+        status,
+        "dummy",
+        search_params.env.value,
+        search_params.typ.value,
+        search_params.query,
+        search_params.attr.value if search_params.attr else None,
+        len(response.cert_sets) if response else 0,
+        correlation_id_var.get(),
     )

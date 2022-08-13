@@ -12,6 +12,7 @@ attrs = ">=21.3.0"
 fastapi = {extras = ["all"], version = "*"}
 uvicorn = {extras = ["standard"], version = "*"}
 httpx = "*"
+starlette-precompressed-static = "*"
 
 [dev-packages]
 pytest = "*"
