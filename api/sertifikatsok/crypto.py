@@ -1,17 +1,16 @@
-import asyncio
 import logging
 import urllib.parse
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Protocol, Tuple, cast
 
-import httpx
 from attrs import field, frozen
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.hashes import HashAlgorithm
+from httpx import AsyncClient, HTTPError
 
 from .enums import CertificateStatus, Environment
 from .errors import ConfigurationError, CouldNotGetValidCRLError
@@ -56,13 +55,15 @@ class CrlDownloader:
     HEADERS = {"user-agent": "sertifikatsok.no"}
 
     async def download_crl(self, url: str) -> bytes:
+        async with AsyncClient() as client:
+            return await self._download_crl_with_client(client, url)
 
+    async def _download_crl_with_client(self, client: AsyncClient, url: str) -> bytes:
         logger.info("Downloading CRL %s", url)
-        async with httpx.AsyncClient() as client:
-            try:
-                resp = await client.get(url, headers=self.HEADERS)
-            except (httpx.HTTPError, asyncio.TimeoutError) as error:
-                raise CouldNotGetValidCRLError() from error
+        try:
+            resp = await client.get(url, headers=self.HEADERS)
+        except HTTPError as error:
+            raise CouldNotGetValidCRLError() from error
 
         logger.debug("Finishined downloading CRL %s", url)
 
@@ -71,7 +72,7 @@ class CrlDownloader:
                 f"Got status code {resp.status_code} for url {url}"
             )
 
-        if content_type := resp.headers.get("Content-Type") not in {
+        if (content_type := resp.headers.get("Content-Type")) not in {
             "application/pkix-crl",
             "application/x-pkcs7-crl",
         }:
