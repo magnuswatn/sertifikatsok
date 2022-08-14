@@ -1,17 +1,16 @@
-import asyncio
 import logging
 import urllib.parse
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Protocol, Tuple, cast
 
-import aiohttp
 from attrs import field, frozen
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.hashes import HashAlgorithm
+from httpx import AsyncClient, HTTPError
 
 from .enums import CertificateStatus, Environment
 from .errors import ConfigurationError, CouldNotGetValidCRLError
@@ -52,33 +51,33 @@ class RequestCrlRetrieverProto(Protocol):
 
 class CrlDownloader:
     HEADERS = {"user-agent": "sertifikatsok.no"}
-    TIMEOUT = aiohttp.ClientTimeout(total=5)
 
     async def download_crl(self, url: str) -> bytes:
+        async with AsyncClient() as client:
+            return await self._download_crl_with_client(client, url)
 
+    async def _download_crl_with_client(self, client: AsyncClient, url: str) -> bytes:
         logger.info("Downloading CRL %s", url)
-        async with aiohttp.ClientSession(timeout=self.TIMEOUT) as session:
-            try:
-                resp = await session.get(url, headers=self.HEADERS)
-                crl_bytes = await resp.read()
-            except (aiohttp.ClientError, asyncio.TimeoutError) as error:
-                raise CouldNotGetValidCRLError() from error
+        try:
+            resp = await client.get(url, headers=self.HEADERS)
+        except HTTPError as error:
+            raise CouldNotGetValidCRLError() from error
 
         logger.debug("Finishined downloading CRL %s", url)
 
-        if resp.status != 200:
+        if resp.status_code != 200:
             raise CouldNotGetValidCRLError(
-                f"Got status code {resp.status} for url {url}"
+                f"Got status code {resp.status_code} for url {url}"
             )
 
-        if content_type := resp.headers.get("Content-Type") not in {
+        if (content_type := resp.headers.get("Content-Type")) not in {
             "application/pkix-crl",
             "application/x-pkcs7-crl",
         }:
             raise CouldNotGetValidCRLError(
                 f"Got content type: {content_type} for url {url}"
             )
-        return crl_bytes
+        return resp.content
 
 
 @frozen
