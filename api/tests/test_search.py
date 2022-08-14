@@ -331,7 +331,7 @@ class TestLdapSearchParams:
         ldap_search_params = LdapSearchParams.create(search_params, database)
         assert ldap_search_params.scope == LDAPSearchScope.SUB
         assert len(ldap_search_params.limitations) == 0
-        assert len(ldap_search_params.ldap_servers) == 2
+        assert len(ldap_search_params.ldap_servers) == 6
         assert (
             ldap_search_params.ldap_query
             == "(|(serialNumber=995546973)(organizationIdentifier=NTRNO-995546973))"
@@ -372,7 +372,7 @@ class TestLdapSearchParams:
         assert ldap_search_params.scope == LDAPSearchScope.SUB
         assert len(ldap_search_params.limitations) == 0
         assert (
-            len(ldap_search_params.ldap_servers) == 1
+            len(ldap_search_params.ldap_servers) == 2
             and CertificateAuthority.COMMFIDES == ldap_search_params.ldap_servers[0].ca
         )
         assert (
