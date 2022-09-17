@@ -3,3 +3,6 @@ asyncio_mode = "strict"
 
 [tool.isort]
 profile = "black"
+# isort doesn't figure this out on its own
+# when run from pre-commit.ci, for some reason.
+known_first_party = ["sertifikatsok"]

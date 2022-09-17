@@ -284,7 +284,8 @@ class TestLdapSearchParams:
         )
         assert (
             ldap_search_params.ldap_query
-            == "(&(|(serialNumber=983044778)(organizationIdentifier=NTRNO-983044778))(ou=*991056505*))"
+            == "(&(|(serialNumber=983044778)(organizationIdentifier=NTRNO-983044778))"
+            "(ou=*991056505*))"
         )
 
     def test_should_auto_detect_org_nr_parent(self, database: Database):
@@ -339,8 +340,8 @@ class TestLdapSearchParams:
             for ldap_server in ldap_search_params.ldap_servers
         )
         assert (
-            ldap_search_params.ldap_query
-            == "(|(serialNumber=9578-4505-00001pdEkL7)(serialNumber=UN:NO-9578-4505-00001pdEkL7))"
+            ldap_search_params.ldap_query == "(|(serialNumber=9578-4505-00001pdEkL7)"
+            "(serialNumber=UN:NO-9578-4505-00001pdEkL7))"
         )
 
     def test_should_auto_detect_email(self, database: Database):

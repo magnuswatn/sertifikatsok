@@ -343,7 +343,7 @@ class CertificateSearch:
         Buypass caps the result at 20, and doesn't support "normal" paging
         so to get all the certs we need to do several searches and exclude the
         certs we have already gotten. The queries get uglier and uglier,
-        so this shouldn't be repeatet too many times
+        so this shouldn't be repeated too many times
         """
         client = bonsai.LDAPClient(f"ldap://{ldap_server.hostname}")
         count = 0
@@ -351,7 +351,7 @@ class CertificateSearch:
         all_results: List[bonsai.LDAPEntry] = []
         search_filter = self.ldap_params.ldap_query
         logger.debug("Starting: ldap search against: %s", ldap_server)
-        with (await client.connect(is_async=True, timeout=LDAP_TIMEOUT)) as conn:  # type: ignore
+        with (await client.connect(is_async=True, timeout=LDAP_TIMEOUT)) as conn:
             while count < LDAP_RETRIES:
                 logger.debug(
                     'Doing search with filter "%s" against "%s"',

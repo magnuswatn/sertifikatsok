@@ -6,8 +6,9 @@ from cryptography.x509.oid import ObjectIdentifier
 
 from .enums import SEID, CertType
 
-# turn off black, so that we can have loooong lines
+# turn off black and flake8, so that we can have loooong lines
 # fmt: off
+# flake8: noqa
 
 
 LDAP_TIMEOUT = 7
