@@ -1,6 +1,7 @@
 from base64 import b64decode
 
 from cryptography import x509
+
 from sertifikatsok.enums import (
     CertificateAuthority,
     CertificateRoles,
