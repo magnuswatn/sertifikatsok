@@ -3,4 +3,3 @@ asyncio_mode = "strict"
 
 [tool.isort]
 profile = "black"
-known_first_party = ["sertifikatsok"]
