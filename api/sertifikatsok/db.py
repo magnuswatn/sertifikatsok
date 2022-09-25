@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import hashlib
 import logging
 import sqlite3
-from typing import List, Optional, Tuple
 
 from attrs import frozen
 
@@ -19,15 +20,15 @@ class Organization:
     orgnr: str
     name: str
     is_child: bool
-    parent_orgnr: Optional[str]
+    parent_orgnr: str | None
 
 
 class Database:
-    def __init__(self, connection):
+    def __init__(self, connection) -> None:
         self._connection = connection
 
     @classmethod
-    def connect_to_database(cls, database_file=DATABASE_FILE):
+    def connect_to_database(cls, database_file: str = DATABASE_FILE) -> Database:
         connection = sqlite3.connect(database_file)
 
         connection.execute("PRAGMA foreign_keys = ON")
@@ -35,10 +36,10 @@ class Database:
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS ldap_server (
-                ID INTEGER PRIMARY KEY,
-                LDAP_SERVER TEXT NOT NULL UNIQUE,
-                CA TEXT NOT NULL,
-                ENVIRONMENT TEXT NOT NULL
+                id            INTEGER       PRIMARY KEY,
+                ldap_server   TEXT          NOT NULL UNIQUE,
+                ca            TEXT          NOT NULL,
+                environment   TEXT          NOT NULL
             )
             """
         )
@@ -46,11 +47,11 @@ class Database:
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS certificate (
-                ID INTEGER PRIMARY KEY,
-                SHA1 TEXT NOT NULL UNIQUE,
-                SHA2 TEXT NOT NULL UNIQUE,
-                DISTINGUISHED_NAME TEXT NOT NULL,
-                L_ID INTEGER NOT NULL,
+                id                  INTEGER     PRIMARY KEY,
+                sha1                TEXT        NOT NULL UNIQUE,
+                sha2                TEXT        NOT NULL UNIQUE,
+                distinguished_name  TEXT        NOT NULL,
+                l_id                INTEGER     NOT NULL,
                 FOREIGN KEY(l_id) REFERENCES ldap_server(id)
             )
             """
@@ -69,17 +70,14 @@ class Database:
             """
         )
 
-        connection.execute(
-            """
-            DROP TABLE IF EXISTS organization2
-            """
-        )
-
         connection.executemany(
             """
-            INSERT OR IGNORE
-            INTO LDAP_SERVER (LDAP_SERVER, CA, ENVIRONMENT)
-            values (:ldap_server, :ca, :environment)
+            INSERT OR IGNORE INTO ldap_server (ldap_server,
+                                               ca,
+                                               environment)
+            VALUES (:ldap_server,
+                    :ca,
+                    :environment)
             """,
             [
                 (ldap_server.hostname, ldap_server.ca.value, environment.value)
@@ -94,30 +92,28 @@ class Database:
 
     @performance_log_sync()
     def insert_certificates(
-        self, certs: List[Tuple[str, Optional[List[bytes]]]], ldap_server
+        self, certs: list[tuple[str, list[bytes] | None]], ldap_server: str
     ):
 
         [ldap_server_id] = self._connection.execute(
             """
-            SELECT
-              id
-            FROM
-              ldap_server
-            WHERE
-              ldap_server = :ldap_server
+            SELECT id
+              FROM ldap_server
+             WHERE ldap_server = :ldap_server
             """,
             (ldap_server,),
         ).fetchone()
 
         self._connection.executemany(
             """
-            INSERT OR IGNORE
-            INTO certificate (
-                SHA1, SHA2, DISTINGUISHED_NAME, L_ID
-            )
-            values (
-                :sha1, :sha2, :distinguished_name, :l_id
-            )
+            INSERT OR IGNORE INTO certificate (sha1,
+                                               sha2,
+                                               distinguished_name,
+                                               l_id)
+            VALUES (:sha1,
+                   :sha2,
+                   :distinguished_name,
+                   :l_id)
             """,
             [
                 {
@@ -133,21 +129,18 @@ class Database:
         self._connection.commit()
 
     @performance_log_sync()
-    def find_cert_from_sha1(self, hash, env: Environment) -> List[LdapServer]:
+    def find_cert_from_sha1(self, hash: str, env: Environment) -> list[LdapServer]:
 
         result = self._connection.execute(
             """
-            SELECT
-              l.LDAP_SERVER,
-              c.DISTINGUISHED_NAME,
-              l.ca
-            FROM
-              certificate c,
-              ldap_server l
-            WHERE
-              c.l_id = l.id
-              AND l.environment = :environment
-              AND c.sha1 = :sha1
+            SELECT l.ldap_server,
+                   c.distinguished_name,
+                   l.ca
+              FROM certificate c,
+                   ldap_server l
+             WHERE c.l_id = l.id
+               AND l.environment = :environment
+               AND c.sha1 = :sha1
             """,
             {"sha1": hash, "environment": env.value},
         ).fetchone()
@@ -166,20 +159,17 @@ class Database:
         return []
 
     @performance_log_sync()
-    def find_cert_from_sha2(self, hash, env: Environment) -> List[LdapServer]:
+    def find_cert_from_sha2(self, hash: str, env: Environment) -> list[LdapServer]:
         result = self._connection.execute(
             """
-            SELECT
-              l.LDAP_SERVER,
-              c.DISTINGUISHED_NAME,
-              l.ca
-            FROM
-              certificate c,
-              ldap_server l
-            WHERE
-              c.l_id = l.id
-              AND l.environment = :environment
-              AND c.sha2 = :sha2
+            SELECT l.ldap_server,
+                   c.distinguished_name,
+                   l.ca
+              FROM certificate c,
+                   ldap_server l
+             WHERE c.l_id = l.id
+               AND l.environment = :environment
+               AND c.sha2 = :sha2
             """,
             {"sha2": hash, "environment": env.value},
         ).fetchone()
@@ -198,18 +188,15 @@ class Database:
         return []
 
     @performance_log_sync()
-    def get_organization(self, orgnr: str) -> Optional[Organization]:
+    def get_organization(self, orgnr: str) -> Organization | None:
         result = self._connection.execute(
             """
-            SELECT
-              orgnr,
-              name,
-              is_child,
-              parent_orgnr
-            FROM
-              organization
-            WHERE
-              orgnr = :orgnr
+            SELECT orgnr,
+                   name,
+                   is_child,
+                   parent_orgnr
+              FROM organization
+             WHERE orgnr = :orgnr
             """,
             {"orgnr": orgnr},
         ).fetchone()
