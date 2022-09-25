@@ -98,5 +98,5 @@ def test_get_organization_mapping(
     assert org is not None
     assert org.orgnr == org_values["orgnr"]
     assert org.name == org_values["name"]
-    assert org.is_child == org_values["is_child"]
+    assert org.is_child is org_values["is_child"]
     assert org.parent_orgnr == org_values["parent_orgnr"]

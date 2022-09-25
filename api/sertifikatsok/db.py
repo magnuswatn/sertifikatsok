@@ -203,6 +203,6 @@ class Database:
 
         if result is not None:
             logger.debug("Found organization: %s", result)
-            return Organization(*result)
+            return Organization(result[0], result[1], bool(result[2]), result[3])
         logger.warning("Organization with orgnr %s not found in local db", orgnr)
         return None
