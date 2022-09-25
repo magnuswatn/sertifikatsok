@@ -258,9 +258,8 @@ class TestLdapSearchParams:
 
         database._connection.execute(
             """
-            INSERT OR REPLACE
-            INTO organization (orgnr, name, parent_orgnr)
-            values ('991056505', 'APOTEK 1 ULRIKSDAL', '983044778')
+            INSERT OR REPLACE INTO organization (orgnr, name, is_child, parent_orgnr)
+            VALUES ('991056505', 'APOTEK 1 ULRIKSDAL', TRUE, '983044778')
             """
         )
         database._connection.commit()
@@ -288,13 +287,44 @@ class TestLdapSearchParams:
             "(ou=*991056505*))"
         )
 
-    def test_should_auto_detect_org_nr_parent(self, database: Database):
+    def test_should_auto_detect_org_nr_main(self, database: Database):
 
         database._connection.execute(
             """
-            INSERT OR REPLACE
-            INTO organization (orgnr, name)
-            values ('995546973', 'WATN IT SYSTEM Magnus Horsgård Watn')
+            INSERT OR REPLACE INTO organization (orgnr, name, is_child)
+            VALUES ('995546973', 'WATN IT SYSTEM Magnus Horsgård Watn', FALSE)
+            """
+        )
+        database._connection.commit()
+
+        search_params = SearchParams(
+            Environment.PROD,
+            CertType.ENTERPRISE,
+            "995 5469 73",
+            None,
+        )
+
+        ldap_search_params = LdapSearchParams.create(search_params, database)
+        assert ldap_search_params.scope == LDAPSearchScope.SUB
+        assert len(ldap_search_params.limitations) == 0
+        assert all(
+            CertType.ENTERPRISE in ldap_server.cert_types
+            for ldap_server in ldap_search_params.ldap_servers
+        )
+        assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
+            {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
+        )
+        assert (
+            ldap_search_params.ldap_query
+            == "(|(serialNumber=995546973)(organizationIdentifier=NTRNO-995546973))"
+        )
+
+    def test_should_auto_detect_org_nr_main_with_parent(self, database: Database):
+
+        database._connection.execute(
+            """
+            INSERT OR REPLACE INTO organization (orgnr, name, is_child, parent_orgnr)
+            VALUES ('995546973', 'WATN IT SYSTEM Magnus Horsgård Watn', FALSE, '12345689')
             """
         )
         database._connection.commit()

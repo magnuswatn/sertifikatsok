@@ -6,6 +6,10 @@ import httpx
 
 
 def main():
+
+    print("Connecting to db")
+    connection = sqlite3.connect("../api/database/database.db")
+
     client = httpx.Client()
 
     print("Downloading organizations")
@@ -18,6 +22,24 @@ def main():
 
     print("Parsing organizations")
     parents = json.loads(gzip.decompress(parent_response.content))
+    del parent_response
+
+    print("Inserting organizations")
+    connection.executemany(
+        """
+            INSERT OR REPLACE INTO organization (orgnr, name, parent_orgnr, is_child)
+            VALUES (:orgnr, :name, :parent_orgnr, FALSE)
+        """,
+        [
+            (
+                x["organisasjonsnummer"],
+                x["navn"],
+                x.get("overordnetEnhet"),
+            )
+            for x in parents
+        ],
+    )
+    del parents
 
     print("Downloading child organizations")
     child_response = client.get(
@@ -29,26 +51,24 @@ def main():
 
     print("Parsing child organizations")
     childs = json.loads(gzip.decompress(child_response.content))
+    del child_response
 
-    print("Connecting to db")
-    connection = sqlite3.connect("../api/database/database.db")
-
-    print("Inserting organizations")
+    print("Inserting child organizations")
     connection.executemany(
         """
-            INSERT OR REPLACE
-            INTO organization (orgnr, name, parent_orgnr)
-            values (:orgnr, :name, :parent_orgnr)
+            INSERT OR REPLACE INTO organization (orgnr, name, parent_orgnr, is_child)
+            VALUES (:orgnr, :name, :parent_orgnr, TRUE)
         """,
         [
             (
                 x["organisasjonsnummer"],
                 x["navn"],
-                x.get("overordnetEnhet"),
+                x["overordnetEnhet"],
             )
-            for x in parents + childs
+            for x in childs
         ],
     )
+    del childs
 
     connection.commit()
 

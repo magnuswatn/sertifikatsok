@@ -18,6 +18,7 @@ DATABASE_FILE = "database/database.db"
 class Organization:
     orgnr: str
     name: str
+    is_child: bool
     parent_orgnr: Optional[str]
 
 
@@ -57,7 +58,14 @@ class Database:
 
         connection.execute(
             """
-            DROP TABLE IF EXISTS organization
+            CREATE TABLE IF NOT EXISTS organization (
+                id            INTEGER    PRIMARY KEY,
+                orgnr         TEXT       NOT NULL UNIQUE,
+                name          TEXT       NOT NULL,
+                is_child      BOOLEAN    NOT NULL,
+                parent_orgnr  TEXT,
+                CHECK (is_child IS FALSE OR parent_orgnr IS NOT NULL)
+            )
             """
         )
 
@@ -201,9 +209,10 @@ class Database:
             SELECT
               orgnr,
               name,
+              is_child,
               parent_orgnr
             FROM
-              organization2
+              organization
             WHERE
               orgnr = :orgnr
             """,
@@ -212,6 +221,6 @@ class Database:
 
         if result is not None:
             logger.debug("Found organization: %s", result)
-            return Organization(result[0], result[1], result[2])
+            return Organization(*result)
         logger.warning("Organization with orgnr %s not found in local db", orgnr)
         return None

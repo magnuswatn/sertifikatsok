@@ -119,7 +119,8 @@ class LdapSearchParams:
             query = query.replace(" ", "")
 
             organization = database.get_organization(query)
-            if organization is not None and organization.parent_orgnr is not None:
+            if organization is not None and organization.is_child:
+                assert organization.parent_orgnr is not None
                 # child org, we must query the parent
                 base_ldap_query = create_ldap_filter(
                     [
