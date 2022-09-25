@@ -57,7 +57,7 @@ class Database:
 
         connection.execute(
             """
-            CREATE TABLE IF NOT EXISTS organization (
+            CREATE TABLE IF NOT EXISTS organization2 (
                 ID INTEGER PRIMARY KEY,
                 ORGNR TEXT NOT NULL UNIQUE,
                 NAME TEXT NOT NULL,
@@ -197,7 +197,7 @@ class Database:
               name,
               parent_orgnr
             FROM
-              organization
+              organization2
             WHERE
               orgnr = :orgnr
             """,
