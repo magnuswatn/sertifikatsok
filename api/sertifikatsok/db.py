@@ -57,6 +57,12 @@ class Database:
 
         connection.execute(
             """
+            DROP TABLE IF EXISTS organization
+            """
+        )
+
+        connection.execute(
+            """
             CREATE TABLE IF NOT EXISTS organization2 (
                 ID INTEGER PRIMARY KEY,
                 ORGNR TEXT NOT NULL UNIQUE,
