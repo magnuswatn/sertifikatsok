@@ -2,19 +2,31 @@ let searchTimeout;
 let lastQuery;
 let certificates;
 
-const handleWarnings = function (warnings) {
-    if (warnings.length > 0) {
-        const $warningRow = $('<div/>', { 'class': 'row' });
+const handleMessages = function (warnings, searchDetails) {
+    if (warnings.length > 0 || searchDetails?.hovedOrgNr) {
+        const $messageRow = $('<div/>', { 'class': 'row' });
         warnings.forEach(function (warning) {
-            $warningRow.append('<div/>', { 'class': 'col s6 offset-s3' }).append(
+            $messageRow.append('<div/>', { 'class': 'col s6 offset-s3' }).append(
                 $('<div/>', { 'class': 'card-panel orange darken-4' }).append(
                     $('<span/>', { class: 'white-text', text: warning }).prepend(
                         $('<i/>', { class: 'material-icons', text: 'warning' })
                     ))
             );
         });
-        $warningRow.append('<br>');
-        $('#body-container').append($warningRow);
+
+        if (searchDetails?.hovedOrgNr) {
+            const queryParams = new URLSearchParams(window.location.search);
+            queryParams.delete("query");
+            queryParams.append("query", searchDetails.hovedOrgNr);
+            queryParams.append("guidedMainOrgSearch", "true");
+
+            $message = $('#stashed-underenhet-infomessage').clone();
+            $message.find('a').attr('href', `/?${queryParams.toString()}`);
+            $messageRow.append($message);
+        }
+
+        $messageRow.append('<br>');
+        $('#body-container').append($messageRow);
     }
 };
 
@@ -34,7 +46,7 @@ const base64toCertBlob = function (data, contentType) {
 
 const handleFatalError = function (msg) {
     $('#body-container').empty();
-    handleWarnings([msg]);
+    handleMessages([msg]);
 };
 
 const getStatusBadge = function (certificateSet) {
@@ -274,7 +286,7 @@ const loadSearchGUI = function () {
 
 const loadResultGUI = function (response) {
     $('#body-container').empty();
-    handleWarnings(response.errors);
+    handleMessages(response.errors, response.searchDetails);
 
     const certType = response.searchDetails.Type.toLowerCase();
 

@@ -9,13 +9,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import Encoding
 
-from .enums import (
-    CertificateRoles,
-    CertificateStatus,
-    CertType,
-    Environment,
-    SearchAttribute,
-)
+from .enums import CertificateRoles, CertificateStatus, CertType, Environment
 from .logging import correlation_id_var
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
 from .search import CertificateSearchResponse
@@ -70,7 +64,7 @@ def qualified_certificate(val: QualifiedCertificate):
 
 @sertifikatsok_serialization.register(QualifiedCertificateSet)
 def qualified_certificate_set(val: QualifiedCertificateSet):
-    dumped = {}  # noqa: SIM904
+    dumped: dict[str, Any] = {}
 
     dumped["notices"] = []
     if val.underenhet:
@@ -104,7 +98,7 @@ def qualified_certificate_set(val: QualifiedCertificateSet):
 
 @sertifikatsok_serialization.register(CertificateSearchResponse)
 def certificate_search(val: CertificateSearchResponse):
-    result = {}
+    result: dict[str, Any] = {}
 
     errors = set()
     for error in val.errors + val.warnings:
@@ -118,23 +112,11 @@ def certificate_search(val: CertificateSearchResponse):
 
     result["certificate_sets"].sort(key=attrgetter("valid_from"), reverse=True)
 
-    # this is horrible and must be replaced.
-    if (
-        val.search.search_params.typ == CertType.ENTERPRISE
-        and val.search.search_params.attr == SearchAttribute.SN
-        and val.search.results
-    ):
-        subject = result["certificate_sets"][0].subject.split(",")
-        try:
-            org_name = [
-                part.split("=")[1] for part in subject if part.startswith(" O=")
-            ][0]
-        except IndexError:
-            result["subject"] = val.search.search_params.query
-        else:
-            result["subject"] = "{} ({})".format(
-                org_name, val.search.search_params.query
-            )
+    if val.search.ldap_params.organization is not None:
+        result["subject"] = (
+            f"{val.search.ldap_params.organization.name} "
+            f"({val.search.ldap_params.organization.orgnr})"
+        )
     else:
         result["subject"] = val.search.search_params.query
 
@@ -163,6 +145,10 @@ def certificate_search(val: CertificateSearchResponse):
             }
         ),
         "Korrelasjonsid": correlation_id_var.get(),
+        "hovedOrgNr": val.search.ldap_params.organization.parent_orgnr
+        if val.search.ldap_params.organization is not None
+        and val.search.ldap_params.organization.is_child
+        else None,
     }
 
     return result

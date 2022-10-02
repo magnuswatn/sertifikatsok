@@ -20,7 +20,7 @@ from .constants import (
     PERSONAL_SERIAL_REGEX,
 )
 from .crypto import CertValidator
-from .db import Database
+from .db import Database, Organization
 from .enums import CertificateAuthority, CertType, Environment, SearchAttribute
 from .errors import ClientError
 from .ldap import LDAP_SERVERS, LdapServer
@@ -75,6 +75,7 @@ class LdapSearchParams:
     scope: bonsai.LDAPSearchScope
     ldap_servers: List[LdapServer]
     limitations: List[str]
+    organization: Organization | None
 
     @classmethod
     def create(
@@ -91,7 +92,7 @@ class LdapSearchParams:
 
             ldap_query = create_ldap_filter([(search_params.attr, search_params.query)])
 
-            return cls(ldap_query, scope, ldap_servers, [])
+            return cls(ldap_query, scope, ldap_servers, [], None)
 
         if search_params.query.startswith("ldap://"):
             return cls._parse_ldap_url(search_params)
@@ -110,6 +111,7 @@ class LdapSearchParams:
         ]
         typ, query = search_params.typ, search_params.query
         limitations: List[str] = []
+        organization = None
 
         # If the query is an organization number, we must search
         # for it in the SERIALNUMBER field (SEID 1), and the
@@ -221,7 +223,11 @@ class LdapSearchParams:
             ldap_query = create_ldap_filter([(SearchAttribute.CN, query)])
 
         return cls(
-            ldap_query, bonsai.LDAPSearchScope.SUBTREE, ldap_servers, limitations
+            ldap_query,
+            bonsai.LDAPSearchScope.SUBTREE,
+            ldap_servers,
+            limitations,
+            organization,
         )
 
     @classmethod
@@ -286,7 +292,7 @@ class LdapSearchParams:
         if len(filtr) > 150 or filtr.count("(") != filtr.count(")"):
             raise ClientError("Invalid filter in url")
 
-        return cls(filtr, scope, [ldap_server], limitations)
+        return cls(filtr, scope, [ldap_server], limitations, None)
 
 
 @mutable

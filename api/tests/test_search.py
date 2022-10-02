@@ -253,6 +253,7 @@ class TestLdapSearchParams:
             ldap_search_params.ldap_query
             == "(|(serialNumber=995546973)(organizationIdentifier=NTRNO-995546973))"
         )
+        assert ldap_search_params.organization is None
 
     def test_should_auto_detect_org_nr_child(self, database: Database):
 
@@ -286,6 +287,10 @@ class TestLdapSearchParams:
             == "(&(|(serialNumber=983044778)(organizationIdentifier=NTRNO-983044778))"
             "(ou=*991056505*))"
         )
+        assert ldap_search_params.organization is not None
+        assert ldap_search_params.organization.name == "APOTEK 1 ULRIKSDAL"
+        assert ldap_search_params.organization.orgnr == "991056505"
+        assert ldap_search_params.organization.parent_orgnr == "983044778"
 
     def test_should_auto_detect_org_nr_main(self, database: Database):
 
@@ -318,6 +323,13 @@ class TestLdapSearchParams:
             ldap_search_params.ldap_query
             == "(|(serialNumber=995546973)(organizationIdentifier=NTRNO-995546973))"
         )
+        assert ldap_search_params.organization is not None
+        assert (
+            ldap_search_params.organization.name
+            == "WATN IT SYSTEM Magnus Horsgård Watn"
+        )
+        assert ldap_search_params.organization.orgnr == "995546973"
+        assert ldap_search_params.organization.parent_orgnr is None
 
     def test_should_auto_detect_org_nr_main_with_parent(self, database: Database):
 
@@ -350,6 +362,13 @@ class TestLdapSearchParams:
             ldap_search_params.ldap_query
             == "(|(serialNumber=995546973)(organizationIdentifier=NTRNO-995546973))"
         )
+        assert ldap_search_params.organization is not None
+        assert (
+            ldap_search_params.organization.name
+            == "WATN IT SYSTEM Magnus Horsgård Watn"
+        )
+        assert ldap_search_params.organization.orgnr == "995546973"
+        assert ldap_search_params.organization.parent_orgnr == "12345689"
 
     def test_should_auto_detect_personal_serial_number(self, database: Database):
         search_params = SearchParams(
