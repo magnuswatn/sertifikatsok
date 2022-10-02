@@ -63,20 +63,18 @@ const getStatusBadge = function (certificateSet) {
         });
 };
 
-const getNotificationMessage = function (certificateSet) {
-    // TODO: We can only show one message at the time now
-    // Should we support more?
-    let $message = '';
+const getNotificationMessages = function (certificateSet) {
+    let $message = [];
     certificateSet.notices.forEach(function (notice) {
         switch (notice) {
             case 'seid2':
-                $message = $('#stashed-seid2-notification').clone();
+                $message.push($('#stashed-seid2-notification').clone());
                 break;
             case 'underenhet':
-                $message = $('#stashed-underenhet-notification').clone();
+                $message.push($('#stashed-underenhet-notification').clone());
                 break;
             case 'ukjent':
-                $message = $('#stashed-ukjent-notification').clone();
+                $message.push($('#stashed-ukjent-notification').clone());
                 break;
         }
     });
@@ -167,7 +165,7 @@ const showCertificateSets = function (certificateSets) {
                     .clone());
             }
 
-            $collapsibleBodySpan.append(getNotificationMessage(certificateSet));
+            $collapsibleBodySpan.append(getNotificationMessages(certificateSet));
 
             const norwegianToDate = getNorwegianDate(certificateSet.valid_to);
             const certificateSetIntro = `Dette settet er gyldig til ` +
