@@ -309,7 +309,7 @@ class CertValidator:
         if issuer is None:  # noqa: SIM114
             # TODO: Should this be UNKNOWN? We don't
             # trust the issuer, but others might...
-            status = CertificateStatus.EXPIRED
+            status = CertificateStatus.INVALID
         elif not self._validate_cert_against_issuer(cert, issuer):
             status = CertificateStatus.INVALID
         elif not self._check_date_on_cert(cert):
