@@ -1,5 +1,3 @@
-from typing import List, Tuple
-
 from bonsai import escape_filter_exp
 
 from .enums import SearchAttribute
@@ -24,7 +22,7 @@ def get_subject_order(field: str) -> int:
     return order.get(field_name, 100)
 
 
-def create_ldap_filter(params: List[Tuple[SearchAttribute, str]]) -> str:
+def create_ldap_filter(params: list[tuple[SearchAttribute, str]]) -> str:
 
     search_params = ""
     for param in params:

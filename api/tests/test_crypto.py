@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import datetime
-from typing import Dict, List, Optional
 from urllib.parse import quote_plus
 
 import httpx
@@ -26,15 +27,15 @@ ONE_DAY = datetime.timedelta(1, 0, 0)
 class DummyRequestCrlRetriever:
     def __init__(
         self,
-        crls: Dict[str, x509.CertificateRevocationList],
-        errors: Optional[List[str]] = None,
+        crls: dict[str, x509.CertificateRevocationList],
+        errors: list[str] | None = None,
     ):
         self.crls = crls
         self.errors = errors if errors else []
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
-    ) -> Optional[x509.CertificateRevocationList]:
+    ) -> x509.CertificateRevocationList | None:
         return self.crls.get(url)
 
 
@@ -82,7 +83,7 @@ class CertificateAuthority:
         )
         return cls(name, cert, private_key)
 
-    def generate_crl(self, revoked_certs: List[x509.Certificate], expired=False):
+    def generate_crl(self, revoked_certs: list[x509.Certificate], expired=False):
         date_skew = datetime.timedelta(days=-120 if expired else 0)
 
         crl_builder = (
@@ -112,7 +113,7 @@ class CertificateAuthority:
         )
 
     def generate_ee_cert(
-        self, name: str, expired=False, crl_endpoint: Optional[str] = None
+        self, name: str, expired=False, crl_endpoint: str | None = None
     ):
 
         date_skew = datetime.timedelta(days=-120 if expired else 0)
@@ -377,7 +378,7 @@ class TestCertValidator:
 
             async def retrieve(
                 self, url: str, issuer: x509.Certificate
-            ) -> Optional[x509.CertificateRevocationList]:
+            ) -> x509.CertificateRevocationList | None:
                 raise Exception("Should not get called")
 
         cert_validator = CertValidator(

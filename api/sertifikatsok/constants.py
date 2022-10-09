@@ -1,5 +1,4 @@
 import re
-from typing import Dict, List, Tuple
 
 from cryptography.x509 import NameOID
 from cryptography.x509.oid import ObjectIdentifier
@@ -39,7 +38,7 @@ SUBJECT_FIELDS = {
     ORGANIZATION_IDENTIFIER: "organizationIdentifier",
 }
 
-KEY_USAGES: List[Tuple[str, str]] = [
+KEY_USAGES: list[tuple[str, str]] = [
     ("digital_signature", "Digital signature"),
     # Using Non-repudiation as it's the established name
     ("content_commitment", "Non-repudiation"),
@@ -70,7 +69,7 @@ EXTENDED_KEY_USAGES = {
 #
 # The value is a tuple with the type of certificate,
 # and a string with an human friendly description
-KNOWN_CERT_TYPES: Dict[Tuple[str, str], Tuple[CertType, str, SEID]] = {
+KNOWN_CERT_TYPES: dict[tuple[str, str], tuple[CertType, str, SEID]] = {
     ("CN=Buypass Class 3 Test4 CA 3,O=Buypass AS-983163327,C=NO", "2.16.578.1.26.1.0.3.2"):
     (CertType.ENTERPRISE, "Buypass TEST virksomhetssertifikat (softsertifikat)", SEID.SEID1),
 

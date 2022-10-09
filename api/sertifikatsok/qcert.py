@@ -4,7 +4,7 @@ import logging
 import urllib.parse
 from datetime import datetime
 from operator import attrgetter
-from typing import List, Optional, Tuple, cast
+from typing import cast
 
 from attrs import frozen
 from cryptography import x509
@@ -36,10 +36,10 @@ class QualifiedCertificate:
     def __init__(
         self,
         cert: x509.Certificate,
-        cert_serial: Optional[str],
+        cert_serial: str | None,
         ldap_server: LdapServer,
         cert_status: CertificateStatus,
-        revocation_date: Optional[datetime],
+        revocation_date: datetime | None,
     ):
 
         self.cert: x509.Certificate = cert
@@ -55,7 +55,7 @@ class QualifiedCertificate:
     async def create(
         cls,
         raw_cert: bytes,
-        cert_serial: Optional[str],
+        cert_serial: str | None,
         ldap_server: LdapServer,
         cert_validator: CertValidator,
     ):
@@ -70,7 +70,7 @@ class QualifiedCertificate:
 
         return cls(cert, cert_serial, ldap_server, cert_status, revocation_date)
 
-    def _get_type(self) -> Tuple[CertType, str, SEID]:
+    def _get_type(self) -> tuple[CertType, str, SEID]:
         """Returns the type of certificate, based on issuer and Policy OID"""
         cert_policies = cast(
             x509.CertificatePolicies,
@@ -92,7 +92,7 @@ class QualifiedCertificate:
 
         return (CertType.UNKNOWN, ", ".join(oids), SEID.UNKNOWN)
 
-    def _get_roles(self) -> List[CertificateRoles]:
+    def _get_roles(self) -> list[CertificateRoles]:
         """
         A set of Norwegian qualified certificates should have certificates
         intended for:
@@ -160,7 +160,7 @@ class QualifiedCertificate:
         subject.sort(key=get_subject_order)
         return ", ".join(list(subject))
 
-    def get_orgnumber(self) -> Tuple[Optional[str], bool]:
+    def get_orgnumber(self) -> tuple[str | None, bool]:
         """
         Gets the organization number from the cert,
         and returns the organization number and if it's an "underenhet".
@@ -209,7 +209,7 @@ class QualifiedCertificate:
 
         return org_number, False
 
-    def get_key_info(self) -> Optional[str]:
+    def get_key_info(self) -> str | None:
         pub_key = self.cert.public_key()
         if isinstance(pub_key, RSAPublicKey):
             return f"RSA ({pub_key.key_size} bits)"
@@ -231,7 +231,7 @@ class QualifiedCertificate:
                 key_usages.append(key_usage[1])
         return ", ".join(key_usages)
 
-    def get_extended_key_usages(self) -> Optional[str]:
+    def get_extended_key_usages(self) -> str | None:
         """Returns a string with the extended key usages from the cert"""
         try:
             cert_eku = cast(
@@ -258,16 +258,16 @@ class QualifiedCertificate:
 class QualifiedCertificateSet:
     """Represents a set of Norwegian qualified certificates"""
 
-    certs: List[QualifiedCertificate]
+    certs: list[QualifiedCertificate]
     main_cert: QualifiedCertificate
     status: CertificateStatus
-    revocation_date: Optional[datetime]
-    org_number: Optional[str]
+    revocation_date: datetime | None
+    org_number: str | None
     underenhet: bool
     seid2: bool
 
     @classmethod
-    def create(cls, certs: List[QualifiedCertificate]) -> QualifiedCertificateSet:
+    def create(cls, certs: list[QualifiedCertificate]) -> QualifiedCertificateSet:
 
         # Commfides issues encryption certs with longer validity than
         # the rest of the certificates in the set, so we shouldn't use
@@ -292,8 +292,8 @@ class QualifiedCertificateSet:
 
     @classmethod
     def create_sets_from_certs(
-        cls, certs: List[QualifiedCertificate]
-    ) -> List[QualifiedCertificateSet]:
+        cls, certs: list[QualifiedCertificate]
+    ) -> list[QualifiedCertificateSet]:
         """
         This creates a list of QualifiedCertificateSet
         from a list of QualifiedCertificate.
@@ -306,10 +306,10 @@ class QualifiedCertificateSet:
         if not certs:
             return []
 
-        cert_sets: List[QualifiedCertificateSet] = []
+        cert_sets: list[QualifiedCertificateSet] = []
 
-        cert_set: List[QualifiedCertificate] = []
-        cert_set_roles: List[CertificateRoles] = []
+        cert_set: list[QualifiedCertificate] = []
+        cert_set_roles: list[CertificateRoles] = []
 
         for cert in sorted(certs, key=attrgetter("cert.not_valid_before")):
 
@@ -350,7 +350,7 @@ class QualifiedCertificateSet:
 
     @staticmethod
     def _get_non_encryption_cert(
-        certs: List[QualifiedCertificate],
+        certs: list[QualifiedCertificate],
     ) -> QualifiedCertificate:
         """
         This tries to find an non-encryption certificate in the

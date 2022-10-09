@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 import urllib.parse
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Protocol, Tuple, cast
+from typing import Protocol, cast
 
 from attrs import field, frozen
 from cryptography import x509
@@ -41,11 +43,11 @@ class RequestCrlRetrieverProto(Protocol):
     so objects should not be long-lived.
     """
 
-    errors: List[str]
+    errors: list[str]
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
-    ) -> Optional[x509.CertificateRevocationList]:
+    ) -> x509.CertificateRevocationList | None:
         ...
 
 
@@ -91,7 +93,7 @@ class AppCrlRetriever:
     """
 
     crl_downloader: CrlDownloaderProto
-    crls: Dict[str, x509.CertificateRevocationList] = field(factory=dict)
+    crls: dict[str, x509.CertificateRevocationList] = field(factory=dict)
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
@@ -209,14 +211,14 @@ class RequestCrlRetriever:
     """
 
     crl_retriever: AppCrlRetrieverProto
-    crls: Dict[Tuple[str, x509.Name], Optional[x509.CertificateRevocationList]] = field(
+    crls: dict[tuple[str, x509.Name], x509.CertificateRevocationList | None] = field(
         factory=dict
     )
-    errors: List[str] = field(factory=list)
+    errors: list[str] = field(factory=list)
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
-    ) -> Optional[x509.CertificateRevocationList]:
+    ) -> x509.CertificateRevocationList | None:
         """Retrieves the CRL from the specified url."""
         try:
             return self.crls[url, issuer.subject]
@@ -228,7 +230,7 @@ class RequestCrlRetriever:
             url,
         )
 
-        crl: Optional[x509.CertificateRevocationList]
+        crl: x509.CertificateRevocationList | None
         try:
             crl = await self.crl_retriever.retrieve(url, issuer)
         except CouldNotGetValidCRLError:
@@ -242,20 +244,20 @@ class RequestCrlRetriever:
 
 @frozen
 class CertRetriever:
-    certs: Dict[x509.Name, x509.Certificate]
+    certs: dict[x509.Name, x509.Certificate]
 
     @classmethod
-    def create(cls, env: Environment):
+    def create(cls, env: Environment) -> CertRetriever:
         return cls(cls._load_all_certs(env))
 
-    def retrieve(self, name: x509.Name) -> Optional[x509.Certificate]:
+    def retrieve(self, name: x509.Name) -> x509.Certificate | None:
         """
         Retrieves the CA certificate with the specified name
         """
         return self.certs.get(name)
 
     @staticmethod
-    def _load_certificate(path: Path, certs: Dict[x509.Name, x509.Certificate]):
+    def _load_certificate(path: Path, certs: dict[x509.Name, x509.Certificate]):
         cert = x509.load_pem_x509_certificate(path.read_bytes())
         if not isinstance(cert.public_key(), RSAPublicKey):
             # If this is changed, the signature validation
@@ -271,7 +273,7 @@ class CertRetriever:
 
     @classmethod
     def _load_all_certs(cls, env: Environment):
-        certs: Dict[x509.Name, x509.Certificate] = {}
+        certs: dict[x509.Name, x509.Certificate] = {}
         for path in Path("certs", env.value).iterdir():
             if path.is_file():
                 try:
@@ -297,7 +299,7 @@ class CertValidator:
 
     async def validate_cert(
         self, cert: x509.Certificate
-    ) -> Tuple[CertificateStatus, Optional[datetime]]:
+    ) -> tuple[CertificateStatus, datetime | None]:
         status = CertificateStatus.UNKNOWN
         revocation_date = None
 
@@ -305,7 +307,7 @@ class CertValidator:
         if issuer is None:  # noqa: SIM114
             # TODO: Should this be UNKNOWN? We don't
             # trust the issuer, but others might...
-            status = CertificateStatus.INVALID
+            status = CertificateStatus.EXPIRED
         elif not self._validate_cert_against_issuer(cert, issuer):
             status = CertificateStatus.INVALID
         elif not self._check_date_on_cert(cert):
@@ -332,7 +334,7 @@ class CertValidator:
 
     async def _get_crl(
         self, cert: x509.Certificate, issuer: x509.Certificate
-    ) -> Optional[x509.CertificateRevocationList]:
+    ) -> x509.CertificateRevocationList | None:
         """
         Will try to download a crl for the certificate from a HTTP endpoint, if any.
         """

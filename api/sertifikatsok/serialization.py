@@ -1,10 +1,12 @@
 """Serialization for the different sertifikatsok classes"""
+from __future__ import annotations
+
 import base64
 import codecs
 from datetime import datetime
 from functools import singledispatch
 from operator import attrgetter
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import Encoding
@@ -16,7 +18,7 @@ from .search import CertificateSearchResponse
 
 
 @singledispatch
-def sertifikatsok_serialization(val) -> Dict[Any, Any]:
+def sertifikatsok_serialization(val) -> dict[Any, Any]:
     """default"""
     raise NotImplementedError()
 
@@ -24,7 +26,7 @@ def sertifikatsok_serialization(val) -> Dict[Any, Any]:
 @sertifikatsok_serialization.register(QualifiedCertificate)
 def qualified_certificate(val: QualifiedCertificate):
 
-    dumped: Dict[str, Union[str, Dict[str, str]]] = {}
+    dumped: dict[str, str | dict[str, str]] = {}
     name, usage = _get_norwegian_display_name(val)
     dumped["name"] = name
     info = {}  # noqa: SIM904
@@ -155,7 +157,7 @@ def certificate_search(val: CertificateSearchResponse):
 
 
 def _get_norwegian_cert_status(
-    cert_status: CertificateStatus, revocation_date: Optional[datetime]
+    cert_status: CertificateStatus, revocation_date: datetime | None
 ):
     if cert_status == CertificateStatus.OK:
         return "OK"
@@ -170,7 +172,7 @@ def _get_norwegian_cert_status(
     return "Ukjent"
 
 
-def _get_norwegian_display_name(cert: QualifiedCertificate) -> Tuple[str, str]:
+def _get_norwegian_display_name(cert: QualifiedCertificate) -> tuple[str, str]:
     """
     Returns the appropriate Norwegian name and application for it
     """

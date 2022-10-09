@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import List, Optional
 from urllib.parse import unquote, urlparse
 
 import bonsai
@@ -36,7 +35,7 @@ class SearchParams:
     env: Environment
     typ: CertType
     query: str
-    attr: Optional[SearchAttribute]
+    attr: SearchAttribute | None
 
     @classmethod
     def create_from_request(cls, request: Request):
@@ -73,8 +72,8 @@ class SearchParams:
 class LdapSearchParams:
     ldap_query: str
     scope: bonsai.LDAPSearchScope
-    ldap_servers: List[LdapServer]
-    limitations: List[str]
+    ldap_servers: list[LdapServer]
+    limitations: list[str]
     organization: Organization | None
 
     @classmethod
@@ -110,7 +109,7 @@ class LdapSearchParams:
             if search_params.typ in ldap_server.cert_types
         ]
         typ, query = search_params.typ, search_params.query
-        limitations: List[str] = []
+        limitations: list[str] = []
         organization = None
 
         # If the query is an organization number, we must search
@@ -302,9 +301,9 @@ class CertificateSearch:
     cert_validator: CertValidator
     database: Database
     filtered_results: bool = field(default=False)
-    errors: List[str] = field(factory=list)
-    warnings: List[str] = field(factory=list)
-    results: List[QualifiedCertificate] = field(factory=list)
+    errors: list[str] = field(factory=list)
+    warnings: list[str] = field(factory=list)
+    results: list[QualifiedCertificate] = field(factory=list)
 
     @classmethod
     def create_from_request(cls, request) -> CertificateSearch:
@@ -356,8 +355,8 @@ class CertificateSearch:
         """
         client = bonsai.LDAPClient(f"ldap://{ldap_server.hostname}")
         count = 0
-        results: List[bonsai.LDAPEntry] = []
-        all_results: List[bonsai.LDAPEntry] = []
+        results: list[bonsai.LDAPEntry] = []
+        all_results: list[bonsai.LDAPEntry] = []
         search_filter = self.ldap_params.ldap_query
         logger.debug("Starting: ldap search against: %s", ldap_server)
         with (await client.connect(is_async=True, timeout=LDAP_TIMEOUT)) as conn:
@@ -462,9 +461,9 @@ class CertificateSearch:
 @frozen
 class CertificateSearchResponse:
     search: CertificateSearch
-    cert_sets: List[QualifiedCertificateSet]
-    warnings: List[str]
-    errors: List[str]
+    cert_sets: list[QualifiedCertificateSet]
+    warnings: list[str]
+    errors: list[str]
 
     @classmethod
     def create(cls, search: CertificateSearch) -> CertificateSearchResponse:

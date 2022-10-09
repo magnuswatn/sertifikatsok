@@ -1,5 +1,3 @@
-from typing import List
-
 from attr import frozen
 
 from .enums import CertificateAuthority, CertType, Environment
@@ -10,7 +8,7 @@ class LdapServer:
     hostname: str
     base: str
     ca: CertificateAuthority
-    cert_types: List[CertType]
+    cert_types: list[CertType]
 
     def __str__(self):
         # Used for logging.
