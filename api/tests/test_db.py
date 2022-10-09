@@ -6,7 +6,7 @@ from sertifikatsok.db import Database
 
 
 @pytest.fixture
-def database():
+def database() -> Database:
     return Database.connect_to_database(":memory:")
 
 

@@ -46,7 +46,7 @@ class CertificateAuthority:
     key: rsa.RSAPrivateKey
 
     @classmethod
-    def create(cls, name: str):
+    def create(cls, name: str) -> CertificateAuthority:
         private_key = rsa.generate_private_key(
             public_exponent=65537,
             key_size=2048,
@@ -83,7 +83,9 @@ class CertificateAuthority:
         )
         return cls(name, cert, private_key)
 
-    def generate_crl(self, revoked_certs: list[x509.Certificate], expired=False):
+    def generate_crl(
+        self, revoked_certs: list[x509.Certificate], expired: bool = False
+    ) -> x509.CertificateRevocationList:
         date_skew = datetime.timedelta(days=-120 if expired else 0)
 
         crl_builder = (
@@ -113,8 +115,8 @@ class CertificateAuthority:
         )
 
     def generate_ee_cert(
-        self, name: str, expired=False, crl_endpoint: str | None = None
-    ):
+        self, name: str, expired: bool = False, crl_endpoint: str | None = None
+    ) -> x509.Certificate:
 
         date_skew = datetime.timedelta(days=-120 if expired else 0)
         if crl_endpoint is None:
@@ -171,34 +173,34 @@ class CertificateAuthority:
 
 
 @pytest.fixture(scope="module")
-def ca():
+def ca() -> CertificateAuthority:
     return CertificateAuthority.create("sertifikatsok.no CA")
 
 
 @pytest.fixture(scope="module")
-def ee_cert(ca):
+def ee_cert(ca: CertificateAuthority) -> x509.Certificate:
     return ca.generate_ee_cert("sertifikatsok.no")
 
 
 class TestAppCrlRetriever:
-    def test_validate_normal(self, ca: CertificateAuthority):
+    def test_validate_normal(self, ca: CertificateAuthority) -> None:
         crl = ca.generate_crl([])
         AppCrlRetriever._validate(crl, ca.cert)
 
-    def test_validate_expired(self, ca: CertificateAuthority):
+    def test_validate_expired(self, ca: CertificateAuthority) -> None:
         crl = ca.generate_crl([], expired=True)
         with pytest.raises(CouldNotGetValidCRLError) as error:
             AppCrlRetriever._validate(crl, ca.cert)
         assert "CRL failed date validation" in error.value.args[0]
 
-    def test_validate_wrong_issuer(self, ca: CertificateAuthority):
+    def test_validate_wrong_issuer(self, ca: CertificateAuthority) -> None:
         ca2 = CertificateAuthority.create("sertifikatsok.no CA2")
         crl = ca2.generate_crl([])
         with pytest.raises(CouldNotGetValidCRLError) as error:
             AppCrlRetriever._validate(crl, ca.cert)
         assert "CRL failed issuer validation" in error.value.args[0]
 
-    def test_validate_invalid_signature(self, ca: CertificateAuthority):
+    def test_validate_invalid_signature(self, ca: CertificateAuthority) -> None:
         # same name, but different key
         ca2 = CertificateAuthority.create("sertifikatsok.no CA")
         crl = ca2.generate_crl([])
@@ -209,12 +211,12 @@ class TestAppCrlRetriever:
 
 @pytest.mark.asyncio
 class TestRequestCrlRetriever:
-    async def test_retrieve_ok(self, ca: CertificateAuthority):
+    async def test_retrieve_ok(self, ca: CertificateAuthority) -> None:
 
         crl = ca.generate_crl([])
 
         class DummyAppCrlRetriever:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.count = 0
 
             async def retrieve(
@@ -233,9 +235,9 @@ class TestRequestCrlRetriever:
         # Should be cached, so only one invocation
         assert dummy_app_crl_retriever.count == 1
 
-    async def test_retrieve_error(self, ca: CertificateAuthority):
+    async def test_retrieve_error(self, ca: CertificateAuthority) -> None:
         class DummyAppCrlRetriever:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.count = 0
 
             async def retrieve(
@@ -254,7 +256,7 @@ class TestRequestCrlRetriever:
         # Errors should also be cached, so that we don't spam the crl server
         assert dummy_app_crl_retriever.count == 1
 
-    async def test_wrong_url_in_cert(self, ca: CertificateAuthority):
+    async def test_wrong_url_in_cert(self, ca: CertificateAuthority) -> None:
         """
         The issuer should be included in the cache, so that if a certificate
         from issuer A has a cdp extension pointing to the crl from issuer B,
@@ -298,7 +300,7 @@ class TestRequestCrlRetriever:
 
 @pytest.mark.asyncio
 class TestCertValidator:
-    async def test_non_trusted_cert(self, ee_cert: x509.Certificate):
+    async def test_non_trusted_cert(self, ee_cert: x509.Certificate) -> None:
         cert_validator = CertValidator(
             CertRetriever({}),  # no trusted certs
             DummyRequestCrlRetriever({}),
@@ -307,7 +309,7 @@ class TestCertValidator:
         assert cert_status == CertificateStatus.INVALID
         assert revocation_date is None
 
-    async def test_invalid_signature(self, ee_cert: x509.Certificate):
+    async def test_invalid_signature(self, ee_cert: x509.Certificate) -> None:
         # same name, but different key
         ca2 = CertificateAuthority.create("sertifikatsok.no CA")
 
@@ -319,7 +321,7 @@ class TestCertValidator:
         assert cert_status == CertificateStatus.INVALID
         assert revocation_date is None
 
-    async def test_expired(self, ca: CertificateAuthority):
+    async def test_expired(self, ca: CertificateAuthority) -> None:
         cert_validator = CertValidator(
             CertRetriever({ca.cert.subject: ca.cert}),
             DummyRequestCrlRetriever({}),
@@ -331,7 +333,7 @@ class TestCertValidator:
 
     async def test_invalid_crl(
         self, ca: CertificateAuthority, ee_cert: x509.Certificate
-    ):
+    ) -> None:
         cert_validator = CertValidator(
             CertRetriever({ca.cert.subject: ca.cert}),
             DummyRequestCrlRetriever({}, ["ERR-003"]),  # crl not available
@@ -343,7 +345,7 @@ class TestCertValidator:
 
     async def test_revoked_cert(
         self, ca: CertificateAuthority, ee_cert: x509.Certificate
-    ):
+    ) -> None:
         crl = ca.generate_crl([ee_cert])
 
         cert_validator = CertValidator(
@@ -357,7 +359,9 @@ class TestCertValidator:
         assert cert_status == CertificateStatus.REVOKED
         assert revocation_date is not None
 
-    async def test_ok_cert(self, ca: CertificateAuthority, ee_cert: x509.Certificate):
+    async def test_ok_cert(
+        self, ca: CertificateAuthority, ee_cert: x509.Certificate
+    ) -> None:
         crl = ca.generate_crl([])
 
         cert_validator = CertValidator(
@@ -371,10 +375,10 @@ class TestCertValidator:
         assert cert_status == CertificateStatus.OK
         assert revocation_date is None
 
-    async def test_ldap_url_cert(self, ca: CertificateAuthority):
+    async def test_ldap_url_cert(self, ca: CertificateAuthority) -> None:
         class ExceptionRequestCrlRetriever:
-            def __init__(self):
-                self.errors = []
+            def __init__(self) -> None:
+                self.errors: list[str] = []
 
             async def retrieve(
                 self, url: str, issuer: x509.Certificate
@@ -397,7 +401,7 @@ class TestCertValidator:
 
 @pytest.mark.asyncio
 class TestCrlDownloader:
-    async def test_ok_download(self):
+    async def test_ok_download(self) -> None:
         transport = httpx.MockTransport(
             lambda _: httpx.Response(
                 200,
@@ -412,7 +416,7 @@ class TestCrlDownloader:
             )
         assert crl == b"crliboii"
 
-    async def test_ok_download_alternative_content_type(self):
+    async def test_ok_download_alternative_content_type(self) -> None:
         transport = httpx.MockTransport(
             lambda _: httpx.Response(
                 200,
@@ -427,7 +431,7 @@ class TestCrlDownloader:
             )
         assert crl == b"crliboii"
 
-    async def test_failed_download_404(self):
+    async def test_failed_download_404(self) -> None:
         transport = httpx.MockTransport(
             lambda _: httpx.Response(
                 404,
@@ -443,7 +447,7 @@ class TestCrlDownloader:
                 )
         assert "status code 404 " in str(error)
 
-    async def test_failed_download_wrong_content_type(self):
+    async def test_failed_download_wrong_content_type(self) -> None:
         transport = httpx.MockTransport(
             lambda _: httpx.Response(
                 200,

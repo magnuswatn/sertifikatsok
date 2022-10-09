@@ -1,5 +1,5 @@
 import pytest
-from bonsai import LDAPSearchScope
+from bonsai import LDAPSearchScope  # type: ignore
 
 from sertifikatsok.db import Database
 from sertifikatsok.enums import (
@@ -14,10 +14,10 @@ from sertifikatsok.search import LdapSearchParams, SearchParams
 
 class TestLdapSearchParams:
     @pytest.fixture
-    def database(self):
+    def database(self) -> Database:
         return Database.connect_to_database(":memory:")
 
-    def test_should_auto_detect_url_buypass(self, database: Database):
+    def test_should_auto_detect_url_buypass(self, database: Database) -> None:
         search_params = SearchParams(
             Environment.PROD,
             CertType.ENTERPRISE,
@@ -39,7 +39,7 @@ class TestLdapSearchParams:
             == "(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))"
         )
 
-    def test_should_auto_detect_url_commfides(self, database: Database):
+    def test_should_auto_detect_url_commfides(self, database: Database) -> None:
         search_params = SearchParams(
             Environment.TEST,
             CertType.PERSONAL,
@@ -61,7 +61,9 @@ class TestLdapSearchParams:
             == "(certificateSerialNumber=130F751161B26168)"
         )
 
-    def test_should_auto_detect_url_and_warn_about_wrong_env(self, database: Database):
+    def test_should_auto_detect_url_and_warn_about_wrong_env(
+        self, database: Database
+    ) -> None:
         search_params = SearchParams(
             Environment.TEST,
             CertType.ENTERPRISE,
@@ -84,7 +86,7 @@ class TestLdapSearchParams:
             == "(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))"
         )
 
-    def test_should_reject_invalid_url(self, database: Database):
+    def test_should_reject_invalid_url(self, database: Database) -> None:
         search_params = SearchParams(
             Environment.PROD,
             CertType.ENTERPRISE,
@@ -97,7 +99,7 @@ class TestLdapSearchParams:
 
         assert error.value.args[0] == "Unsupported hostname in ldap url"
 
-    def test_should_auto_detect_hex_serial_colon(self, database: Database):
+    def test_should_auto_detect_hex_serial_colon(self, database: Database) -> None:
         search_params = SearchParams(
             Environment.PROD,
             CertType.PERSONAL,
@@ -120,7 +122,7 @@ class TestLdapSearchParams:
             == "(certificateSerialNumber=17499973611207260349135611)"
         )
 
-    def test_should_auto_detect_hex_serial_spaces(self, database: Database):
+    def test_should_auto_detect_hex_serial_spaces(self, database: Database) -> None:
         search_params = SearchParams(
             Environment.PROD,
             CertType.PERSONAL,
@@ -143,7 +145,7 @@ class TestLdapSearchParams:
             == "(certificateSerialNumber=24165265156868740537026946)"
         )
 
-    def test_should_auto_detect_hex_serial_continuous(self, database: Database):
+    def test_should_auto_detect_hex_serial_continuous(self, database: Database) -> None:
         search_params = SearchParams(
             Environment.PROD,
             CertType.PERSONAL,
@@ -166,7 +168,7 @@ class TestLdapSearchParams:
             == "(certificateSerialNumber=24165265156868740537026946)"
         )
 
-    def test_should_auto_detect_sha2_thumbprint(self, database: Database):
+    def test_should_auto_detect_sha2_thumbprint(self, database: Database) -> None:
 
         database.insert_certificates(
             [("mordi=213,dc=MagnusCA,dc=watn,dc=no", [b"hei"])], "ldap.buypass.no"
@@ -189,7 +191,7 @@ class TestLdapSearchParams:
             == "mordi=213,dc=MagnusCA,dc=watn,dc=no"
         )
 
-    def test_should_auto_detect_sha1_thumbprint(self, database: Database):
+    def test_should_auto_detect_sha1_thumbprint(self, database: Database) -> None:
 
         database.insert_certificates(
             [("mordi=213,dc=MagnusCA,dc=watn,dc=no", [b"hei"])], "ldap.buypass.no"
@@ -212,7 +214,9 @@ class TestLdapSearchParams:
             == "mordi=213,dc=MagnusCA,dc=watn,dc=no"
         )
 
-    def test_should_auto_detect_thumbprint_handle_unknown(self, database: Database):
+    def test_should_auto_detect_thumbprint_handle_unknown(
+        self, database: Database
+    ) -> None:
 
         database.insert_certificates(
             [("mordi=213,dc=MagnusCA,dc=watn,dc=no", [b"hei"])], "ldap.buypass.no"
@@ -231,7 +235,7 @@ class TestLdapSearchParams:
         assert len(ldap_search_params.ldap_servers) == 0
         assert ldap_search_params.ldap_query == ""
 
-    def test_should_auto_detect_org_nr_not_in_db(self, database: Database):
+    def test_should_auto_detect_org_nr_not_in_db(self, database: Database) -> None:
         search_params = SearchParams(
             Environment.PROD,
             CertType.ENTERPRISE,
@@ -255,7 +259,7 @@ class TestLdapSearchParams:
         )
         assert ldap_search_params.organization is None
 
-    def test_should_auto_detect_org_nr_child(self, database: Database):
+    def test_should_auto_detect_org_nr_child(self, database: Database) -> None:
 
         database._connection.execute(
             """
@@ -292,7 +296,7 @@ class TestLdapSearchParams:
         assert ldap_search_params.organization.orgnr == "991056505"
         assert ldap_search_params.organization.parent_orgnr == "983044778"
 
-    def test_should_auto_detect_org_nr_main(self, database: Database):
+    def test_should_auto_detect_org_nr_main(self, database: Database) -> None:
 
         database._connection.execute(
             """
@@ -331,7 +335,9 @@ class TestLdapSearchParams:
         assert ldap_search_params.organization.orgnr == "995546973"
         assert ldap_search_params.organization.parent_orgnr is None
 
-    def test_should_auto_detect_org_nr_main_with_parent(self, database: Database):
+    def test_should_auto_detect_org_nr_main_with_parent(
+        self, database: Database
+    ) -> None:
 
         database._connection.execute(
             """
@@ -370,7 +376,9 @@ class TestLdapSearchParams:
         assert ldap_search_params.organization.orgnr == "995546973"
         assert ldap_search_params.organization.parent_orgnr == "12345689"
 
-    def test_should_auto_detect_personal_serial_number(self, database: Database):
+    def test_should_auto_detect_personal_serial_number(
+        self, database: Database
+    ) -> None:
         search_params = SearchParams(
             Environment.PROD,
             CertType.PERSONAL,
@@ -393,7 +401,7 @@ class TestLdapSearchParams:
             "(serialNumber=UN:NO-9578-4505-00001pdEkL7))"
         )
 
-    def test_should_auto_detect_email(self, database: Database):
+    def test_should_auto_detect_email(self, database: Database) -> None:
         search_params = SearchParams(
             Environment.PROD,
             CertType.PERSONAL,
@@ -414,7 +422,7 @@ class TestLdapSearchParams:
         )
         assert ldap_search_params.ldap_query == "(mail=fornavn@etternavn.no)"
 
-    def test_should_fallback_to_cn(self, database: Database):
+    def test_should_fallback_to_cn(self, database: Database) -> None:
         search_params = SearchParams(
             Environment.PROD,
             CertType.PERSONAL,
@@ -434,7 +442,7 @@ class TestLdapSearchParams:
         )
         assert ldap_search_params.ldap_query == "(cn=Min supertjeneste)"
 
-    def test_should_respect_attribute(self, database: Database):
+    def test_should_respect_attribute(self, database: Database) -> None:
         search_params = SearchParams(
             Environment.PROD,
             CertType.ENTERPRISE,
