@@ -58,7 +58,7 @@ class QualifiedCertificate:
         cert_serial: str | None,
         ldap_server: LdapServer,
         cert_validator: CertValidator,
-    ):
+    ) -> QualifiedCertificate:
 
         cert = x509.load_der_x509_certificate(raw_cert)
         # access the subject, so that we fail here if it's malformed,
@@ -364,23 +364,23 @@ class QualifiedCertificateSet:
         return certs[0]
 
     @property
-    def valid_to(self):
+    def valid_to(self) -> str:
         return self.main_cert.cert.not_valid_after.isoformat()
 
     @property
-    def valid_from(self):
+    def valid_from(self) -> str:
         return self.main_cert.cert.not_valid_before.isoformat()
 
     @property
-    def typ(self):
+    def typ(self) -> CertType:
         return self.main_cert.type
 
     @property
-    def issuer(self):
+    def issuer(self) -> str:
         return self.main_cert.issuer
 
     @property
-    def subject(self):
+    def subject(self) -> str:
         return self.main_cert.print_subject()
 
     @property

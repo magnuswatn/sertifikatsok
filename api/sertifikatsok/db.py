@@ -24,7 +24,7 @@ class Organization:
 
 
 class Database:
-    def __init__(self, connection) -> None:
+    def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
 
     @classmethod
@@ -93,7 +93,7 @@ class Database:
     @performance_log_sync()
     def insert_certificates(
         self, certs: list[tuple[str, list[bytes] | None]], ldap_server: str
-    ):
+    ) -> None:
 
         [ldap_server_id] = self._connection.execute(
             """

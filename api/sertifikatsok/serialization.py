@@ -18,13 +18,13 @@ from .search import CertificateSearchResponse
 
 
 @singledispatch
-def sertifikatsok_serialization(val) -> dict[Any, Any]:
+def sertifikatsok_serialization(val: Any) -> dict[Any, Any]:
     """default"""
     raise NotImplementedError()
 
 
 @sertifikatsok_serialization.register(QualifiedCertificate)
-def qualified_certificate(val: QualifiedCertificate):
+def qualified_certificate(val: QualifiedCertificate) -> dict[str, str | dict[str, str]]:
 
     dumped: dict[str, str | dict[str, str]] = {}
     name, usage = _get_norwegian_display_name(val)
@@ -65,7 +65,7 @@ def qualified_certificate(val: QualifiedCertificate):
 
 
 @sertifikatsok_serialization.register(QualifiedCertificateSet)
-def qualified_certificate_set(val: QualifiedCertificateSet):
+def qualified_certificate_set(val: QualifiedCertificateSet) -> dict[str, Any]:
     dumped: dict[str, Any] = {}
 
     dumped["notices"] = []
@@ -99,7 +99,7 @@ def qualified_certificate_set(val: QualifiedCertificateSet):
 
 
 @sertifikatsok_serialization.register(CertificateSearchResponse)
-def certificate_search(val: CertificateSearchResponse):
+def certificate_search(val: CertificateSearchResponse) -> dict[str, Any]:
     result: dict[str, Any] = {}
 
     errors = set()
@@ -158,7 +158,7 @@ def certificate_search(val: CertificateSearchResponse):
 
 def _get_norwegian_cert_status(
     cert_status: CertificateStatus, revocation_date: datetime | None
-):
+) -> str:
     if cert_status == CertificateStatus.OK:
         return "OK"
     elif cert_status == CertificateStatus.EXPIRED:

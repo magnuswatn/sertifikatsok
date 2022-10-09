@@ -6,6 +6,8 @@ import uuid
 
 import uvloop
 from aiohttp import web
+from aiohttp.typedefs import Handler
+from aiohttp.web_response import StreamResponse
 
 from .crypto import AppCrlRetriever, CertRetriever, CrlDownloader
 from .db import Database
@@ -19,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 @web.middleware
-async def error_middleware(request, handler):
+async def error_middleware(request: web.Request, handler: Handler) -> StreamResponse:
     try:
         return await handler(request)
     except web.HTTPException:  # pylint: disable=E0705
@@ -43,7 +45,9 @@ async def error_middleware(request, handler):
 
 
 @web.middleware
-async def correlation_middleware(request, handler):
+async def correlation_middleware(
+    request: web.Request, handler: Handler
+) -> StreamResponse:
     correlation_id = str(uuid.uuid4())
     correlation_id_var.set(correlation_id)
     request["correlation_id"] = correlation_id
@@ -52,7 +56,7 @@ async def correlation_middleware(request, handler):
     return response
 
 
-async def init_app(app):
+async def init_app(app: web.Application) -> None:
     app["CrlRetriever"] = AppCrlRetriever(CrlDownloader())
     app["CertRetrievers"] = {
         Environment.TEST: CertRetriever.create(Environment.TEST),
@@ -62,7 +66,7 @@ async def init_app(app):
 
 
 @performance_log()
-async def api_endpoint(request):
+async def api_endpoint(request: web.Request) -> web.Response:
     """
     ---
     description: Search after certificates.
@@ -125,7 +129,7 @@ async def api_endpoint(request):
     return response
 
 
-def run():
+def run() -> None:
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
     parser = argparse.ArgumentParser(description="Sertifikatsok API")
@@ -152,7 +156,7 @@ def run():
     app["dev"] = False
 
     if args.dev:
-        from aiohttp_swagger import setup_swagger
+        from aiohttp_swagger import setup_swagger  # type: ignore
 
         setup_swagger(app)
 

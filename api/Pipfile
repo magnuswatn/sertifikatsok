@@ -10,6 +10,7 @@ cryptography = ">=2.4.2"
 uvloop = "*"
 attrs = ">=21.3.0"
 httpx = "*"
+typing-extensions = "*"
 
 [dev-packages]
 pytest = "*"

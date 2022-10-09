@@ -112,7 +112,7 @@ class AppCrlRetriever:
             self.crls[url] = crl
             return crl
 
-    def get_retriever_for_request(self):
+    def get_retriever_for_request(self) -> RequestCrlRetriever:
         """
         Returns a retriever suitable for a single request,
         based on this retriever
@@ -172,7 +172,9 @@ class AppCrlRetriever:
         return crl
 
     @staticmethod
-    def _validate(crl: x509.CertificateRevocationList, issuer: x509.Certificate):
+    def _validate(
+        crl: x509.CertificateRevocationList, issuer: x509.Certificate
+    ) -> None:
         """Validates a crl against an issuer certificate"""
 
         if crl.next_update is None:
@@ -257,7 +259,7 @@ class CertRetriever:
         return self.certs.get(name)
 
     @staticmethod
-    def _load_certificate(path: Path, certs: dict[x509.Name, x509.Certificate]):
+    def _load_certificate(path: Path, certs: dict[x509.Name, x509.Certificate]) -> None:
         cert = x509.load_pem_x509_certificate(path.read_bytes())
         if not isinstance(cert.public_key(), RSAPublicKey):
             # If this is changed, the signature validation
@@ -272,7 +274,7 @@ class CertRetriever:
         )
 
     @classmethod
-    def _load_all_certs(cls, env: Environment):
+    def _load_all_certs(cls, env: Environment) -> dict[x509.Name, x509.Certificate]:
         certs: dict[x509.Name, x509.Certificate] = {}
         for path in Path("certs", env.value).iterdir():
             if path.is_file():
@@ -294,7 +296,7 @@ class CertValidator:
     _crl_retriever: RequestCrlRetrieverProto
 
     @property
-    def errors(self):
+    def errors(self) -> list[str]:
         return self._crl_retriever.errors
 
     async def validate_cert(

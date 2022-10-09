@@ -10,7 +10,7 @@ class LdapServer:
     ca: CertificateAuthority
     cert_types: list[CertType]
 
-    def __str__(self):
+    def __str__(self) -> str:
         # Used for logging.
         return f"{self.hostname}: {self.base}"
 

@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 import logging
 import logging.config
 import time
 from contextvars import ContextVar
 from functools import wraps
+from typing import Any, Awaitable, Callable, TypeVar
+
+from aiohttp.web import Request
+from typing_extensions import ParamSpec
 
 audit_logger = logging.getLogger("audit")
 performance_logger = logging.getLogger("performance")
@@ -10,18 +16,18 @@ correlation_id_var = ContextVar("correlation_id", default="")
 
 
 class CorrelationFilter(logging.Filter):
-    def filter(self, record):
+    def filter(self, record: logging.LogRecord) -> bool:
         record.correlation_id = correlation_id_var.get()
         return True
 
 
-def configure_logging(log_level, log_files):
+def configure_logging(log_level: int, log_files: str) -> None:
     """
     Configure the logging.
 
     Standard out is used if no log files are specified.
     """
-    handlers = {
+    handlers: dict[str, Any] = {
         "app": {
             "level": log_level,
             "formatter": "default",
@@ -69,13 +75,21 @@ def configure_logging(log_level, log_files):
             "audit": {"level": "INFO", "handlers": ["audit"], "propagate": False},
         },
     }
-    logging.config.dictConfig(log_settings)  # type:ignore
+    logging.config.dictConfig(log_settings)
 
 
-def performance_log(id_param=None):
-    def config_decorator(func):
+TC = TypeVar("TC")
+P = ParamSpec("P")
+
+
+def performance_log(
+    id_param: int | None = None,
+) -> Callable[[Callable[P, Awaitable[TC]]], Callable[P, Awaitable[TC]]]:
+    def config_decorator(
+        func: Callable[P, Awaitable[TC]]
+    ) -> Callable[P, Awaitable[TC]]:
         @wraps(func)
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> TC:
             start = time.perf_counter()
             return_value = await func(*args, **kwargs)
 
@@ -96,10 +110,12 @@ def performance_log(id_param=None):
     return config_decorator
 
 
-def performance_log_sync(id_param=None):
-    def config_decorator(func):
+def performance_log_sync(
+    id_param: int | None = None,
+) -> Callable[[Callable[P, TC]], Callable[P, TC]]:
+    def config_decorator(func: Callable[P, TC]) -> Callable[P, TC]:
         @wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> TC:
             start = time.perf_counter()
             return_value = func(*args, **kwargs)
 
@@ -120,7 +136,7 @@ def performance_log_sync(id_param=None):
     return config_decorator
 
 
-def audit_log(request):
+def audit_log(request: Request) -> None:
     ip = request.headers.get("X-Forwarded-For")
     if not ip:
         ip = request.remote

@@ -4,7 +4,7 @@ import asyncio
 import logging
 from urllib.parse import unquote, urlparse
 
-import bonsai
+import bonsai  # type: ignore
 from aiohttp.web import Request
 from attrs import field, frozen, mutable
 from bonsai import escape_filter_exp
@@ -38,7 +38,7 @@ class SearchParams:
     attr: SearchAttribute | None
 
     @classmethod
-    def create_from_request(cls, request: Request):
+    def create_from_request(cls, request: Request) -> SearchParams:
 
         try:
             env = Environment(request.query.get("env"))
@@ -306,7 +306,7 @@ class CertificateSearch:
     results: list[QualifiedCertificate] = field(factory=list)
 
     @classmethod
-    def create_from_request(cls, request) -> CertificateSearch:
+    def create_from_request(cls, request: Request) -> CertificateSearch:
 
         database: Database = request.app["Database"]
 
@@ -323,7 +323,7 @@ class CertificateSearch:
         return cls(search_params, ldap_params, cert_validator, database)
 
     @performance_log(id_param=1)
-    async def query_ca(self, ldap_server: LdapServer):
+    async def query_ca(self, ldap_server: LdapServer) -> None:
         logger.debug("Start: query against %s", ldap_server)
 
         try:
@@ -344,7 +344,9 @@ class CertificateSearch:
         else:
             logger.debug("End: query against %s", ldap_server)
 
-    async def do_ldap_search(self, ldap_server: LdapServer, retry=False):
+    async def do_ldap_search(
+        self, ldap_server: LdapServer, retry: bool = False
+    ) -> list[QualifiedCertificate]:
         """
         Searches the specified LDAP server after certificates
 
@@ -397,7 +399,9 @@ class CertificateSearch:
         return await self._parse_ldap_results(all_results, ldap_server)
 
     @performance_log(id_param=2)
-    async def _parse_ldap_results(self, search_results, ldap_server: LdapServer):
+    async def _parse_ldap_results(
+        self, search_results: list[bonsai.LDAPEntry], ldap_server: LdapServer
+    ) -> list[QualifiedCertificate]:
         """Takes a ldap response and creates a list of QualifiedCertificateSet"""
         logger.debug("Start: parsing certificates from %s", ldap_server)
 
@@ -443,7 +447,7 @@ class CertificateSearch:
         logger.debug("End: parsing certificates from %s", ldap_server)
         return qualified_certs
 
-    async def get_response(self):
+    async def get_response(self) -> CertificateSearchResponse:
         await asyncio.gather(
             *[
                 self.query_ca(ldap_server)
@@ -471,5 +475,5 @@ class CertificateSearchResponse:
         return cls(search, cert_sets, search.warnings, search.errors)
 
     @property
-    def cacheable(self):
+    def cacheable(self) -> bool:
         return not self.errors
