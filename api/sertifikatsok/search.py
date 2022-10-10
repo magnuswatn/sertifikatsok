@@ -23,7 +23,7 @@ from .db import Database, Organization
 from .enums import CertificateAuthority, CertType, Environment, SearchAttribute
 from .errors import ClientError
 from .ldap import LDAP_SERVERS, LdapServer
-from .logging import audit_log, performance_log
+from .logging import performance_log
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
 from .utils import create_ldap_filter
 
@@ -317,8 +317,6 @@ class CertificateSearch:
             request.app["CertRetrievers"][search_params.env],
             request.app["CrlRetriever"].get_retriever_for_request(),
         )
-
-        audit_log(request)
 
         return cls(search_params, ldap_params, cert_validator, database)
 

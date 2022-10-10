@@ -7,7 +7,6 @@ from contextvars import ContextVar
 from functools import wraps
 from typing import Any, Awaitable, Callable, TypeVar
 
-from aiohttp.web import Request
 from typing_extensions import ParamSpec
 
 audit_logger = logging.getLogger("audit")
@@ -134,18 +133,3 @@ def performance_log_sync(
         return wrapper
 
     return config_decorator
-
-
-def audit_log(request: Request) -> None:
-    ip = request.headers.get("X-Forwarded-For")
-    if not ip:
-        ip = request.remote
-
-    audit_logger.info(
-        "IP=%s ENV=%s TYPE=%s QUERY='%s' CORRELATION_ID=%s",
-        ip,
-        request.query.get("env"),
-        request.query.get("type"),
-        request.query.get("query"),
-        correlation_id_var.get(),
-    )

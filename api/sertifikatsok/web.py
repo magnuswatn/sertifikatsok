@@ -9,6 +9,7 @@ from aiohttp import web
 from aiohttp.typedefs import Handler
 from aiohttp.web_response import StreamResponse
 
+from .audit_log import AuditLogger
 from .crypto import AppCrlRetriever, CertRetriever, CrlDownloader
 from .db import Database
 from .enums import Environment
@@ -104,29 +105,30 @@ async def api_endpoint(request: web.Request) -> web.Response:
         "500":
             description: Technical error in the API.
     """
+    with AuditLogger(request) as audit_logger:
+        certificate_search = CertificateSearch.create_from_request(request)
 
-    certificate_search = CertificateSearch.create_from_request(request)
+        search_response = await certificate_search.get_response()
+        audit_logger.set_results(search_response)
 
-    search_response = await certificate_search.get_response()
+        # web.json_response() doesn't set ensure_ascii = False
+        # so the æøås get messed up
+        response = web.Response(
+            text=json.dumps(
+                search_response, ensure_ascii=False, default=sertifikatsok_serialization
+            ),
+            status=200,
+            content_type="application/json",
+        )
 
-    # web.json_response() doesn't set ensure_ascii = False
-    # so the æøås get messed up
-    response = web.Response(
-        text=json.dumps(
-            search_response, ensure_ascii=False, default=sertifikatsok_serialization
-        ),
-        status=200,
-        content_type="application/json",
-    )
+        if search_response.cacheable and not request.app["dev"]:
+            cache_control = "public, max-age=300"
+        else:
+            cache_control = "no-cache, no-store, must-revalidate, private, s-maxage=0"
 
-    if search_response.cacheable and not request.app["dev"]:
-        cache_control = "public, max-age=300"
-    else:
-        cache_control = "no-cache, no-store, must-revalidate, private, s-maxage=0"
+        response.headers["Cache-Control"] = cache_control
 
-    response.headers["Cache-Control"] = cache_control
-
-    return response
+        return response
 
 
 def run() -> None:
