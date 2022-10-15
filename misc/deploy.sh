@@ -27,7 +27,7 @@ temp_dir=$(mktemp --directory)
 
 docker build \
   -t "${container_tag}" \
-  "${DIR}/../api"
+  "${DIR}/.."
 
 docker rm "${CONTAINER_BACKUP_NAME}" || true
 docker stop "${CONTAINER_NAME}" || true
