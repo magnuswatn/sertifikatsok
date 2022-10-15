@@ -43,7 +43,7 @@ docker run -d \
   "${container_tag}" \
   --port 7001 --host 0.0.0.0 --log-files=/logs/sertifikatsok_{}.log
 
-docker exec "${CONTAINER_NAME}" cp -R /opt/sertifikatsok/www/. /tmp/wwwcopy
+docker exec "${CONTAINER_NAME}" cp --preserve=all -R /opt/sertifikatsok/www/. /tmp/wwwcopy
 
 rsync "$temp_dir/" "${WWW_DIR}" --delete --recursive --checksum
 
