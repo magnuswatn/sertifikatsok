@@ -7,6 +7,7 @@ api/sertifikatsok/__pycache__/*
 api/.env
 www/Caddyfile
 www/api
+www/resources/external
 TODO
 api/.cache/
 .mypy_cache/
