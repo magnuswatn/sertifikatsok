@@ -325,13 +325,13 @@ class QualifiedCertificateSet:
                 or
                 # Commfides seems to issue the Encryption certificates
                 # at a different time than the rest of the certificates
-                # in the set, but they should be issued within three days
-                # of each other.
+                # in the set, but they should be issued within a couple
+                # of weeks of each other.
                 (
                     (
                         cert.cert.not_valid_before - cert_set[0].cert.not_valid_before
                     ).days
-                    not in range(-3, 4)
+                    > 14
                 )
                 or
                 # A set can't contain several certs of the same type
