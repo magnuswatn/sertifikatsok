@@ -34,7 +34,7 @@ jobs:
       - name: Check with mypy
         run: |
           cd api
-          pipenv run mypy
+          pipenv run mypy sertifikatsok
       - name: Test with pytest
         run: |
           cd api
