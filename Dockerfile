@@ -31,7 +31,7 @@ RUN [ "find", "www", "-type", "f", "-not", "-name", "*.woff2", \
 #
 # Python container for building
 #
-FROM python:3.9-slim-bullseye as build
+FROM python:3.10-slim-bullseye as build
 
 # Requirements for bonsai.
 RUN set -x \
@@ -69,7 +69,7 @@ COPY api /opt/sertifikatsok/api
 #
 # PROD container
 #
-FROM python:3.9-slim-bullseye
+FROM python:3.10-slim-bullseye
 
 # Requirements for bonsai.
 RUN set -x \

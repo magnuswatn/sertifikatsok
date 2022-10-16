@@ -5,9 +5,7 @@ import logging.config
 import time
 from contextvars import ContextVar
 from functools import wraps
-from typing import Any, Awaitable, Callable, TypeVar
-
-from typing_extensions import ParamSpec
+from typing import Any, Awaitable, Callable, ParamSpec, TypeVar
 
 audit_logger = logging.getLogger("audit")
 performance_logger = logging.getLogger("performance")
