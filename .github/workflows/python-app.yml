@@ -31,6 +31,10 @@ jobs:
         run: |
           cd api
           pipenv install --dev
+      - name: Check with mypy
+        run: |
+          cd api
+          pipenv run mypy
       - name: Test with pytest
         run: |
           cd api
