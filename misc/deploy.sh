@@ -23,8 +23,6 @@ fi
 
 container_tag="sertifikatsok-api-${head}"
 
-temp_dir=$(mktemp --directory)
-
 docker build \
   -t "${container_tag}" \
   "${DIR}/.."
@@ -36,15 +34,13 @@ docker run -d \
   --restart always \
   -v "${CRL_DIR}:/opt/sertifikatsok/api/crls" \
   -v "${DB_DIR}:/opt/sertifikatsok/api/database" \
-  -v "${temp_dir}:/tmp/wwwcopy" \
+  -v "${WWW_DIR}:/tmp/wwwcopy" \
   -v "/var/log/caddy/:/logs" \
   -p 127.0.0.1:7001:7001 \
   --name "${CONTAINER_NAME}" \
   "${container_tag}" \
   --port 7001 --host 0.0.0.0 --log-files=/logs/sertifikatsok_{}.log
 
-docker exec "${CONTAINER_NAME}" cp --preserve=all -R /opt/sertifikatsok/www/. /tmp/wwwcopy
-
-rsync "$temp_dir/" "${WWW_DIR}" --delete --recursive --checksum
+docker exec "${CONTAINER_NAME}" cp --preserve=all --force -R /opt/sertifikatsok/www/. /tmp/wwwcopy
 
 echo "$head" > "${BIN_DIR}/last_deploy"
