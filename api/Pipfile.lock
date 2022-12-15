@@ -1116,11 +1116,11 @@
         },
         "pathspec": {
             "hashes": [
-                "sha256:88c2606f2c1e818b978540f73ecc908e13999c6c3a383daf3705652ae79807a5",
-                "sha256:8f6bf73e5758fd365ef5d58ce09ac7c27d2833a8d7da51712eac6e27e35141b0"
+                "sha256:3c95343af8b756205e2aba76e843ba9520a24dd84f68c22b9f93251507509dd6",
+                "sha256:56200de4077d9d0791465aa9095a01d421861e405b5096955051deefd697d6f6"
             ],
             "markers": "python_version >= '3.7'",
-            "version": "==0.10.2"
+            "version": "==0.10.3"
         },
         "platformdirs": {
             "hashes": [
@@ -1164,11 +1164,11 @@
         },
         "pytest-asyncio": {
             "hashes": [
-                "sha256:07e0abf9e6e6b95894a39f688a4a875d63c2128f76c02d03d16ccbc35bcc0f8a",
-                "sha256:32a87a9836298a881c0ec637ebcc952cfe23a56436bdc0d09d1511941dd8a812"
+                "sha256:83cbf01169ce3e8eb71c6c278ccb0574d1a7a3bb8eaaf5e50e0ad342afb33b36",
+                "sha256:f129998b209d04fcc65c96fc85c11e5316738358909a8399e93be553d7656442"
             ],
             "index": "pypi",
-            "version": "==0.20.2"
+            "version": "==0.20.3"
         },
         "pyyaml": {
             "hashes": [
