@@ -342,6 +342,11 @@ const getResponse = async function (query) {
     try {
         response = await $.getJSON(`/api${query}`);
     } catch (error) {
+        if (window.location.search !== query) {
+            // User has navigated away while
+            // we were waiting for the response.
+            return;
+        }
         if (error.responseJSON) {
             handleFatalError(error.responseJSON.error);
         } else {
@@ -349,6 +354,11 @@ const getResponse = async function (query) {
                 'Vennligst prøv igjen senere.');
         };
         return false;
+    }
+    if (window.location.search !== query) {
+        // User has navigated away while
+        // we were waiting for the response.
+        return;
     }
     loadResultGUI(response);
 };
