@@ -286,6 +286,7 @@ const loadSearchGUI = function () {
 
 const loadResultGUI = function (response) {
     $('#body-container').empty();
+    document.title = `Sertifikatsøk - ${response.subject}`;
     handleMessages(response.errors, response.searchDetails);
 
     const certType = response.searchDetails.Type.toLowerCase();
@@ -364,6 +365,8 @@ const selectText = function (element) {
 };
 
 const loadPage = function () {
+    document.title = 'Sertifikatsøk';
+
     if (window.location.search !== '') {
         // Result view
         if (window.location.search !== lastQuery) {
