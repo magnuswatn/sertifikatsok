@@ -211,8 +211,9 @@ def _get_norwegian_error_message(error_code: str) -> str:
         )
     if error_code == "ERR-006":
         return (
-            "Det er kun Buypass som støtter søk på e-postadresse, "
-            "så eventuelle Commfides-sertifikater vil ikke vises på slike søk"
+            "Søk på e-postadresse finner kun eldre Buypass-sertifikater. "
+            "Eventuelle Commfides- eller nyere Buypass-sertifikater "
+            "vil ikke bli funnet på slike søk"
         )
     if error_code == "ERR-008":
         return (
@@ -226,7 +227,7 @@ def _get_norwegian_error_message(error_code: str) -> str:
         )
     if error_code == "ERR-010":
         return (
-            "Søk på avtrykk/thumbprint er ikke helt pålitelig, og resultatet kan"
-            " variere"
+            "Søk på avtrykk/thumbprint er ikke helt pålitelig, så det er"
+            " mulig at sertifikatet eksisterer, selv om det ikke ble funnet"
         )
     return "Det har skjedd en ukjent feil"

@@ -203,7 +203,8 @@ class LdapSearchParams:
                     cleaned_query, search_params.env
                 )
                 ldap_query = ""
-                limitations.append("ERR-010")
+                if not ldap_servers:
+                    limitations.append("ERR-010")
 
             elif len(cleaned_query) == 64:
                 # matches the length of a SHA256 thumbprint
@@ -211,7 +212,8 @@ class LdapSearchParams:
                     cleaned_query, search_params.env
                 )
                 ldap_query = ""
-                limitations.append("ERR-010")
+                if not ldap_servers:
+                    limitations.append("ERR-010")
 
             else:
                 serial_number = str(int(cleaned_query, 16))
