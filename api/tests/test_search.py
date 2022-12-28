@@ -168,7 +168,16 @@ class TestLdapSearchParams:
             == "(certificateSerialNumber=24165265156868740537026946)"
         )
 
-    def test_should_auto_detect_sha2_thumbprint(self, database: Database) -> None:
+    @pytest.mark.parametrize(
+        "thumbprint",
+        [
+            "38a6dcc494484553c8291fce2ab8d5b5311caa02",  # sha1
+            "f9d1af62d004d4da648929bc7dde552685979d6e6a78dc8f9b64eb08e9c4ccb7",  # sha2
+        ],
+    )
+    def test_should_auto_detect_thumbprint(
+        self, thumbprint: str, database: Database
+    ) -> None:
 
         database.insert_certificates(
             [("mordi=213,dc=MagnusCA,dc=watn,dc=no", [b"hei"])], "ldap.buypass.no"
@@ -177,13 +186,13 @@ class TestLdapSearchParams:
         search_params = SearchParams(
             Environment.PROD,
             CertType.PERSONAL,
-            "f9d1af62d004d4da648929bc7dde552685979d6e6a78dc8f9b64eb08e9c4ccb7",
+            thumbprint,
             None,
         )
 
         ldap_search_params = LdapSearchParams.create(search_params, database)
         assert ldap_search_params.scope == LDAPSearchScope.SUB
-        assert len(ldap_search_params.limitations) == 1
+        assert len(ldap_search_params.limitations) == 0
         assert len(ldap_search_params.ldap_servers) == 1
         assert ldap_search_params.ldap_query == ""
         assert (
@@ -191,28 +200,29 @@ class TestLdapSearchParams:
             == "mordi=213,dc=MagnusCA,dc=watn,dc=no"
         )
 
-    def test_should_auto_detect_sha1_thumbprint(self, database: Database) -> None:
-
-        database.insert_certificates(
-            [("mordi=213,dc=MagnusCA,dc=watn,dc=no", [b"hei"])], "ldap.buypass.no"
-        )
+    @pytest.mark.parametrize(
+        "thumbprint",
+        [
+            "38a6dcc494484553c8291fce2ab8d5b5311caa02",  # sha1
+            "f9d1af62d004d4da648929bc7dde552685979d6e6a78dc8f9b64eb08e9c4ccb8",  # sha2
+        ],
+    )
+    def test_should_warn_when_thumbprint_yielded_no_match(
+        self, thumbprint: str, database: Database
+    ) -> None:
 
         search_params = SearchParams(
             Environment.PROD,
             CertType.PERSONAL,
-            "38a6dcc494484553c8291fce2ab8d5b5311caa02",
+            thumbprint,
             None,
         )
 
         ldap_search_params = LdapSearchParams.create(search_params, database)
         assert ldap_search_params.scope == LDAPSearchScope.SUB
+        assert len(ldap_search_params.ldap_servers) == 0
         assert len(ldap_search_params.limitations) == 1
-        assert len(ldap_search_params.ldap_servers) == 1
-        assert ldap_search_params.ldap_query == ""
-        assert (
-            ldap_search_params.ldap_servers[0].base
-            == "mordi=213,dc=MagnusCA,dc=watn,dc=no"
-        )
+        assert ldap_search_params.limitations == ["ERR-010"]
 
     def test_should_auto_detect_thumbprint_handle_unknown(
         self, database: Database
