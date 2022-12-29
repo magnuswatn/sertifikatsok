@@ -4,10 +4,11 @@ import asyncio
 import logging
 from urllib.parse import unquote, urlparse
 
-import bonsai  # type: ignore
+import bonsai
 from aiohttp.web import Request
 from attrs import field, frozen, mutable
 from bonsai import escape_filter_exp
+from bonsai.asyncio import AIOLDAPConnection
 
 from .constants import (
     EMAIL_REGEX,
@@ -361,7 +362,9 @@ class CertificateSearch:
         all_results: list[bonsai.LDAPEntry] = []
         search_filter = self.ldap_params.ldap_query
         logger.debug("Starting: ldap search against: %s", ldap_server)
-        with (await client.connect(is_async=True, timeout=LDAP_TIMEOUT)) as conn:
+
+        conn: AIOLDAPConnection
+        async with client.connect(is_async=True, timeout=LDAP_TIMEOUT) as conn:
             while count < LDAP_RETRIES:
                 logger.debug(
                     'Doing search with filter "%s" against "%s"',

@@ -1,5 +1,5 @@
 import pytest
-from bonsai import LDAPSearchScope  # type: ignore
+from bonsai import LDAPSearchScope
 
 from sertifikatsok.db import Database
 from sertifikatsok.enums import (

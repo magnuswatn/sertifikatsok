@@ -1,4 +1,4 @@
-from bonsai import escape_filter_exp  # type: ignore
+from bonsai import escape_filter_exp
 
 from .enums import SearchAttribute
 
