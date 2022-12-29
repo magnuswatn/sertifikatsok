@@ -209,7 +209,6 @@ class TestAppCrlRetriever:
         assert "CRL failed signature validation" in error.value.args[0]
 
 
-@pytest.mark.asyncio
 class TestRequestCrlRetriever:
     async def test_retrieve_ok(self, ca: CertificateAuthority) -> None:
 
@@ -298,7 +297,6 @@ class TestRequestCrlRetriever:
         assert retrieved_crl2_2 == crl
 
 
-@pytest.mark.asyncio
 class TestCertValidator:
     async def test_non_trusted_cert(self, ee_cert: x509.Certificate) -> None:
         cert_validator = CertValidator(
@@ -399,7 +397,6 @@ class TestCertValidator:
         assert revocation_date is None
 
 
-@pytest.mark.asyncio
 class TestCrlDownloader:
     async def test_ok_download(self) -> None:
         transport = httpx.MockTransport(
