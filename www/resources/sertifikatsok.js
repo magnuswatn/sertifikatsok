@@ -104,11 +104,15 @@ const getNorwegianDate = (function () {
         'november', 'desember',
     ];
 
-    return function (dateString) {
+    return function (dateString, includeTime = false) {
         const date = new Date(dateString);
 
-        return `${date.getDate()}. ${monthNames[date.getMonth()]} ` +
+        let norwegianDate = `${date.getDate()}. ${monthNames[date.getMonth()]} ` +
             `${date.getFullYear()}`;
+        if (includeTime) {
+            norwegianDate += ` kl. ${date.getHours()}:${date.getMinutes()}`;
+        }
+        return norwegianDate;
     };
 })();
 
@@ -182,7 +186,7 @@ const showCertificateSets = function (certificateSets) {
 
             $collapsibleBodySpan.append(getNotificationMessages(certificateSet));
 
-            const norwegianToDate = getNorwegianDate(certificateSet.valid_to);
+            const norwegianToDate = getNorwegianDate(certificateSet.valid_to, true);
             const certificateSetIntro = `Dette settet er gyldig til ` +
                 `${norwegianToDate}`;
 
