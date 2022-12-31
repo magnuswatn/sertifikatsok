@@ -21,7 +21,13 @@ from .constants import (
 )
 from .crypto import CertValidator
 from .db import Database, Organization
-from .enums import CertificateAuthority, CertType, Environment, SearchAttribute
+from .enums import (
+    CertificateAuthority,
+    CertType,
+    Environment,
+    SearchAttribute,
+    SearchType,
+)
 from .errors import ClientError
 from .ldap import LDAP_SERVERS, LdapServer
 from .logging import performance_log
@@ -76,6 +82,7 @@ class LdapSearchParams:
     ldap_servers: list[LdapServer]
     limitations: list[str]
     organization: Organization | None
+    search_type: SearchType
 
     @classmethod
     def create(
@@ -92,7 +99,7 @@ class LdapSearchParams:
 
             ldap_query = create_ldap_filter([(search_params.attr, search_params.query)])
 
-            return cls(ldap_query, scope, ldap_servers, [], None)
+            return cls(ldap_query, scope, ldap_servers, [], None, SearchType.CUSTOM)
 
         if search_params.query.startswith("ldap://"):
             return cls._parse_ldap_url(search_params)
@@ -119,6 +126,7 @@ class LdapSearchParams:
         if typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
             # (spaces allowed by the regex)
             query = query.replace(" ", "")
+            search_type = SearchType.ORG_NR
 
             organization = database.get_organization(query)
             if organization is not None and organization.is_child:
@@ -151,6 +159,8 @@ class LdapSearchParams:
         # for it in the serialNumber field, both without (SEID 1) and with (SEID 2)
         # the "UN:NO-" prefix.
         elif typ == CertType.PERSONAL and PERSONAL_SERIAL_REGEX.fullmatch(query):
+            search_type = SearchType.PERSONAL_SERIAL
+
             if query.startswith("UN:NO-"):
                 query = query[6:]
 
@@ -180,6 +190,8 @@ class LdapSearchParams:
         # If the query looks like an email address, we search for it in the
         # MAIL attribute.
         elif typ == CertType.PERSONAL and EMAIL_REGEX.fullmatch(query):
+            search_type = SearchType.EMAIL
+
             ldap_query = create_ldap_filter([(SearchAttribute.MAIL, query)])
 
             # Only Buypass have the mail attribute in their LDAP catalog.
@@ -193,12 +205,14 @@ class LdapSearchParams:
         # Try the certificateSerialNumber field, if it looks like a serial number,
         # or check the database after the thumbprint if it looks like a hash.
         elif INT_SERIAL_REGEX.fullmatch(query):
+            search_type = SearchType.CERT_SERIAL
             ldap_query = create_ldap_filter([(SearchAttribute.CSN, query)])
         elif HEX_SERIAL_REGEX.fullmatch(query):
 
             cleaned_query = query.replace(":", "").replace(" ", "").lower()
 
             if len(cleaned_query) == 40:
+                search_type = SearchType.THUMBPRINT
                 # matches the length of a SHA1 thumbprint
                 ldap_servers = database.find_cert_from_sha1(
                     cleaned_query, search_params.env
@@ -208,6 +222,7 @@ class LdapSearchParams:
                     limitations.append("ERR-010")
 
             elif len(cleaned_query) == 64:
+                search_type = SearchType.THUMBPRINT
                 # matches the length of a SHA256 thumbprint
                 ldap_servers = database.find_cert_from_sha2(
                     cleaned_query, search_params.env
@@ -217,11 +232,13 @@ class LdapSearchParams:
                     limitations.append("ERR-010")
 
             else:
+                search_type = SearchType.CERT_SERIAL
                 serial_number = str(int(cleaned_query, 16))
                 ldap_query = create_ldap_filter([(SearchAttribute.CSN, serial_number)])
 
         # Fallback to the Common Name field.
         else:
+            search_type = SearchType.FALLBACK
             ldap_query = create_ldap_filter([(SearchAttribute.CN, query)])
 
         return cls(
@@ -230,6 +247,7 @@ class LdapSearchParams:
             ldap_servers,
             limitations,
             organization,
+            search_type,
         )
 
     @classmethod
@@ -294,7 +312,7 @@ class LdapSearchParams:
         if len(filtr) > 150 or filtr.count("(") != filtr.count(")"):
             raise ClientError("Invalid filter in url")
 
-        return cls(filtr, scope, [ldap_server], limitations, None)
+        return cls(filtr, scope, [ldap_server], limitations, None, SearchType.LDAP_URL)
 
 
 @mutable

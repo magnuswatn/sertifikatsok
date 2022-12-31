@@ -44,14 +44,21 @@ class AuditLogger:
         else:
             org = ""
 
+        search_type = (
+            self.results.search.ldap_params.search_type.value
+            if self.results is not None
+            else ""
+        )
+
         audit_logger.info(
-            "IP=%s ENV=%s TYPE=%s QUERY='%s' GUIDED_MAIN_ORG_SEARCH=%s "
+            "IP=%s ENV=%s TYPE=%s QUERY='%s' GUIDED_MAIN_ORG_SEARCH=%s TYPE=%s "
             "ORG='%s' NUMBER_OF_RESULTS=%d RESULT=%s CORRELATION_ID=%s",
             ip,
             self.request.query.get("env"),
             self.request.query.get("type"),
             self.request.query.get("query"),
             self.request.query.get("guidedMainOrgSearch") is not None,
+            search_type,
             org,
             len(self.results.cert_sets) if self.results else 0,
             result,

@@ -7,6 +7,7 @@ from sertifikatsok.enums import (
     CertType,
     Environment,
     SearchAttribute,
+    SearchType,
 )
 from sertifikatsok.errors import ClientError
 from sertifikatsok.search import LdapSearchParams, SearchParams
@@ -38,6 +39,7 @@ class TestLdapSearchParams:
             ldap_search_params.ldap_query
             == "(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))"
         )
+        assert ldap_search_params.search_type == SearchType.LDAP_URL
 
     def test_should_auto_detect_url_commfides(self, database: Database) -> None:
         search_params = SearchParams(
@@ -60,6 +62,7 @@ class TestLdapSearchParams:
             ldap_search_params.ldap_query
             == "(certificateSerialNumber=130F751161B26168)"
         )
+        assert ldap_search_params.search_type == SearchType.LDAP_URL
 
     def test_should_auto_detect_url_and_warn_about_wrong_env(
         self, database: Database
@@ -85,6 +88,7 @@ class TestLdapSearchParams:
             ldap_search_params.ldap_query
             == "(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))"
         )
+        assert ldap_search_params.search_type == SearchType.LDAP_URL
 
     def test_should_reject_invalid_url(self, database: Database) -> None:
         search_params = SearchParams(
@@ -121,6 +125,7 @@ class TestLdapSearchParams:
             ldap_search_params.ldap_query
             == "(certificateSerialNumber=17499973611207260349135611)"
         )
+        assert ldap_search_params.search_type == SearchType.CERT_SERIAL
 
     def test_should_auto_detect_hex_serial_spaces(self, database: Database) -> None:
         search_params = SearchParams(
@@ -144,6 +149,7 @@ class TestLdapSearchParams:
             ldap_search_params.ldap_query
             == "(certificateSerialNumber=24165265156868740537026946)"
         )
+        assert ldap_search_params.search_type == SearchType.CERT_SERIAL
 
     def test_should_auto_detect_hex_serial_continuous(self, database: Database) -> None:
         search_params = SearchParams(
@@ -167,6 +173,7 @@ class TestLdapSearchParams:
             ldap_search_params.ldap_query
             == "(certificateSerialNumber=24165265156868740537026946)"
         )
+        assert ldap_search_params.search_type == SearchType.CERT_SERIAL
 
     @pytest.mark.parametrize(
         "thumbprint",
@@ -199,6 +206,7 @@ class TestLdapSearchParams:
             ldap_search_params.ldap_servers[0].base
             == "mordi=213,dc=MagnusCA,dc=watn,dc=no"
         )
+        assert ldap_search_params.search_type == SearchType.THUMBPRINT
 
     @pytest.mark.parametrize(
         "thumbprint",
@@ -244,6 +252,7 @@ class TestLdapSearchParams:
         assert len(ldap_search_params.limitations) == 1
         assert len(ldap_search_params.ldap_servers) == 0
         assert ldap_search_params.ldap_query == ""
+        assert ldap_search_params.search_type == SearchType.THUMBPRINT
 
     def test_should_auto_detect_org_nr_not_in_db(self, database: Database) -> None:
         search_params = SearchParams(
@@ -268,6 +277,7 @@ class TestLdapSearchParams:
             == "(|(serialNumber=995546973)(organizationIdentifier=NTRNO-995546973))"
         )
         assert ldap_search_params.organization is None
+        assert ldap_search_params.search_type == SearchType.ORG_NR
 
     def test_should_auto_detect_org_nr_child(self, database: Database) -> None:
 
@@ -305,6 +315,7 @@ class TestLdapSearchParams:
         assert ldap_search_params.organization.name == "APOTEK 1 ULRIKSDAL"
         assert ldap_search_params.organization.orgnr == "991056505"
         assert ldap_search_params.organization.parent_orgnr == "983044778"
+        assert ldap_search_params.search_type == SearchType.ORG_NR
 
     def test_should_auto_detect_org_nr_main(self, database: Database) -> None:
 
@@ -344,6 +355,7 @@ class TestLdapSearchParams:
         )
         assert ldap_search_params.organization.orgnr == "995546973"
         assert ldap_search_params.organization.parent_orgnr is None
+        assert ldap_search_params.search_type == SearchType.ORG_NR
 
     def test_should_auto_detect_org_nr_main_with_parent(
         self, database: Database
@@ -385,6 +397,7 @@ class TestLdapSearchParams:
         )
         assert ldap_search_params.organization.orgnr == "995546973"
         assert ldap_search_params.organization.parent_orgnr == "12345689"
+        assert ldap_search_params.search_type == SearchType.ORG_NR
 
     def test_should_auto_detect_personal_serial_number(
         self, database: Database
@@ -410,6 +423,7 @@ class TestLdapSearchParams:
             ldap_search_params.ldap_query == "(|(serialNumber=9578-4505-00001pdEkL7)"
             "(serialNumber=UN:NO-9578-4505-00001pdEkL7))"
         )
+        assert ldap_search_params.search_type == SearchType.PERSONAL_SERIAL
 
     def test_should_auto_detect_email(self, database: Database) -> None:
         search_params = SearchParams(
@@ -431,6 +445,7 @@ class TestLdapSearchParams:
             for ldap_server in ldap_search_params.ldap_servers
         )
         assert ldap_search_params.ldap_query == "(mail=fornavn@etternavn.no)"
+        assert ldap_search_params.search_type == SearchType.EMAIL
 
     def test_should_fallback_to_cn(self, database: Database) -> None:
         search_params = SearchParams(
@@ -451,6 +466,7 @@ class TestLdapSearchParams:
             {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
         )
         assert ldap_search_params.ldap_query == "(cn=Min supertjeneste)"
+        assert ldap_search_params.search_type == SearchType.FALLBACK
 
     def test_should_respect_attribute(self, database: Database) -> None:
         search_params = SearchParams(
@@ -471,3 +487,4 @@ class TestLdapSearchParams:
             {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
         )
         assert ldap_search_params.ldap_query == "(ou=Min superunderenhet)"
+        assert ldap_search_params.search_type == SearchType.CUSTOM

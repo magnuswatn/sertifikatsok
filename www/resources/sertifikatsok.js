@@ -323,7 +323,7 @@ const updateSearchDetailsModal = function (searchDetails) {
     $modal = $('#sokedetaljer-modal');
     $modal.modal();
     const values = [
-        'Miljø', 'Type', 'Søkefilter',
+        'Miljø', 'Sertifikattype', 'Søketype', 'Søkefilter',
         'LDAP-servere forespurt', 'Korrelasjonsid'
     ];
 

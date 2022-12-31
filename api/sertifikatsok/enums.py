@@ -45,3 +45,14 @@ class SEID(Enum):
     UNKNOWN = 0
     SEID1 = 1
     SEID2 = 2
+
+
+class SearchType(Enum):
+    ORG_NR = "org_nr"
+    PERSONAL_SERIAL = "personal_serial"
+    CERT_SERIAL = "cert_serial"
+    THUMBPRINT = "thumbprint"
+    EMAIL = "email"
+    CUSTOM = "custom"
+    LDAP_URL = "ldap_url"
+    FALLBACK = "fallback"

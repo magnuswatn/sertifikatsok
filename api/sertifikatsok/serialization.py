@@ -11,7 +11,13 @@ from typing import Any
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import Encoding
 
-from .enums import CertificateRoles, CertificateStatus, CertType, Environment
+from .enums import (
+    CertificateRoles,
+    CertificateStatus,
+    CertType,
+    Environment,
+    SearchType,
+)
 from .logging import correlation_id_var
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
 from .search import CertificateSearchResponse
@@ -144,7 +150,9 @@ def certificate_search(val: CertificateSearchResponse) -> dict[str, Any]:
         search_type = "Ukjent"
 
     result["searchDetails"] = {
-        "Type": search_type,
+        "Type": search_type,  # TODO: remove
+        "Sertifikattype": search_type,
+        "Søketype": _get_norwegian_search_type(val.search.ldap_params.search_type),
         "Søkefilter": val.search.ldap_params.ldap_query,
         "Miljø": search_env,
         "LDAP-servere forespurt": ", ".join(
@@ -238,3 +246,23 @@ def _get_norwegian_error_message(error_code: str) -> str:
             " mulig at sertifikatet eksisterer, selv om det ikke ble funnet"
         )
     return "Det har skjedd en ukjent feil"
+
+
+def _get_norwegian_search_type(search_type: SearchType) -> str:
+    match search_type:
+        case SearchType.ORG_NR:
+            return "Organisasjonsnummer"
+        case SearchType.PERSONAL_SERIAL:
+            return "Personlig serienummer"
+        case SearchType.THUMBPRINT:
+            return "Avtrykk"
+        case SearchType.EMAIL:
+            return "E-post-adresse"
+        case SearchType.CUSTOM:
+            return "Egendefinert attributt"
+        case SearchType.LDAP_URL:
+            return "Ldap-url"
+        case SearchType.FALLBACK:
+            return "Fritekst (common name)"
+        case _:
+            return "Ukjent"
