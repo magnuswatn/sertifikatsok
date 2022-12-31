@@ -263,7 +263,6 @@ class QualifiedCertificateSet:
     certs: list[QualifiedCertificate]
     main_cert: QualifiedCertificate
     status: CertificateStatus
-    revocation_date: datetime | None
     org_number: str | None
     underenhet: bool
     seid2: bool
@@ -278,22 +277,18 @@ class QualifiedCertificateSet:
         main_cert = cls._get_non_encryption_cert(certs)
 
         status = main_cert.status
-        revocation_date = None
         # Just to be sure we don't label a set
         # with a revoked cert in it as OK
         for cert in certs:
             if cert.status == CertificateStatus.REVOKED:
                 status = cert.status
-                revocation_date = cert.revocation_date
                 break
             elif cert.cert.invalid:
                 status = CertificateStatus.INVALID
 
         org_number, underenhet = main_cert.get_orgnumber()
         seid2 = main_cert.seid == SEID.SEID2
-        return cls(
-            certs, main_cert, status, revocation_date, org_number, underenhet, seid2
-        )
+        return cls(certs, main_cert, status, org_number, underenhet, seid2)
 
     @classmethod
     def create_sets_from_certs(
