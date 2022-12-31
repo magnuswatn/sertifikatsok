@@ -88,6 +88,9 @@ const getNotificationMessages = function (certificateSet) {
             case 'ukjent':
                 $message.push($('#stashed-ukjent-notification').clone());
                 break;
+            case 'feilformatert':
+                $message.push($('#stashed-invalid-cert-notification').clone());
+                break;
         }
     });
     return $message;
@@ -502,6 +505,11 @@ $(document.body).on('click', '.pem-button', function (e) {
 
 $(document.body).on('click', '.revokert', function () {
     $('#revokert-modal').modal('open');
+    return false;
+});
+
+$(document.body).on('click', '.invalid-cert', function () {
+    $('#ugyldig-cert-modal').modal('open');
     return false;
 });
 

@@ -31,12 +31,12 @@ def qualified_certificate(val: QualifiedCertificate) -> dict[str, str | dict[str
     dumped["name"] = name
     info = {}  # noqa: SIM904
     info["Bruksområde(r)"] = usage
-    info["Serienummer (hex)"] = format(val.cert.serial_number, "x")
-    info["Serienummer (int)"] = str(val.cert.serial_number)
+    info["Serienummer (hex)"] = format(val.cert.cert.serial_number, "x")
+    info["Serienummer (int)"] = str(val.cert.cert.serial_number)
 
     # We use SHA1 here since thats what Windows uses
     info["Avtrykk (SHA-1)"] = codecs.encode(
-        val.cert.fingerprint(hashes.SHA1()), "hex"
+        val.cert.cert.fingerprint(hashes.SHA1()), "hex"
     ).decode("ascii")
     info["Emne"] = val.print_subject(full=True)
     info["Utsteder"] = val.issuer
@@ -49,16 +49,20 @@ def qualified_certificate(val: QualifiedCertificate) -> dict[str, str | dict[str
     info["Nøkkeltype"] = key_info if key_info is not None else "Ukjent"
 
     # If the type is unknown only the OID is present in the description
+    # (if it's present. otherwise it's an invalid cert)
     if val.type == CertType.UNKNOWN:
-        info["Type"] = f"Ukjent (oid: {val.description})"
+        info["Type"] = "Ukjent"
+        if val.description is not None:
+            info["Type"] += f" (oid: {val.description})"
     else:
+        assert val.description is not None
         info["Type"] = val.description
 
     info["Status"] = _get_norwegian_cert_status(val.status, val.revocation_date)
 
     dumped["info"] = info
     dumped["certificate"] = base64.b64encode(
-        val.cert.public_bytes(Encoding.DER)
+        val.cert.cert.public_bytes(Encoding.DER)
     ).decode("ascii")
 
     return dumped
@@ -69,12 +73,15 @@ def qualified_certificate_set(val: QualifiedCertificateSet) -> dict[str, Any]:
     dumped: dict[str, Any] = {}
 
     dumped["notices"] = []
-    if val.underenhet:
-        dumped["notices"].append("underenhet")
-    if val.typ == CertType.UNKNOWN:
-        dumped["notices"].append("ukjent")
-    if val.seid2:
-        dumped["notices"].append("seid2")
+    if val.main_cert.cert.invalid:
+        dumped["notices"].append("feilformatert")
+    else:
+        if val.underenhet:
+            dumped["notices"].append("underenhet")
+        if val.typ == CertType.UNKNOWN:
+            dumped["notices"].append("ukjent")
+        if val.seid2:
+            dumped["notices"].append("seid2")
 
     dumped["issuer"] = val.issuer
 

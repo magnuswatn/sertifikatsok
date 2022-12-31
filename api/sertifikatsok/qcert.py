@@ -11,8 +11,9 @@ from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.serialization import Encoding
-from cryptography.x509.oid import ExtensionOID, NameOID
+from cryptography.x509.oid import NameOID
 
+from .cert import MaybeInvalidCertificate
 from .constants import (
     EXTENDED_KEY_USAGES,
     KEY_USAGES,
@@ -35,14 +36,14 @@ class QualifiedCertificate:
 
     def __init__(
         self,
-        cert: x509.Certificate,
+        cert: MaybeInvalidCertificate,
         cert_serial: str | None,
         ldap_server: LdapServer,
         cert_status: CertificateStatus,
         revocation_date: datetime | None,
     ):
 
-        self.cert: x509.Certificate = cert
+        self.cert: MaybeInvalidCertificate = cert
         self.cert_serial = cert_serial
         self.issuer = self.cert.issuer.rfc4514_string(SUBJECT_FIELDS)
         self.type, self.description, self.seid = self._get_type()
@@ -60,24 +61,18 @@ class QualifiedCertificate:
         cert_validator: CertValidator,
     ) -> QualifiedCertificate:
 
-        cert = x509.load_der_x509_certificate(raw_cert)
-        # access the subject, so that we fail here if it's malformed,
-        # instead of at a "random" place later on.
-        # See https://github.com/magnuswatn/sertifikatsok/issues/132
-        cert.subject
+        cert = MaybeInvalidCertificate.create(raw_cert)
 
         cert_status, revocation_date = await cert_validator.validate_cert(cert)
 
         return cls(cert, cert_serial, ldap_server, cert_status, revocation_date)
 
-    def _get_type(self) -> tuple[CertType, str, SEID]:
+    def _get_type(self) -> tuple[CertType, str | None, SEID]:
         """Returns the type of certificate, based on issuer and Policy OID"""
-        cert_policies = cast(
-            x509.CertificatePolicies,
-            self.cert.extensions.get_extension_for_oid(
-                ExtensionOID.CERTIFICATE_POLICIES
-            ).value,
-        )
+        cert_policies = self.cert.cert_policies
+        if cert_policies is None:
+            # invalid cert
+            return (CertType.UNKNOWN, None, SEID.UNKNOWN)
 
         for policy in cert_policies:
             try:
@@ -106,10 +101,9 @@ class QualifiedCertificate:
         This function returns which role(s) this certificate has.
         """
         cert_roles = []
-        key_usage = cast(
-            x509.KeyUsage,
-            self.cert.extensions.get_extension_for_oid(ExtensionOID.KEY_USAGE).value,
-        )
+        key_usage = self.cert.key_usage
+        if key_usage is None:
+            return []
 
         if key_usage.digital_signature:
             cert_roles.append(CertificateRoles.AUTH)
@@ -129,6 +123,9 @@ class QualifiedCertificate:
         for all Person certificates, so they are not very useful
         and also different within a set.
         """
+        if self.cert.subject is None:
+            # invalid cert
+            return ""
 
         if full:
             return self.cert.subject.rfc4514_string(SUBJECT_FIELDS)
@@ -168,6 +165,10 @@ class QualifiedCertificate:
         if self.type != CertType.ENTERPRISE:
             return None, False
 
+        if self.cert.subject is None:
+            # invalid cert
+            return None, False
+
         serial_number_attr = self.cert.subject.get_attributes_for_oid(
             NameOID.SERIAL_NUMBER
         )
@@ -188,7 +189,7 @@ class QualifiedCertificate:
             org_number = cast(str, serial_number_attr[0].value)
         else:
             logger.error(
-                "Malformed cert: %s", self.cert.public_bytes(Encoding.PEM).decode()
+                "Malformed cert: %s", self.cert.cert.public_bytes(Encoding.PEM).decode()
             )
             raise MalformedCertificateError("Missing org number in subject")
 
@@ -210,7 +211,7 @@ class QualifiedCertificate:
         return org_number, False
 
     def get_key_info(self) -> str | None:
-        pub_key = self.cert.public_key()
+        pub_key = self.cert.cert.public_key()
         if isinstance(pub_key, RSAPublicKey):
             return f"RSA ({pub_key.key_size} bits)"
         if isinstance(pub_key, EllipticCurvePublicKey):
@@ -220,12 +221,14 @@ class QualifiedCertificate:
 
     def get_key_usages(self) -> str:
         """Returns a string with the key usages from the cert"""
+        cert_key_usage = self.cert.key_usage
+        if cert_key_usage is None:
+            return ""
+
         key_usages = []
         for key_usage in KEY_USAGES:
             if getattr(
-                self.cert.extensions.get_extension_for_oid(
-                    ExtensionOID.KEY_USAGE
-                ).value,
+                cert_key_usage,
                 key_usage[0],
             ):
                 key_usages.append(key_usage[1])
@@ -234,14 +237,13 @@ class QualifiedCertificate:
     def get_extended_key_usages(self) -> str | None:
         """Returns a string with the extended key usages from the cert"""
         try:
-            cert_eku = cast(
-                x509.ExtendedKeyUsage,
-                self.cert.extensions.get_extension_for_oid(
-                    ExtensionOID.EXTENDED_KEY_USAGE
-                ).value,
-            )
+            cert_eku = self.cert.extended_key_usage
         except x509.ExtensionNotFound:
             return None
+
+        if cert_eku is None:
+            # invalid cert
+            return ""
 
         ekus = []
         for eku in cert_eku:
@@ -283,6 +285,9 @@ class QualifiedCertificateSet:
             if cert.status == CertificateStatus.REVOKED:
                 status = cert.status
                 revocation_date = cert.revocation_date
+                break
+            elif cert.cert.invalid:
+                status = CertificateStatus.INVALID
 
         org_number, underenhet = main_cert.get_orgnumber()
         seid2 = main_cert.seid == SEID.SEID2

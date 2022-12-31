@@ -11,6 +11,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 
+from sertifikatsok.cert import MaybeInvalidCertificate
 from sertifikatsok.crypto import (
     AppCrlRetriever,
     CertRetriever,
@@ -116,7 +117,7 @@ class CertificateAuthority:
 
     def generate_ee_cert(
         self, name: str, expired: bool = False, crl_endpoint: str | None = None
-    ) -> x509.Certificate:
+    ) -> MaybeInvalidCertificate:
 
         date_skew = datetime.timedelta(days=-120 if expired else 0)
         if crl_endpoint is None:
@@ -169,7 +170,9 @@ class CertificateAuthority:
                 algorithm=hashes.SHA256(),
             )
         )
-        return cert
+        return MaybeInvalidCertificate(
+            cert, False, cert.issuer, cert.subject, cert.extensions
+        )
 
 
 @pytest.fixture(scope="module")
@@ -178,7 +181,7 @@ def ca() -> CertificateAuthority:
 
 
 @pytest.fixture(scope="module")
-def ee_cert(ca: CertificateAuthority) -> x509.Certificate:
+def ee_cert(ca: CertificateAuthority) -> MaybeInvalidCertificate:
     return ca.generate_ee_cert("sertifikatsok.no")
 
 
@@ -298,7 +301,7 @@ class TestRequestCrlRetriever:
 
 
 class TestCertValidator:
-    async def test_non_trusted_cert(self, ee_cert: x509.Certificate) -> None:
+    async def test_non_trusted_cert(self, ee_cert: MaybeInvalidCertificate) -> None:
         cert_validator = CertValidator(
             CertRetriever({}),  # no trusted certs
             DummyRequestCrlRetriever({}),
@@ -307,7 +310,7 @@ class TestCertValidator:
         assert cert_status == CertificateStatus.INVALID
         assert revocation_date is None
 
-    async def test_invalid_signature(self, ee_cert: x509.Certificate) -> None:
+    async def test_invalid_signature(self, ee_cert: MaybeInvalidCertificate) -> None:
         # same name, but different key
         ca2 = CertificateAuthority.create("sertifikatsok.no CA")
 
@@ -330,7 +333,7 @@ class TestCertValidator:
         assert revocation_date is None
 
     async def test_invalid_crl(
-        self, ca: CertificateAuthority, ee_cert: x509.Certificate
+        self, ca: CertificateAuthority, ee_cert: MaybeInvalidCertificate
     ) -> None:
         cert_validator = CertValidator(
             CertRetriever({ca.cert.subject: ca.cert}),
@@ -342,9 +345,9 @@ class TestCertValidator:
         assert cert_validator.errors == ["ERR-003"]
 
     async def test_revoked_cert(
-        self, ca: CertificateAuthority, ee_cert: x509.Certificate
+        self, ca: CertificateAuthority, ee_cert: MaybeInvalidCertificate
     ) -> None:
-        crl = ca.generate_crl([ee_cert])
+        crl = ca.generate_crl([ee_cert.cert])
 
         cert_validator = CertValidator(
             CertRetriever({ca.cert.subject: ca.cert}),
@@ -358,7 +361,7 @@ class TestCertValidator:
         assert revocation_date is not None
 
     async def test_ok_cert(
-        self, ca: CertificateAuthority, ee_cert: x509.Certificate
+        self, ca: CertificateAuthority, ee_cert: MaybeInvalidCertificate
     ) -> None:
         crl = ca.generate_crl([])
 

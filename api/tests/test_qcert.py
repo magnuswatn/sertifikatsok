@@ -1,14 +1,19 @@
 from base64 import b64decode
 
-from cryptography import x509
+import pytest
 
+from sertifikatsok.cert import MaybeInvalidCertificate
 from sertifikatsok.enums import (
+    SEID,
     CertificateAuthority,
     CertificateRoles,
     CertificateStatus,
+    CertType,
 )
 from sertifikatsok.ldap import LdapServer
 from sertifikatsok.qcert import QualifiedCertificate, QualifiedCertificateSet
+
+from .testlib import read_pem_file
 
 
 class TestQualifiedCertificateSet:
@@ -21,7 +26,7 @@ class TestQualifiedCertificateSet:
         ]
         certs = [
             QualifiedCertificate(
-                x509.load_der_x509_certificate(b64decode(cert)),
+                MaybeInvalidCertificate.create(b64decode(cert)),
                 "",
                 LdapServer("", "", CertificateAuthority.BUYPASS, []),
                 CertificateStatus.EXPIRED,
@@ -41,7 +46,7 @@ class TestQualifiedCertificateSet:
         ]
         certs = [
             QualifiedCertificate(
-                x509.load_der_x509_certificate(b64decode(cert)),
+                MaybeInvalidCertificate.create(b64decode(cert)),
                 "",
                 LdapServer("", "", CertificateAuthority.COMMFIDES, []),
                 CertificateStatus.EXPIRED,
@@ -61,7 +66,7 @@ class TestQualifiedCertificateSet:
         ]
         certs = [
             QualifiedCertificate(
-                x509.load_der_x509_certificate(b64decode(cert)),
+                MaybeInvalidCertificate.create(b64decode(cert)),
                 "",
                 LdapServer("", "", CertificateAuthority.COMMFIDES, []),
                 CertificateStatus.EXPIRED,
@@ -83,7 +88,7 @@ class TestQualifiedCertificateSet:
         ]
         certs = [
             QualifiedCertificate(
-                x509.load_der_x509_certificate(b64decode(cert)),
+                MaybeInvalidCertificate.create(b64decode(cert)),
                 "",
                 LdapServer("", "", CertificateAuthority.COMMFIDES, []),
                 CertificateStatus.OK,
@@ -112,7 +117,7 @@ class TestQualifiedCertificateSet:
         ]
         certs = [
             QualifiedCertificate(
-                x509.load_der_x509_certificate(b64decode(cert)),
+                MaybeInvalidCertificate.create(b64decode(cert)),
                 "",
                 LdapServer("", "", CertificateAuthority.COMMFIDES, []),
                 CertificateStatus.EXPIRED,
@@ -135,7 +140,7 @@ class TestQualifiedCertificateSet:
         ]
         certs = [
             QualifiedCertificate(
-                x509.load_der_x509_certificate(b64decode(cert)),
+                MaybeInvalidCertificate.create(b64decode(cert)),
                 "",
                 LdapServer("", "", CertificateAuthority.COMMFIDES, []),
                 CertificateStatus.EXPIRED,
@@ -156,7 +161,7 @@ class TestQualifiedCertificateSet:
         ]
         certs = [
             QualifiedCertificate(
-                x509.load_der_x509_certificate(b64decode(cert)),
+                MaybeInvalidCertificate.create(b64decode(cert)),
                 "",
                 LdapServer("", "", CertificateAuthority.BUYPASS, []),
                 CertificateStatus.EXPIRED,
@@ -167,3 +172,40 @@ class TestQualifiedCertificateSet:
         non_encryption_cert = QualifiedCertificateSet._get_non_encryption_cert(certs)
         assert "Key encipherment" not in non_encryption_cert.get_key_usages()
         assert CertificateRoles.CRYPT not in non_encryption_cert.roles
+
+    @pytest.mark.parametrize(
+        ["file_path", "invalid_subject", "invalid_exts"],
+        [
+            ("tests/resources/cert_with_invalid_subject.pem", True, False),
+            ("tests/resources/cert_with_invalid_extensions.pem", False, True),
+            (
+                "tests/resources/cert_with_invalid_subject_and_extensions.pem",
+                True,
+                True,
+            ),
+        ],
+    )
+    def test_invalid_cert(
+        self, file_path: str, invalid_subject: bool, invalid_exts: bool
+    ) -> None:
+        raw_cert = read_pem_file(file_path)
+        qcert = QualifiedCertificate(
+            MaybeInvalidCertificate.create(raw_cert),
+            "",
+            LdapServer("", "", CertificateAuthority.BUYPASS, []),
+            CertificateStatus.UNKNOWN,
+            None,
+        )
+        if invalid_subject:
+            assert qcert.print_subject(full=False) == ""
+            assert qcert.print_subject(full=True) == ""
+
+        if invalid_exts:
+            assert qcert.get_key_usages() == ""
+            assert qcert.get_extended_key_usages() == ""
+            assert qcert.seid == SEID.UNKNOWN
+            assert qcert.roles == []
+            assert qcert.type == CertType.UNKNOWN
+
+        [qcert_set] = QualifiedCertificateSet.create_sets_from_certs([qcert])
+        assert qcert_set.status == CertificateStatus.INVALID

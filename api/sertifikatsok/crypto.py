@@ -14,6 +14,7 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.hashes import HashAlgorithm
 from httpx import AsyncClient, HTTPError
 
+from .cert import MaybeInvalidCertificate
 from .enums import CertificateStatus, Environment
 from .errors import ConfigurationError, CouldNotGetValidCRLError
 from .logging import performance_log
@@ -300,7 +301,7 @@ class CertValidator:
         return self._crl_retriever.errors
 
     async def validate_cert(
-        self, cert: x509.Certificate
+        self, cert: MaybeInvalidCertificate
     ) -> tuple[CertificateStatus, datetime | None]:
         status = CertificateStatus.UNKNOWN
         revocation_date = None
@@ -310,9 +311,9 @@ class CertValidator:
             # TODO: Should this be UNKNOWN? We don't
             # trust the issuer, but others might...
             status = CertificateStatus.INVALID
-        elif not self._validate_cert_against_issuer(cert, issuer):
+        elif not self._validate_cert_against_issuer(cert.cert, issuer):
             status = CertificateStatus.INVALID
-        elif not self._check_date_on_cert(cert):
+        elif not self._check_date_on_cert(cert.cert):
             status = CertificateStatus.EXPIRED
         else:
             # This will mark certs without CDP as unknown.
@@ -325,7 +326,7 @@ class CertValidator:
                 status = CertificateStatus.UNKNOWN
             else:
                 revoked_cert = crl.get_revoked_certificate_by_serial_number(
-                    cert.serial_number
+                    cert.cert.serial_number
                 )
                 if revoked_cert is not None:
                     status = CertificateStatus.REVOKED
@@ -335,22 +336,25 @@ class CertValidator:
         return status, revocation_date
 
     async def _get_crl(
-        self, cert: x509.Certificate, issuer: x509.Certificate
+        self, cert: MaybeInvalidCertificate, issuer: x509.Certificate
     ) -> x509.CertificateRevocationList | None:
         """
         Will try to download a crl for the certificate from a HTTP endpoint, if any.
         """
         try:
-            cdps = cert.extensions.get_extension_for_class(
-                x509.CRLDistributionPoints
-            ).value
+            cdps = cert.cdp
         except x509.ExtensionNotFound:
             logger.warn(
                 "Certificate without CDP extension: Subject: '%s' Issuer:'%s'",
-                cert.subject.rfc4514_string(),
+                cert.subject.rfc4514_string() if cert.subject else "__INVALID__",
                 cert.issuer.rfc4514_string(),
             )
             return None
+
+        if not cdps:
+            # cert with invalid extensions
+            return None
+
         http_cdp = None
         cdp: x509.DistributionPoint
         for cdp in cdps:

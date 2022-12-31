@@ -122,6 +122,18 @@
 					kommet på avveie. Slike sertifikater må ikke stoles på eller brukes.</p>
 			</div>
 		</div>
+		<div id="ugyldig-cert-modal" class="modal">
+			<div class="modal-content">
+				<div class="right"><a href="#!"
+						class="modal-action modal-close waves-effect waves-green btn-flat modal-close-button"><i
+							class="material-icons">close</i></a></div>
+				<h4>Feilformaterte sertifikater</h4>
+				<p>Disse sertifikatene er produsert feil av sertifikatutstederen (dette kan f.eks. være at særnorske
+					tegn er kodet på feil måte). Noen systemer vil fortsatt kunne tolke og bruke det korrekt, mens andre
+					systemer vil avvise sertifikatet. Dette sertifikatet bør erstattes, og vises derfor som ugyldig.
+				</p>
+			</div>
+		</div>
 		<div id="ukjent-modal" class="modal">
 			<div class="modal-content">
 				<div class="right"><a href="#!"
@@ -300,6 +312,18 @@
 						<div class="revokert card-panel orange hoverable">
 							<span class="white-text"><i class="material-icons">warning</i>Disse sertifikatene er
 								revokerte og dermed ikke gyldige</span>
+						</div>
+					</a>
+				</div>
+			</div>
+		</div>
+		<div id="stashed-invalid-cert-notification">
+			<div class="row">
+				<div class="col s12">
+					<a href="#">
+						<div class="invalid-cert card-panel orange hoverable">
+							<span class="white-text"><i class="material-icons">warning</i>Disse sertifikatene er
+								feilformaterte og det er derfor ikke mulig å vise all informasjon som normalt</span>
 						</div>
 					</a>
 				</div>
