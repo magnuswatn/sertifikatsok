@@ -103,59 +103,20 @@ class TestLdapSearchParams:
 
         assert error.value.args[0] == "Unsupported hostname in ldap url"
 
-    def test_should_auto_detect_hex_serial_colon(self, database: Database) -> None:
+    @pytest.mark.parametrize(
+        "serial",
+        [
+            "13:fd:31:a6:2a:a6:11:af:b6:89:82",  # hex with colons
+            "13 fd 31 a6 2a a6 11 af b6 89 82",  # hex with spaces
+            "13fd31a62aa611afb68982",  # hex continuous
+            "24165265156868740537026946",  # int
+        ],
+    )
+    def test_should_auto_detect_serial(self, serial: str, database: Database) -> None:
         search_params = SearchParams(
             Environment.PROD,
             CertType.PERSONAL,
-            "0e:79:c3:78:6b:2f:0f:af:33:fa:fb",
-            None,
-        )
-
-        ldap_search_params = LdapSearchParams.create(search_params, database)
-        assert ldap_search_params.scope == LDAPSearchScope.SUB
-        assert len(ldap_search_params.limitations) == 0
-        assert all(
-            CertType.PERSONAL in ldap_server.cert_types
-            for ldap_server in ldap_search_params.ldap_servers
-        )
-        assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
-            {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
-        )
-        assert (
-            ldap_search_params.ldap_query
-            == "(certificateSerialNumber=17499973611207260349135611)"
-        )
-        assert ldap_search_params.search_type == SearchType.CERT_SERIAL
-
-    def test_should_auto_detect_hex_serial_spaces(self, database: Database) -> None:
-        search_params = SearchParams(
-            Environment.PROD,
-            CertType.PERSONAL,
-            "13 fd 31 a6 2a a6 11 af b6 89 82",
-            None,
-        )
-
-        ldap_search_params = LdapSearchParams.create(search_params, database)
-        assert ldap_search_params.scope == LDAPSearchScope.SUB
-        assert len(ldap_search_params.limitations) == 0
-        assert all(
-            CertType.PERSONAL in ldap_server.cert_types
-            for ldap_server in ldap_search_params.ldap_servers
-        )
-        assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
-            {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
-        )
-        assert (
-            ldap_search_params.ldap_query
-            == "(certificateSerialNumber=24165265156868740537026946)"
-        )
-        assert ldap_search_params.search_type == SearchType.CERT_SERIAL
-
-    def test_should_auto_detect_hex_serial_continuous(self, database: Database) -> None:
-        search_params = SearchParams(
-            Environment.PROD,
-            CertType.PERSONAL,
-            "13fd31a62aa611afb68982",
+            serial,
             None,
         )
 
