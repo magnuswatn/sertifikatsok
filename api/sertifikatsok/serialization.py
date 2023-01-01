@@ -258,6 +258,8 @@ def _get_norwegian_search_type(search_type: SearchType) -> str:
             return "Avtrykk"
         case SearchType.EMAIL:
             return "E-post-adresse"
+        case SearchType.CERT_SERIAL:
+            return "Sertifikatserienummer"
         case SearchType.CUSTOM:
             return "Egendefinert attributt"
         case SearchType.LDAP_URL:
