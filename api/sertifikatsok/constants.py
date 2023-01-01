@@ -13,7 +13,7 @@ from .enums import SEID, CertType
 LDAP_TIMEOUT = 7
 LDAP_RETRIES = 5
 
-ORG_NUMBER_REGEX = re.compile(r"(?:\d\s?){9}")
+ORG_NUMBER_REGEX = re.compile(r"(?:NTRNO-\d{9})|(?:\d\s?){9}")
 UNDERENHET_REGEX = re.compile(r"(?<!\d)\d{9}(?!\d)")
 PERSONAL_SERIAL_REGEX = re.compile(r"(?:UN:NO-)?9578-(?:4505|4050|4510)-[A-z0-9]+")
 # (This is a bad email regex, but it's good enough

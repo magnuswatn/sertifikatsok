@@ -215,11 +215,14 @@ class TestLdapSearchParams:
         assert ldap_search_params.ldap_query == ""
         assert ldap_search_params.search_type == SearchType.THUMBPRINT
 
-    def test_should_auto_detect_org_nr_not_in_db(self, database: Database) -> None:
+    @pytest.mark.parametrize("orgnr", ["995546973", "995 546 973", "NTRNO-995546973"])
+    def test_should_auto_detect_org_nr_not_in_db(
+        self, database: Database, orgnr: str
+    ) -> None:
         search_params = SearchParams(
             Environment.PROD,
             CertType.ENTERPRISE,
-            "995 546 973",
+            orgnr,
             None,
         )
 
@@ -240,7 +243,10 @@ class TestLdapSearchParams:
         assert ldap_search_params.organization is None
         assert ldap_search_params.search_type == SearchType.ORG_NR
 
-    def test_should_auto_detect_org_nr_child(self, database: Database) -> None:
+    @pytest.mark.parametrize("orgnr", ["991 056 505", "991056505", "NTRNO-991056505"])
+    def test_should_auto_detect_org_nr_child(
+        self, database: Database, orgnr: str
+    ) -> None:
 
         database._connection.execute(
             """
@@ -253,7 +259,7 @@ class TestLdapSearchParams:
         search_params = SearchParams(
             Environment.PROD,
             CertType.ENTERPRISE,
-            "991 056 505",
+            orgnr,
             None,
         )
 
@@ -278,7 +284,10 @@ class TestLdapSearchParams:
         assert ldap_search_params.organization.parent_orgnr == "983044778"
         assert ldap_search_params.search_type == SearchType.ORG_NR
 
-    def test_should_auto_detect_org_nr_main(self, database: Database) -> None:
+    @pytest.mark.parametrize("orgnr", ["995 5469 73", "995546973", "NTRNO-995546973"])
+    def test_should_auto_detect_org_nr_main(
+        self, database: Database, orgnr: str
+    ) -> None:
 
         database._connection.execute(
             """
@@ -291,7 +300,7 @@ class TestLdapSearchParams:
         search_params = SearchParams(
             Environment.PROD,
             CertType.ENTERPRISE,
-            "995 5469 73",
+            orgnr,
             None,
         )
 
@@ -318,8 +327,9 @@ class TestLdapSearchParams:
         assert ldap_search_params.organization.parent_orgnr is None
         assert ldap_search_params.search_type == SearchType.ORG_NR
 
+    @pytest.mark.parametrize("orgnr", ["995 5469 73", "995546973", "NTRNO-995546973"])
     def test_should_auto_detect_org_nr_main_with_parent(
-        self, database: Database
+        self, database: Database, orgnr: str
     ) -> None:
 
         database._connection.execute(
@@ -333,7 +343,7 @@ class TestLdapSearchParams:
         search_params = SearchParams(
             Environment.PROD,
             CertType.ENTERPRISE,
-            "995 5469 73",
+            orgnr,
             None,
         )
 
@@ -360,13 +370,16 @@ class TestLdapSearchParams:
         assert ldap_search_params.organization.parent_orgnr == "12345689"
         assert ldap_search_params.search_type == SearchType.ORG_NR
 
+    @pytest.mark.parametrize(
+        "serial", ["9578-4505-00001pdEkL7", "UN:NO-9578-4505-00001pdEkL7"]
+    )
     def test_should_auto_detect_personal_serial_number(
-        self, database: Database
+        self, database: Database, serial: str
     ) -> None:
         search_params = SearchParams(
             Environment.PROD,
             CertType.PERSONAL,
-            "9578-4505-00001pdEkL7",
+            serial,
             None,
         )
 

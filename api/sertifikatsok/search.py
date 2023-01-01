@@ -124,9 +124,10 @@ class LdapSearchParams:
         # for it in the SERIALNUMBER field (SEID 1), and the
         # ORGANIZATION_IDENTIFIER field with a prefix (SEID 2).
         if typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
-            # (spaces allowed by the regex)
-            query = query.replace(" ", "")
             search_type = SearchType.ORG_NR
+
+            # (prefix or spaces allowed by the regex)
+            query = query[6:] if query.startswith("NTRNO-") else query.replace(" ", "")
 
             organization = database.get_organization(query)
             if organization is not None and organization.is_child:

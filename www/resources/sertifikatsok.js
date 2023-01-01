@@ -637,7 +637,7 @@ $(document.body).on('keyup', '#enterprise-search-value', async function () {
 });
 
 const isBrregSearchable = function (query) {
-    if (query.length < 4 || query.startsWith("ldap://")) {
+    if (query.length < 4 || query.startsWith("ldap://") || query.startsWith("NTRNO-")) {
         return false;
     }
 
