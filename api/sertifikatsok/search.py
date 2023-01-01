@@ -175,13 +175,13 @@ class LdapSearchParams:
             # If we are searching for personal certificates by serial number,
             # we can limit our search to only the relevant CA.
             ca_id = query.split("-")[1]
-            if ca_id in {"4050"}:
+            if ca_id == "4050":
                 ldap_servers = [
                     ldap_server
                     for ldap_server in ldap_servers
                     if ldap_server.ca == CertificateAuthority.BUYPASS
                 ]
-            elif ca_id in {"4505", "4510"}:
+            elif ca_id.startswith("45"):
                 ldap_servers = [
                     ldap_server
                     for ldap_server in ldap_servers

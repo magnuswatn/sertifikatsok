@@ -371,9 +371,25 @@ class TestLdapSearchParams:
         assert ldap_search_params.search_type == SearchType.ORG_NR
 
     @pytest.mark.parametrize(
-        "serial", ["9578-4505-00001pdEkL7", "UN:NO-9578-4505-00001pdEkL7"]
+        "serial",
+        [
+            "9578-4500-00001pdEkL7",
+            "9578-4501-00001pdEkL7",
+            "9578-4502-00001pdEkL7",
+            "9578-4503-00001pdEkL7",
+            "9578-4504-000011pFauG",
+            "9578-4505-00001pdEkL7",
+            "9578-4506-00001pdEkL7",
+            "9578-4507-00001pdEkL7",
+            "9578-4508-00001pdEkL7",
+            "9578-4509-00001cbmjW2",
+            "9578-4510-00003sIhOo0",
+            "UN:NO-9578-4501-00001pdEkL7",
+            "UN:NO-9578-4505-00001pdEkL7",
+            "UN:NO-9578-4510-00003sIhOo0",
+        ],
     )
-    def test_should_auto_detect_personal_serial_number(
+    def test_should_auto_detect_personal_serial_number_commfides(
         self, database: Database, serial: str
     ) -> None:
         search_params = SearchParams(
@@ -394,8 +410,41 @@ class TestLdapSearchParams:
             for ldap_server in ldap_search_params.ldap_servers
         )
         assert (
-            ldap_search_params.ldap_query == "(|(serialNumber=9578-4505-00001pdEkL7)"
-            "(serialNumber=UN:NO-9578-4505-00001pdEkL7))"
+            ldap_search_params.ldap_query
+            == f"(|(serialNumber={serial})(serialNumber=UN:NO-{serial}))"
+            or (
+                ldap_search_params.ldap_query
+                == f"(|(serialNumber={serial[6:]})(serialNumber={serial}))"
+            )
+        )
+        assert ldap_search_params.search_type == SearchType.PERSONAL_SERIAL
+
+    @pytest.mark.parametrize(
+        "serial", ["9578-4050-127091783", "UN:NO-9578-4050-127091783"]
+    )
+    def test_should_auto_detect_personal_serial_number_buypass(
+        self, database: Database, serial: str
+    ) -> None:
+        search_params = SearchParams(
+            Environment.PROD,
+            CertType.PERSONAL,
+            serial,
+            None,
+        )
+
+        ldap_search_params = LdapSearchParams.create(search_params, database)
+        assert ldap_search_params.scope == LDAPSearchScope.SUB
+        assert all(
+            CertType.PERSONAL in ldap_server.cert_types
+            for ldap_server in ldap_search_params.ldap_servers
+        )
+        assert all(
+            CertificateAuthority.BUYPASS == ldap_server.ca
+            for ldap_server in ldap_search_params.ldap_servers
+        )
+        assert (
+            ldap_search_params.ldap_query == "(|(serialNumber=9578-4050-127091783)"
+            "(serialNumber=UN:NO-9578-4050-127091783))"
         )
         assert ldap_search_params.search_type == SearchType.PERSONAL_SERIAL
 
