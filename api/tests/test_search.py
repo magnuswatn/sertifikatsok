@@ -103,6 +103,31 @@ class TestLdapSearchParams:
 
         assert error.value.args[0] == "Unsupported hostname in ldap url"
 
+    def test_should_auto_detect_url_with_garbage_prefix(
+        self, database: Database
+    ) -> None:
+        search_params = SearchParams(
+            Environment.PROD,
+            CertType.ENTERPRISE,
+            "Sertifikatpeker: ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?usercertificate;binary?sub?(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))",
+            None,
+        )
+
+        ldap_search_params = LdapSearchParams.create(search_params, database)
+        assert ldap_search_params.scope == LDAPSearchScope.SUB
+        assert len(ldap_search_params.ldap_servers) == 1
+        assert ldap_search_params.ldap_servers[0].hostname == "ldap.buypass.no"
+        assert (
+            ldap_search_params.ldap_servers[0].base
+            == "dc=Buypass,dc=no,CN=Buypass Class 3"
+        )
+        assert ldap_search_params.ldap_servers[0].ca == CertificateAuthority.BUYPASS
+        assert (
+            ldap_search_params.ldap_query
+            == "(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))"
+        )
+        assert ldap_search_params.search_type == SearchType.LDAP_URL
+
     @pytest.mark.parametrize(
         "serial",
         [

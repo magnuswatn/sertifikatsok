@@ -101,7 +101,7 @@ class LdapSearchParams:
 
             return cls(ldap_query, scope, ldap_servers, [], None, SearchType.CUSTOM)
 
-        if search_params.query.startswith("ldap://"):
+        if "ldap://" in search_params.query:
             return cls._parse_ldap_url(search_params)
         else:
             return cls._guess_search_params(search_params, database)
@@ -256,7 +256,10 @@ class LdapSearchParams:
 
         limitations = []
 
-        parsed_url = urlparse(search_params.query)
+        parsed_url = urlparse(
+            # strip garbage before the url
+            search_params.query[search_params.query.find("ldap://") :]
+        )
 
         if parsed_url.scheme != "ldap":
             # Should not happen
