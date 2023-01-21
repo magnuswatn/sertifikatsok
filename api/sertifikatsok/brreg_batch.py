@@ -29,7 +29,7 @@ CHILD_UPDATES_URL = httpx.URL(
 MAIN_SINGLE_URL = httpx.URL("https://data.brreg.no/enhetsregisteret/api/enheter/")
 CHILD_SINGLE_URL = httpx.URL("https://data.brreg.no/enhetsregisteret/api/underenheter/")
 
-MAX_UPDATE_FETCHES_PER_RUN = 50
+MAX_UPDATE_FETCHES_PER_RUN = 200
 USEFUL_UPDATES = ["Endring", "Ny"]
 
 logger = logging.getLogger(__name__)
