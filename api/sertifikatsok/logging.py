@@ -3,9 +3,11 @@ from __future__ import annotations
 import logging
 import logging.config
 import time
+import uuid
+from contextlib import contextmanager
 from contextvars import ContextVar
 from functools import wraps
-from typing import Any, Awaitable, Callable, ParamSpec, TypeVar
+from typing import Any, Awaitable, Callable, Iterator, ParamSpec, TypeVar
 
 audit_logger = logging.getLogger("audit")
 performance_logger = logging.getLogger("performance")
@@ -18,7 +20,17 @@ class CorrelationFilter(logging.Filter):
         return True
 
 
-def configure_logging(log_level: int, log_files: str) -> None:
+@contextmanager
+def correlation_context() -> Iterator[uuid.UUID]:
+    correlation_id = uuid.uuid4()
+    token = correlation_id_var.set(str(correlation_id))
+    try:
+        yield correlation_id
+    finally:
+        correlation_id_var.reset(token)
+
+
+def configure_logging(log_level: int, log_files: str | None) -> None:
     """
     Configure the logging.
 
