@@ -4,7 +4,6 @@ import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Iterable
-from uuid import UUID
 
 import httpx
 from attrs import asdict, frozen
@@ -19,8 +18,6 @@ from .db import BatchRun, Database, Organization
 # the initial load date.
 INITIAL_UPDATE_ID = 15853819
 
-NULL_UUID = UUID("00000000-0000-0000-0000-000000000000")
-
 BATCH_NAME = "batch-brreg-update"
 
 MAIN_UPDATES_URL = httpx.URL(
@@ -32,7 +29,7 @@ CHILD_UPDATES_URL = httpx.URL(
 MAIN_SINGLE_URL = httpx.URL("https://data.brreg.no/enhetsregisteret/api/enheter/")
 CHILD_SINGLE_URL = httpx.URL("https://data.brreg.no/enhetsregisteret/api/underenheter/")
 
-MAX_UPDATE_FETCHES_PER_RUN = 20
+MAX_UPDATE_FETCHES_PER_RUN = 50
 USEFUL_UPDATES = ["Endring", "Ny"]
 
 logger = logging.getLogger(__name__)
@@ -213,7 +210,7 @@ async def run_batch(database: Database, httpx_client: httpx.AsyncClient) -> None
 
 def get_seconds_to_next_run() -> float:
     # TEMP while we're so far behind
-    return 600
+    return 300
     now = datetime.utcnow()
     two_am = now.replace(hour=2, minute=0, second=0, microsecond=0)
     if now > two_am:
