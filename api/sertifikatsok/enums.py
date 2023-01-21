@@ -56,3 +56,8 @@ class SearchType(Enum):
     CUSTOM = "custom"
     LDAP_URL = "ldap_url"
     FALLBACK = "fallback"
+
+
+class BatchResult(Enum):
+    OK = "ok"
+    ERROR = "error"

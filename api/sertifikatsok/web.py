@@ -2,7 +2,6 @@ import argparse
 import asyncio
 import json
 import logging
-import uuid
 
 import uvloop
 from aiohttp import web
@@ -10,11 +9,12 @@ from aiohttp.typedefs import Handler
 from aiohttp.web_response import StreamResponse
 
 from .audit_log import AuditLogger
+from .brreg_batch import schedule_batch
 from .crypto import AppCrlRetriever, CertRetriever, CrlDownloader
 from .db import Database
 from .enums import Environment
 from .errors import ClientError
-from .logging import configure_logging, correlation_id_var, performance_log
+from .logging import configure_logging, correlation_context, performance_log
 from .search import CertificateSearch
 from .serialization import sertifikatsok_serialization
 
@@ -49,12 +49,10 @@ async def error_middleware(request: web.Request, handler: Handler) -> StreamResp
 async def correlation_middleware(
     request: web.Request, handler: Handler
 ) -> StreamResponse:
-    correlation_id = str(uuid.uuid4())
-    correlation_id_var.set(correlation_id)
-    request["correlation_id"] = correlation_id
-    response = await handler(request)
-    response.headers["Correlation-Id"] = correlation_id
-    return response
+    with correlation_context() as correlation_id:
+        response = await handler(request)
+        response.headers["Correlation-Id"] = str(correlation_id)
+        return response
 
 
 async def init_app(app: web.Application) -> None:
@@ -64,6 +62,7 @@ async def init_app(app: web.Application) -> None:
         Environment.PROD: CertRetriever.create(Environment.PROD),
     }
     app["Database"] = Database.connect_to_database()
+    schedule_batch(app["Database"])
 
 
 @performance_log()

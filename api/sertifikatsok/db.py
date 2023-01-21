@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import sqlite3
+from datetime import datetime
+from uuid import UUID
 
 from attrs import frozen
 
-from .enums import CertificateAuthority, Environment
+from .enums import BatchResult, CertificateAuthority, Environment
 from .ldap import LDAP_SERVERS, LdapServer
 from .logging import performance_log_sync
 
@@ -23,7 +26,35 @@ class Organization:
     parent_orgnr: str | None
 
 
+@frozen
+class BatchRun:
+    name: str
+    uuid: UUID
+    finished_time: datetime
+    result: BatchResult
+    data: dict | None
+
+    @classmethod
+    def from_row(cls, row: sqlite3.Row) -> BatchRun:
+        data = row["data"]
+        return cls(
+            row["name"],
+            UUID(row["uuid"]),
+            datetime.fromisoformat(row["finished_time"]),
+            BatchResult(row["result"]),
+            json.loads(row["data"]) if data is not None else None,
+        )
+
+
 class Database:
+    """
+    Instances of this class is not thread safe, but they are "coroutine safe",
+    (because it blocks the event loop) so can be used by several coroutines at
+    the same time.
+
+    It's generally not a big problem that it blocks, since sqlite is so fast.
+    """
+
     def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
 
@@ -32,6 +63,8 @@ class Database:
         connection = sqlite3.connect(database_file)
 
         connection.execute("PRAGMA foreign_keys = ON")
+
+        connection.row_factory = sqlite3.Row
 
         connection.execute(
             """
@@ -66,6 +99,20 @@ class Database:
                 is_child      BOOLEAN    NOT NULL,
                 parent_orgnr  TEXT,
                 CHECK (is_child IS FALSE OR parent_orgnr IS NOT NULL)
+            )
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS batch_control (
+                id            INTEGER    PRIMARY KEY,
+                name          TEXT       NOT NULL,
+                uuid          TEXT       NOT NULL UNIQUE,
+                finished_time TEXT       NOT NULL,
+                result        TEXT       NOT NULL,
+                data          TEXT,
+                CHECK (result IN ('ok', 'error'))
             )
             """
         )
@@ -205,4 +252,72 @@ class Database:
             logger.debug("Found organization: %s", result)
             return Organization(result[0], result[1], bool(result[2]), result[3])
         logger.warning("Organization with orgnr %s not found in local db", orgnr)
+        return None
+
+    def upsert_organizations(self, orgs: list[Organization]) -> None:
+        self._connection.executemany(
+            """
+            INSERT OR REPLACE INTO organization (orgnr, name, parent_orgnr, is_child)
+                            VALUES (:orgnr, :name, :parent_orgnr, :is_child)
+            """,
+            [
+                {
+                    "orgnr": org.orgnr,
+                    "name": org.name,
+                    "parent_orgnr": org.parent_orgnr,
+                    "is_child": org.is_child,
+                }
+                for org in orgs
+            ],
+        )
+        self._connection.commit()
+
+    def add_batch_run(
+        self, batch_name: str, uuid: UUID, result: BatchResult, data: dict | None
+    ) -> None:
+        self._connection.execute(
+            """
+            INSERT INTO batch_control (name,
+                                       uuid,
+                                       finished_time,
+                                       result,
+                                       data)
+                 VALUES (:name,
+                         :uuid,
+                         :finished_time,
+                         :result,
+                         :data)
+            """,
+            {
+                "name": batch_name,
+                "uuid": str(uuid),
+                "finished_time": datetime.utcnow().isoformat(),
+                "result": result.value,
+                "data": json.dumps(data) if data is not None else None,
+            },
+        )
+        self._connection.commit()
+
+    def get_last_successful_batch_run(self, batch_name: str) -> BatchRun | None:
+        result = self._connection.execute(
+            """
+            SELECT name,
+                   uuid,
+                   finished_time,
+                   result,
+                   data
+              FROM batch_control
+             WHERE name = :name
+               AND result = :result
+          ORDER BY finished_time DESC
+             LIMIT 1
+            """,
+            {
+                "name": batch_name,
+                "result": BatchResult.OK.value,
+            },
+        ).fetchone()
+
+        if result is not None:
+            return BatchRun.from_row(result)
         return None
