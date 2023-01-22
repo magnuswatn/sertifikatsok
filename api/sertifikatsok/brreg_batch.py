@@ -29,7 +29,7 @@ CHILD_UPDATES_URL = httpx.URL(
 MAIN_SINGLE_URL = httpx.URL("https://data.brreg.no/enhetsregisteret/api/enheter/")
 CHILD_SINGLE_URL = httpx.URL("https://data.brreg.no/enhetsregisteret/api/underenheter/")
 
-MAX_UPDATE_FETCHES_PER_RUN = 200
+MAX_UPDATE_FETCHES_PER_RUN = 50
 USEFUL_UPDATES = ["Endring", "Ny"]
 
 logger = logging.getLogger(__name__)
@@ -161,7 +161,7 @@ async def update_organizations(
     database.upsert_organizations(updated_organizations)
 
     logger.info(
-        "Updated %d %s organizations, %d left to process",
+        "Updated %d %s organizations, %d changes left to process",
         len(updated_organizations),
         "child" if children else "main",
         update_result.elements_left,
@@ -209,8 +209,6 @@ async def run_batch(database: Database, httpx_client: httpx.AsyncClient) -> None
 
 
 def get_seconds_to_next_run() -> float:
-    # TEMP while we're so far behind
-    return 300
     now = datetime.utcnow()
     two_am = now.replace(hour=2, minute=0, second=0, microsecond=0)
     if now > two_am:
