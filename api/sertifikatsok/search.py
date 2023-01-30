@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from urllib.parse import unquote, urlparse
 
 import bonsai
@@ -13,7 +14,8 @@ from bonsai.asyncio import AIOLDAPConnection
 from .constants import (
     EMAIL_REGEX,
     HEX_SERIAL_REGEX,
-    INT_SERIAL_REGEX,
+    HEX_SERIALS_REGEX,
+    INT_SERIALS_REGEX,
     LDAP_RETRIES,
     LDAP_TIMEOUT,
     ORG_NUMBER_REGEX,
@@ -203,14 +205,36 @@ class LdapSearchParams:
             ]
             limitations.append("ERR-006")
 
-        # Try the certificateSerialNumber field, if it looks like a serial number,
-        # or check the database after the thumbprint if it looks like a hash.
-        elif INT_SERIAL_REGEX.fullmatch(query):
+        # Try the certificateSerialNumber field, if it looks like one or more
+        # serial numbers, or check the database after the thumbprint if it looks
+        # like a hash.
+        elif INT_SERIALS_REGEX.fullmatch(query):
             search_type = SearchType.CERT_SERIAL
-            ldap_query = create_ldap_filter([(SearchAttribute.CSN, query)])
+
+            serial_numbers = re.split(r"[\s;,]+", query)
+
+            ldap_query = create_ldap_filter(
+                [
+                    (SearchAttribute.CSN, serial_number)
+                    for serial_number in serial_numbers
+                    if serial_number
+                ]
+            )
+        elif HEX_SERIALS_REGEX.fullmatch(query):
+            search_type = SearchType.CERT_SERIAL
+
+            serial_numbers = re.split(r"[\s;,]+", query)
+
+            ldap_query = create_ldap_filter(
+                [
+                    (SearchAttribute.CSN, str(int(serial_number, 16)))
+                    for serial_number in serial_numbers
+                    if serial_number
+                ]
+            )
         elif HEX_SERIAL_REGEX.fullmatch(query):
 
-            cleaned_query = query.replace(":", "").replace(" ", "").lower()
+            cleaned_query = "".join(re.split(r"[\s:]+", query)).lower()
 
             if len(cleaned_query) == 40:
                 search_type = SearchType.THUMBPRINT

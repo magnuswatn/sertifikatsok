@@ -129,15 +129,152 @@ class TestLdapSearchParams:
         assert ldap_search_params.search_type == SearchType.LDAP_URL
 
     @pytest.mark.parametrize(
-        "serial",
+        ["serial", "filter"],
         [
-            "13:fd:31:a6:2a:a6:11:af:b6:89:82",  # hex with colons
-            "13 fd 31 a6 2a a6 11 af b6 89 82",  # hex with spaces
-            "13fd31a62aa611afb68982",  # hex continuous
-            "24165265156868740537026946",  # int
+            (
+                "13:fd:31:a6:2a:a6:11:af:b6:89:82",  # hex with colons
+                "(certificateSerialNumber=24165265156868740537026946)",
+            ),
+            (
+                "13fd:31a6:2aa6:11af:b68982",  # hex with colons but weirdly spaced
+                "(certificateSerialNumber=24165265156868740537026946)",
+            ),
+            (
+                "13 fd 31 a6 2a a6 11 af b6 89 82",  # hex with spaces
+                "(certificateSerialNumber=24165265156868740537026946)",
+            ),
+            (
+                "13fd 31a6 2aa6 11af b68982",  # hex with spaces but weirdly spaced
+                "(certificateSerialNumber=24165265156868740537026946)",
+            ),
+            (
+                "13	fd	31	a6	2a	a6	11	af	b6	89	82",  # hex with tabs (wtf)
+                "(certificateSerialNumber=24165265156868740537026946)",
+            ),
+            (
+                "13fd31a62aa611afb68982",  # hex continuous
+                "(certificateSerialNumber=24165265156868740537026946)",
+            ),
+            (
+                "24165265156868740537026946",  # int
+                "(certificateSerialNumber=24165265156868740537026946)",
+            ),
+            # Different versions of several int serial numbers
+            (
+                "24165265156868740537026946 24165265156868740537026947",
+                "(|(certificateSerialNumber=24165265156868740537026946)(certificateSerialNumber=24165265156868740537026947))",
+            ),
+            (
+                "24165265156868740537026946	24165265156868740537026947",  # tab instead of space
+                "(|(certificateSerialNumber=24165265156868740537026946)(certificateSerialNumber=24165265156868740537026947))",
+            ),
+            (
+                "24165265156868740537026946    24165265156868740537026947",
+                "(|(certificateSerialNumber=24165265156868740537026946)(certificateSerialNumber=24165265156868740537026947))",
+            ),
+            (
+                "24165265156868740537026946;24165265156868740537026947",
+                "(|(certificateSerialNumber=24165265156868740537026946)(certificateSerialNumber=24165265156868740537026947))",
+            ),
+            (
+                "24165265156868740537026946,24165265156868740537026947",
+                "(|(certificateSerialNumber=24165265156868740537026946)(certificateSerialNumber=24165265156868740537026947))",
+            ),
+            (
+                "24165265156868740537026946,,,24165265156868740537026947",
+                "(|(certificateSerialNumber=24165265156868740537026946)(certificateSerialNumber=24165265156868740537026947))",
+            ),
+            (
+                "24165265156868740537026946,24165265156868740537026947,",  # trailing comma
+                "(|(certificateSerialNumber=24165265156868740537026946)(certificateSerialNumber=24165265156868740537026947))",
+            ),
+            (
+                "24165265156868740537026946, 24165265156868740537026947",
+                "(|(certificateSerialNumber=24165265156868740537026946)(certificateSerialNumber=24165265156868740537026947))",
+            ),
+            (
+                "24165265156868740537026946 24165265156868740537026947 24165265156868740537026948",
+                "(|(certificateSerialNumber=24165265156868740537026946)(certificateSerialNumber=24165265156868740537026947)(certificateSerialNumber=24165265156868740537026948))",
+            ),
+            (
+                "24165265156868740537026946, 24165265156868740537026947,24165265156868740537026948",
+                "(|(certificateSerialNumber=24165265156868740537026946)(certificateSerialNumber=24165265156868740537026947)(certificateSerialNumber=24165265156868740537026948))",
+            ),
+            (
+                "24165265156868740537026946, 24165265156868740537026947 24165265156868740537026948",
+                "(|(certificateSerialNumber=24165265156868740537026946)(certificateSerialNumber=24165265156868740537026947)(certificateSerialNumber=24165265156868740537026948))",
+            ),
+            # Diferent versions of serveral hex serial numbers
+            (
+                "248ff6242c64b12716a7 248eea0ae8b8ac87eccf",
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743))",
+            ),
+            (
+                "248ff6242c64b12716a7	248eea0ae8b8ac87eccf",  # tab instead of space
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743))",
+            ),
+            (
+                "248ff6242c64b12716a7    248eea0ae8b8ac87eccf",
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743))",
+            ),
+            (
+                "248ff6242c64b12716a7;248eea0ae8b8ac87eccf",
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743))",
+            ),
+            (
+                "248ff6242c64b12716a7,248eea0ae8b8ac87eccf",
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743))",
+            ),
+            (
+                "248ff6242c64b12716a7,,,248eea0ae8b8ac87eccf",
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743))",
+            ),
+            (
+                "248ff6242c64b12716a7,248eea0ae8b8ac87eccf,",  # trailing comma
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743))",
+            ),
+            (
+                "248ff6242c64b12716a7, 248eea0ae8b8ac87eccf",
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743))",
+            ),
+            (
+                "248ff6242c64b12716a7 248eea0ae8b8ac87eccf 248eea0ae8b8ac87ecdf",
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743)(certificateSerialNumber=172641495589408492481759))",
+            ),
+            (
+                "248ff6242c64b12716a7, 248eea0ae8b8ac87eccf,248eea0ae8b8ac87ecdf",
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743)(certificateSerialNumber=172641495589408492481759))",
+            ),
+            (
+                "248ff6242c64b12716a7, 248eea0ae8b8ac87eccf 248eea0ae8b8ac87ecdf",
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743)(certificateSerialNumber=172641495589408492481759))",
+            ),
+            # upper case
+            (
+                "248FF6242C64B12716A7 248EEA0AE8B8AC87ECCF",
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743))",
+            ),
+            (
+                "248FF6242C64B12716A7	248EEA0AE8B8AC87ECCF",  # tab instead of space
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743))",
+            ),
+            (
+                "248FF6242C64B12716A7    248EEA0AE8B8AC87ECCF",
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743))",
+            ),
+            (
+                "248FF6242C64B12716A7;248EEA0AE8B8AC87ECCF",
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743))",
+            ),
+            (
+                "248FF6242C64B12716A7,248eea0ae8b8ac87eccf",
+                "(|(certificateSerialNumber=172660814135891165910695)(certificateSerialNumber=172641495589408492481743))",
+            ),
         ],
     )
-    def test_should_auto_detect_serial(self, serial: str, database: Database) -> None:
+    def test_should_auto_detect_cert_serial(
+        self, serial: str, filter: str, database: Database
+    ) -> None:
         search_params = SearchParams(
             Environment.PROD,
             CertType.PERSONAL,
@@ -155,17 +292,16 @@ class TestLdapSearchParams:
         assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
             {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
         )
-        assert (
-            ldap_search_params.ldap_query
-            == "(certificateSerialNumber=24165265156868740537026946)"
-        )
+        assert ldap_search_params.ldap_query == filter
         assert ldap_search_params.search_type == SearchType.CERT_SERIAL
 
     @pytest.mark.parametrize(
         "thumbprint",
         [
             "38a6dcc494484553c8291fce2ab8d5b5311caa02",  # sha1
+            "38A6DCC494484553C8291FCE2AB8D5B5311CAA02",  # sha1
             "f9d1af62d004d4da648929bc7dde552685979d6e6a78dc8f9b64eb08e9c4ccb7",  # sha2
+            "F9D1AF62D004D4DA648929BC7DDE552685979D6E6A78DC8F9B64EB08E9C4CCB7",  # sha2
         ],
     )
     def test_should_auto_detect_thumbprint(
