@@ -20,7 +20,7 @@ PERSONAL_SERIAL_REGEX = re.compile(r"(?:UN:NO-)?9578-4\d{3}-[A-z0-9]+")
 # for this use case.)
 EMAIL_REGEX = re.compile(r"[^\s@]+@[\w\d]+(?:\.[\w\d]+)+")
 HEX_SERIAL_REGEX = re.compile(r"(?:[0-9a-fA-F][\s:]?){16,}")
-HEX_SERIALS_REGEX = re.compile(r"(?:[0-9a-fA-F]{16,}[\s;,]+)+(?:[0-9a-fA-F]{16,})?")
+HEX_SERIALS_REGEX = re.compile(r"(?:[0-9a-fA-F]{16,}(?:[\s;,]+|$)){2,}")
 INT_SERIALS_REGEX = re.compile(r"(?:[0-9]{19,}[\s;,]*)+")
 
 ORGANIZATION_IDENTIFIER = ObjectIdentifier("2.5.4.97")

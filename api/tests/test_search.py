@@ -298,10 +298,16 @@ class TestLdapSearchParams:
     @pytest.mark.parametrize(
         "thumbprint",
         [
-            "38a6dcc494484553c8291fce2ab8d5b5311caa02",  # sha1
-            "38A6DCC494484553C8291FCE2AB8D5B5311CAA02",  # sha1
-            "f9d1af62d004d4da648929bc7dde552685979d6e6a78dc8f9b64eb08e9c4ccb7",  # sha2
-            "F9D1AF62D004D4DA648929BC7DDE552685979D6E6A78DC8F9B64EB08E9C4CCB7",  # sha2
+            # sha1
+            "38a6dcc494484553c8291fce2ab8d5b5311caa02",
+            "38A6DCC494484553C8291FCE2AB8D5B5311CAA02",
+            "38:a6:dc:c4:94:48:45:53:c8:29:1f:ce:2a:b8:d5:b5:31:1c:aa:02",
+            "38 a6 dc c4 94 48 45 53 c8 29 1f ce 2a b8 d5 b5 31 1c aa 02",
+            # sha2
+            "f9d1af62d004d4da648929bc7dde552685979d6e6a78dc8f9b64eb08e9c4ccb7",
+            "f9:d1:af:62:d0:04:d4:da:64:89:29:bc:7d:de:55:26:85:97:9d:6e:6a:78:dc:8f:9b:64:eb:08:e9:c4:cc:b7",
+            "f9 d1 af 62 d0 04 d4 da 64 89 29 bc 7d de 55 26 85 97 9d 6e 6a 78 dc 8f 9b 64 eb 08 e9 c4 cc b7",
+            "F9D1AF62D004D4DA648929BC7DDE552685979D6E6A78DC8F9B64EB08E9C4CCB7",
         ],
     )
     def test_should_auto_detect_thumbprint(
@@ -333,8 +339,16 @@ class TestLdapSearchParams:
     @pytest.mark.parametrize(
         "thumbprint",
         [
-            "38a6dcc494484553c8291fce2ab8d5b5311caa02",  # sha1
-            "f9d1af62d004d4da648929bc7dde552685979d6e6a78dc8f9b64eb08e9c4ccb8",  # sha2
+            # sha1
+            "38a6dcc494484553c8291fce2ab8d5b5311caa02",
+            "38A6DCC494484553C8291FCE2AB8D5B5311CAA02",
+            "38:a6:dc:c4:94:48:45:53:c8:29:1f:ce:2a:b8:d5:b5:31:1c:aa:02",
+            "38 a6 dc c4 94 48 45 53 c8 29 1f ce 2a b8 d5 b5 31 1c aa 02",
+            # sha2
+            "f9d1af62d004d4da648929bc7dde552685979d6e6a78dc8f9b64eb08e9c4ccb7",
+            "f9:d1:af:62:d0:04:d4:da:64:89:29:bc:7d:de:55:26:85:97:9d:6e:6a:78:dc:8f:9b:64:eb:08:e9:c4:cc:b7",
+            "f9 d1 af 62 d0 04 d4 da 64 89 29 bc 7d de 55 26 85 97 9d 6e 6a 78 dc 8f 9b 64 eb 08 e9 c4 cc b7",
+            "F9D1AF62D004D4DA648929BC7DDE552685979D6E6A78DC8F9B64EB08E9C4CCB7",
         ],
     )
     def test_should_warn_when_thumbprint_yielded_no_match(
