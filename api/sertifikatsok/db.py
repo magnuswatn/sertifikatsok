@@ -257,8 +257,12 @@ class Database:
     def upsert_organizations(self, orgs: list[Organization]) -> None:
         self._connection.executemany(
             """
-            INSERT OR REPLACE INTO organization (orgnr, name, parent_orgnr, is_child)
-                            VALUES (:orgnr, :name, :parent_orgnr, :is_child)
+            INSERT INTO organization (orgnr, name, parent_orgnr, is_child)
+                 VALUES (:orgnr, :name, :parent_orgnr, :is_child)
+            ON CONFLICT (orgnr)
+          DO UPDATE SET name = :name,
+                        parent_orgnr = :parent_orgnr,
+                        is_child = :is_child
             """,
             [
                 {
