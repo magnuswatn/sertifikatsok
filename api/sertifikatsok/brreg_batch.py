@@ -14,9 +14,9 @@ from sertifikatsok.logging import configure_logging, correlation_context
 from .db import BatchRun, Database, Organization
 
 # The first ID returned when asking for
-# dato=2022-10-28T00:00:00.000Z, which is
+# dato=2022-09-25T00:00:00.000Z, which is
 # the initial load date.
-INITIAL_UPDATE_ID = 15853819
+INITIAL_UPDATE_ID = 15600739
 
 BATCH_NAME = "batch-brreg-update"
 
