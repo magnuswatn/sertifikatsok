@@ -90,18 +90,57 @@ class TestLdapSearchParams:
         )
         assert ldap_search_params.search_type == SearchType.LDAP_URL
 
-    def test_should_reject_invalid_url(self, database: Database) -> None:
+    @pytest.mark.parametrize(
+        ("query", "errormsg"),
+        [
+            (
+                "ldap://localhost/dc=Buypass,dc=no,CN=Buypass%20Class%203?usercertificate;binary?sub?(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))",
+                "Unsupported hostname in ldap url",
+            ),
+            (
+                "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))",
+                "Malformed query in ldap url",
+            ),
+            (
+                "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?certificateRevocationList;binary?sub?(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))",
+                "Unsupported attribute\\(s\\) in url.",
+            ),
+            (
+                "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?usercertificate;binary?two?(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))",
+                "Unsupported scope in url",
+            ),
+            (
+                "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?usercertificate;binary?sub?(|(certificateSerialNumber=912052)(certificateSerialNumber=912051)))",
+                "Invalid filter in url",
+            ),
+            (
+                "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?usercertificate;binary?sub?((|(certificateSerialNumber=912052)(certificateSerialNumber=912051))",
+                "Invalid filter in url",
+            ),
+            (
+                "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?usercertificate;binary?sub?certificateSerialNumber=912052)",
+                "Invalid filter in url",
+            ),
+            (
+                "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?usercertificate;binary?sub?(|(certificateSerialNumber=912052)(certificateSerialNumber=912051)).",
+                "Invalid filter in url",
+            ),
+        ],
+    )
+    def test_should_reject_invalid_url(
+        self, database: Database, query: str, errormsg: str
+    ) -> None:
         search_params = SearchParams(
             Environment.PROD,
             CertType.ENTERPRISE,
-            "ldap://localhost/dc=Buypass,dc=no,CN=Buypass%20Class%203?usercertificate;binary?sub?(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))",
+            query,
             None,
         )
 
         with pytest.raises(ClientError) as error:
             LdapSearchParams.create(search_params, database)
 
-        assert error.value.args[0] == "Unsupported hostname in ldap url"
+        assert error.match(errormsg)
 
     def test_should_auto_detect_url_with_garbage_prefix(
         self, database: Database

@@ -337,7 +337,12 @@ class LdapSearchParams:
         else:
             raise ClientError("Unsupported scope in url")
 
-        if len(filtr) > 150 or filtr.count("(") != filtr.count(")"):
+        if (
+            len(filtr) > 150
+            or filtr.count("(") != filtr.count(")")
+            or filtr[0] != "("
+            or filtr[-1] != ")"
+        ):
             raise ClientError("Invalid filter in url")
 
         return cls(filtr, scope, [ldap_server], limitations, None, SearchType.LDAP_URL)
