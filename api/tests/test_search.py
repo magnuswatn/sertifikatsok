@@ -681,10 +681,12 @@ class TestLdapSearchParams:
         "orgnr",
         [
             "995 546 973",
+            "995  546  973",  # double rainbow!
             "995 5469 73",
             "995546973",
             "NTRNO-995546973",
             "995	546	973",  # tabs
+            "995		546	973",  # tabs
         ],
     )
     def test_should_auto_detect_org_nr_main_with_parent(

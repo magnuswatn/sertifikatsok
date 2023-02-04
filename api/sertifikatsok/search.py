@@ -138,10 +138,11 @@ class LdapSearchParams:
 
             organization = database.get_organization(query)
             if organization is not None and organization.is_child:
+                # Child org, we must query the parent, but with
+                # the child orgnr in the OU field.
                 logger.info("Child org - adopting query accordingly")
 
                 assert organization.parent_orgnr is not None
-                # child org, we must query the parent
                 base_ldap_query = create_ldap_filter(
                     [
                         (SearchAttribute.SN, organization.parent_orgnr),
