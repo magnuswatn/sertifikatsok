@@ -18,6 +18,7 @@ from .constants import (
     INT_SERIALS_REGEX,
     LDAP_RETRIES,
     LDAP_TIMEOUT,
+    MAX_SERIAL_NUMBER_COUNT,
     ORG_NUMBER_REGEX,
     PERSONAL_SERIAL_REGEX,
 )
@@ -211,25 +212,33 @@ class LdapSearchParams:
         elif INT_SERIALS_REGEX.fullmatch(query):
             search_type = SearchType.CERT_SERIAL
 
-            serial_numbers = re.split(r"[\s;,]+", query)
+            serial_numbers = {
+                serial for serial in re.split(r"[\s;,]+", query) if serial
+            }
+
+            if len(serial_numbers) > MAX_SERIAL_NUMBER_COUNT:
+                raise ClientError("Too many serial numbers in search")
 
             ldap_query = create_ldap_filter(
                 [
                     (SearchAttribute.CSN, serial_number)
                     for serial_number in serial_numbers
-                    if serial_number
                 ]
             )
         elif HEX_SERIALS_REGEX.fullmatch(query):
             search_type = SearchType.CERT_SERIAL
 
-            serial_numbers = re.split(r"[\s;,]+", query)
+            serial_numbers = {
+                serial for serial in re.split(r"[\s;,]+", query) if serial
+            }
+
+            if len(serial_numbers) > MAX_SERIAL_NUMBER_COUNT:
+                raise ClientError("Too many serial numbers in search")
 
             ldap_query = create_ldap_filter(
                 [
                     (SearchAttribute.CSN, str(int(serial_number, 16)))
                     for serial_number in serial_numbers
-                    if serial_number
                 ]
             )
         elif HEX_SERIAL_REGEX.fullmatch(query):

@@ -13,6 +13,8 @@ from .enums import SEID, CertType
 LDAP_TIMEOUT = 7
 LDAP_RETRIES = 5
 
+MAX_SERIAL_NUMBER_COUNT = 10
+
 ORG_NUMBER_REGEX = re.compile(r"(?:NTRNO-\d{9})|(?:\d\s?){9}")
 UNDERENHET_REGEX = re.compile(r"(?<!\d)\d{9}(?!\d)")
 PERSONAL_SERIAL_REGEX = re.compile(r"(?:UN:NO-)?9578-4\d{3}-[A-z0-9]+")
