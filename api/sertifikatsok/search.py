@@ -129,8 +129,12 @@ class LdapSearchParams:
         if typ == CertType.ENTERPRISE and ORG_NUMBER_REGEX.fullmatch(query):
             search_type = SearchType.ORG_NR
 
-            # (prefix or spaces allowed by the regex)
-            query = query[6:] if query.startswith("NTRNO-") else query.replace(" ", "")
+            # (prefix or whitespace allowed by the regex)
+            query = (
+                query[6:]
+                if query.startswith("NTRNO-")
+                else "".join(re.split(r"[\s]", query))
+            )
 
             organization = database.get_organization(query)
             if organization is not None and organization.is_child:

@@ -677,7 +677,16 @@ class TestLdapSearchParams:
         assert ldap_search_params.organization.parent_orgnr is None
         assert ldap_search_params.search_type == SearchType.ORG_NR
 
-    @pytest.mark.parametrize("orgnr", ["995 5469 73", "995546973", "NTRNO-995546973"])
+    @pytest.mark.parametrize(
+        "orgnr",
+        [
+            "995 546 973",
+            "995 5469 73",
+            "995546973",
+            "NTRNO-995546973",
+            "995	546	973",  # tabs
+        ],
+    )
     def test_should_auto_detect_org_nr_main_with_parent(
         self, database: Database, orgnr: str
     ) -> None:
