@@ -180,8 +180,9 @@ class LdapSearchParams:
                 ]
             )
 
-            # If we are searching for personal certificates by serial number,
-            # we can limit our search to only the relevant CA.
+            # The different CAs have their own ranges of personal serial numbers,
+            # so we can query only the relevant CA.
+            # The ranges are specified in "Vedlegg til SEID Leveranse 1".
             ca_id = query.split("-")[1]
             if ca_id == "4050":
                 ldap_servers = [
@@ -203,12 +204,10 @@ class LdapSearchParams:
 
             ldap_query = create_ldap_filter([(SearchAttribute.MAIL, query)])
 
-            # Only Buypass have the mail attribute in their LDAP catalog.
-            ldap_servers = [
-                ldap_server
-                for ldap_server in ldap_servers
-                if ldap_server.ca == CertificateAuthority.BUYPASS
-            ]
+            # Buypass doesn't include email in SEID2 certificates, so we warn
+            # that searches like this will only find older Buypass certs. Wheter
+            # it make sense for us to warn about this can be discussed, but
+            # there's some historical reasons behind this.
             limitations.append("ERR-006")
 
         # Try the certificateSerialNumber field, if it looks like one or more

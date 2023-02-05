@@ -226,9 +226,9 @@ def _get_norwegian_error_message(error_code: str) -> str:
         )
     if error_code == "ERR-006":
         return (
-            "Søk på e-postadresse finner kun eldre Buypass-sertifikater. "
-            "Eventuelle Commfides- eller nyere Buypass-sertifikater "
-            "vil ikke bli funnet på slike søk"
+            "Merk at Buypass ikke lenger inkluderer e-postadresse i "
+            "sine sertifikater, så nyere Buypass-sertifikater "
+            "vil ikke bli funnet av søk etter e-post"
         )
     if error_code == "ERR-008":
         return (

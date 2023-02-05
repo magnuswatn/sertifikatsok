@@ -807,9 +807,8 @@ def test_should_auto_detect_email(database: Database) -> None:
         CertType.PERSONAL in ldap_server.cert_types
         for ldap_server in ldap_search_params.ldap_servers
     )
-    assert all(
-        CertificateAuthority.BUYPASS == ldap_server.ca
-        for ldap_server in ldap_search_params.ldap_servers
+    assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
+        {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
     )
     assert ldap_search_params.ldap_query == "(mail=fornavn@etternavn.no)"
     assert ldap_search_params.search_type == SearchType.EMAIL
