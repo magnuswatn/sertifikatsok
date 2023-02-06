@@ -95,7 +95,6 @@ async def get_update_from_brreg(
 async def get_updates_from_brreg(
     httpx_client: httpx.AsyncClient, url: httpx.URL, current_update_id: int
 ) -> BrregUpdateResult:
-
     all_updates: set[str] = set()
     result = None
     for _ in range(MAX_UPDATE_FETCHES_PER_RUN):
@@ -146,7 +145,6 @@ async def update_organizations(
     last_updateid: int,
     children: bool,
 ) -> int:
-
     updates_url = CHILD_UPDATES_URL if children else MAIN_UPDATES_URL
     single_url = CHILD_SINGLE_URL if children else MAIN_SINGLE_URL
 
@@ -174,7 +172,6 @@ async def fetch_and_store_updates(
     httpx_client: httpx.AsyncClient,
     last_run: BrregBatchRun | None,
 ) -> BrregBatchRun:
-
     if last_run is None:
         last_run = BrregBatchRun(
             INITIAL_UPDATE_ID,

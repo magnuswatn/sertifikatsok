@@ -31,7 +31,6 @@ def sertifikatsok_serialization(val: Any) -> dict[Any, Any]:
 
 @sertifikatsok_serialization.register(QualifiedCertificate)
 def qualified_certificate(val: QualifiedCertificate) -> dict[str, str | dict[str, str]]:
-
     dumped: dict[str, str | dict[str, str]] = {}
     name, usage = _get_norwegian_display_name(val)
     dumped["name"] = name

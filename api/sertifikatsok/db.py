@@ -141,7 +141,6 @@ class Database:
     def insert_certificates(
         self, certs: list[tuple[str, list[bytes] | None]], ldap_server: str
     ) -> None:
-
         [ldap_server_id] = self._connection.execute(
             """
             SELECT id
@@ -177,7 +176,6 @@ class Database:
 
     @performance_log_sync()
     def find_cert_from_sha1(self, hash: str, env: Environment) -> list[LdapServer]:
-
         result = self._connection.execute(
             """
             SELECT l.ldap_server,

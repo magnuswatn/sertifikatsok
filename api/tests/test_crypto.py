@@ -118,7 +118,6 @@ class CertificateAuthority:
     def generate_ee_cert(
         self, name: str, expired: bool = False, crl_endpoint: str | None = None
     ) -> MaybeInvalidCertificate:
-
         date_skew = datetime.timedelta(days=-120 if expired else 0)
         if crl_endpoint is None:
             crl_endpoint = f"http://crl.watn.no/{quote_plus(self.name)}.crl"
@@ -214,7 +213,6 @@ class TestAppCrlRetriever:
 
 class TestRequestCrlRetriever:
     async def test_retrieve_ok(self, ca: CertificateAuthority) -> None:
-
         crl = ca.generate_crl([])
 
         class DummyAppCrlRetriever:

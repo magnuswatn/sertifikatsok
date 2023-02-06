@@ -6,7 +6,6 @@ import httpx
 
 
 def main():
-
     print("Connecting to db")
     connection = sqlite3.connect("../api/database/database.db")
 

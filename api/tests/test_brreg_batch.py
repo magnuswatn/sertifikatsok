@@ -54,7 +54,6 @@ class ChangedOrganization(Organization):
 def generate_update_list(
     start_update_id: int, units: list[ChangedOrganization]
 ) -> tuple[dict[int, dict], int]:
-
     # The update_ids from brreg have holes in them, so let's generate a range five time
     # as long as needed, and then take the amount we need from that.
     full_update_id_range = range(start_update_id, int(start_update_id + len(units) * 5))
@@ -100,7 +99,6 @@ def generate_base_updates_resp(
     typ: Literal["oppdaterteEnheter"] | Literal["oppdaterteUnderenheter"],
     params: httpx.QueryParams,
 ) -> dict:
-
     oppdateringid = int(params["oppdateringsid"])
 
     all_units_after_this_update = [
@@ -148,7 +146,6 @@ def get_mock_httpx_client(
     all_child_units: list[ChangedOrganization],
 ) -> httpx.AsyncClient:
     def transport_handler(request: httpx.Request) -> httpx.Response:
-
         status_code = 200
         if request.url.path == MAIN_UPDATES_URL.path:
             body = generate_base_updates_resp(
@@ -185,7 +182,6 @@ def get_mock_httpx_client(
 
 
 async def test_no_updates(database: Database) -> None:
-
     assert database.get_last_successful_batch_run(BATCH_NAME) is None
 
     httpx_client = get_mock_httpx_client({}, {}, [], [])
@@ -201,7 +197,6 @@ async def test_no_updates(database: Database) -> None:
 
 
 async def test_starts_from_where_it_left_of(database: Database) -> None:
-
     main_org = ChangedOrganization(
         "012345678",
         "Gammelt navn på 012345678",

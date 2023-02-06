@@ -49,7 +49,6 @@ class SearchParams:
 
     @classmethod
     def create_from_request(cls, request: Request) -> SearchParams:
-
         try:
             env = Environment(request.query.get("env"))
         except ValueError:
@@ -91,7 +90,6 @@ class LdapSearchParams:
     def create(
         cls, search_params: SearchParams, database: Database
     ) -> LdapSearchParams:
-
         if search_params.attr is not None:
             scope = bonsai.LDAPSearchScope.SUBTREE
             ldap_servers = [
@@ -113,7 +111,6 @@ class LdapSearchParams:
     def _guess_search_params(
         cls, search_params: SearchParams, database: Database
     ) -> LdapSearchParams:
-
         ldap_servers = [
             ldap_server
             for ldap_server in LDAP_SERVERS[search_params.env]
@@ -246,7 +243,6 @@ class LdapSearchParams:
                 ]
             )
         elif HEX_SERIAL_REGEX.fullmatch(query):
-
             cleaned_query = "".join(re.split(r"[\s:]+", query)).lower()
 
             if len(cleaned_query) == 40:
@@ -290,7 +286,6 @@ class LdapSearchParams:
 
     @classmethod
     def _parse_ldap_url(cls, search_params: SearchParams) -> LdapSearchParams:
-
         limitations = []
 
         parsed_url = urlparse(
@@ -374,7 +369,6 @@ class CertificateSearch:
 
     @classmethod
     def create_from_request(cls, request: Request) -> CertificateSearch:
-
         database: Database = request.app["Database"]
 
         search_params = SearchParams.create_from_request(request)
