@@ -445,7 +445,6 @@ def test_should_auto_detect_cert_serial(
 
 
 def test_should_reject_too_many_cert_serials(database: Database) -> None:
-
     query = ",".join(
         [f"2416526515686874053702694{x}" for x in range(MAX_SERIAL_NUMBER_COUNT + 1)]
     )
@@ -479,7 +478,6 @@ def test_should_reject_too_many_cert_serials(database: Database) -> None:
     ],
 )
 def test_should_auto_detect_thumbprint(thumbprint: str, database: Database) -> None:
-
     database.insert_certificates(
         [("mordi=213,dc=MagnusCA,dc=watn,dc=no", [b"hei"])], "ldap.buypass.no"
     )
@@ -520,7 +518,6 @@ def test_should_auto_detect_thumbprint(thumbprint: str, database: Database) -> N
 def test_should_warn_when_thumbprint_yielded_no_match(
     thumbprint: str, database: Database
 ) -> None:
-
     search_params = SearchParams(
         Environment.PROD,
         CertType.PERSONAL,
@@ -536,7 +533,6 @@ def test_should_warn_when_thumbprint_yielded_no_match(
 
 
 def test_should_auto_detect_thumbprint_handle_unknown(database: Database) -> None:
-
     database.insert_certificates(
         [("mordi=213,dc=MagnusCA,dc=watn,dc=no", [b"hei"])], "ldap.buypass.no"
     )
@@ -585,7 +581,6 @@ def test_should_auto_detect_org_nr_not_in_db(database: Database, orgnr: str) -> 
 
 @pytest.mark.parametrize("orgnr", ["991 056 505", "991056505", "NTRNO-991056505"])
 def test_should_auto_detect_org_nr_child(database: Database, orgnr: str) -> None:
-
     database._connection.execute(
         """
         INSERT OR REPLACE INTO organization (orgnr, name, is_child, parent_orgnr)
@@ -625,7 +620,6 @@ def test_should_auto_detect_org_nr_child(database: Database, orgnr: str) -> None
 
 @pytest.mark.parametrize("orgnr", ["995 5469 73", "995546973", "NTRNO-995546973"])
 def test_should_auto_detect_org_nr_main(database: Database, orgnr: str) -> None:
-
     database._connection.execute(
         """
         INSERT OR REPLACE INTO organization (orgnr, name, is_child)
@@ -677,7 +671,6 @@ def test_should_auto_detect_org_nr_main(database: Database, orgnr: str) -> None:
 def test_should_auto_detect_org_nr_main_with_parent(
     database: Database, orgnr: str
 ) -> None:
-
     database._connection.execute(
         """
         INSERT OR REPLACE INTO organization (orgnr, name, is_child, parent_orgnr)

@@ -25,7 +25,6 @@ class AuditLogger:
         value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-
         if not (ip := self.request.headers.get("X-Forwarded-For")):
             ip = self.request.remote
 

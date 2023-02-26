@@ -42,7 +42,6 @@ class QualifiedCertificate:
         cert_status: CertificateStatus,
         revocation_date: datetime | None,
     ):
-
         self.cert: MaybeInvalidCertificate = cert
         self.cert_serial = cert_serial
         self.issuer = self.cert.issuer.rfc4514_string(SUBJECT_FIELDS)
@@ -60,7 +59,6 @@ class QualifiedCertificate:
         ldap_server: LdapServer,
         cert_validator: CertValidator,
     ) -> QualifiedCertificate:
-
         cert = MaybeInvalidCertificate.create(raw_cert)
 
         cert_status, revocation_date = await cert_validator.validate_cert(cert)
@@ -269,7 +267,6 @@ class QualifiedCertificateSet:
 
     @classmethod
     def create(cls, certs: list[QualifiedCertificate]) -> QualifiedCertificateSet:
-
         # Commfides issues encryption certs with longer validity than
         # the rest of the certificates in the set, so we shouldn't use
         # that to check the validity of the set. Therefore we try to find
@@ -312,7 +309,6 @@ class QualifiedCertificateSet:
         cert_set_roles: list[CertificateRoles] = []
 
         for cert in sorted(certs, key=attrgetter("cert.not_valid_before")):
-
             if not cert_set:
                 cert_set_roles = cert.roles.copy()
             elif (

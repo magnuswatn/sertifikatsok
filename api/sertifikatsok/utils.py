@@ -23,7 +23,6 @@ def get_subject_order(field: str) -> int:
 
 
 def create_ldap_filter(params: list[tuple[SearchAttribute, str]]) -> str:
-
     search_params = ""
     for param in params:
         attribute_value = param[0].value
