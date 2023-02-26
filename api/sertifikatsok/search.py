@@ -441,7 +441,7 @@ class CertificateSearch:
                     certs_to_exclude = ""
                     for result in results:
                         certs_to_exclude += f"(!({result.dn[0]}))"
-                    search_filter = "(&{}{})".format(search_filter, certs_to_exclude)
+                    search_filter = f"(&{search_filter}{certs_to_exclude})"
                     count += 1
                 else:
                     count = LDAP_RETRIES + 1

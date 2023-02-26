@@ -281,7 +281,7 @@ class CertRetriever:
             if path.is_file():
                 try:
                     cls._load_certificate(path, certs)
-                except (IOError, ValueError):
+                except (OSError, ValueError):
                     logger.exception(
                         "Could not load '%s' as a trusted certificate", path
                     )

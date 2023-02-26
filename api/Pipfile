@@ -16,11 +16,6 @@ pytest = "*"
 black = "*"
 mypy = "*"
 aiohttp-swagger = "*"
-isort = "*"
-flake8 = "*"
-flake8-bugbear = "*"
-flake8-comprehensions = "*"
-flake8-simplify = "*"
 pytest-asyncio = "*"
 
 [requires]

@@ -4,10 +4,11 @@ import logging
 import logging.config
 import time
 import uuid
+from collections.abc import Awaitable, Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from functools import wraps
-from typing import Any, Awaitable, Callable, Iterator, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar
 
 audit_logger = logging.getLogger("audit")
 performance_logger = logging.getLogger("performance")

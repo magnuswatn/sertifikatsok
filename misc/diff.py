@@ -48,7 +48,7 @@ for params in PARAMS:
         open_file.write(json.dumps(new_response.json(), indent=4, sort_keys=True))
 
     print("###################################################")
-    print("DIFF FOR PARAMS: {}".format(params))
+    print(f"DIFF FOR PARAMS: {params}")
     subprocess.run(["diff", "old", "new"])
     print("###################################################")
 

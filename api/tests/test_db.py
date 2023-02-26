@@ -37,7 +37,7 @@ def test_organization_parent_with_parent(database: Database) -> None:
     )
 
 
-def test_organization_childs_MUST_have_parent_check(database: Database) -> None:
+def test_organization_childs_must_have_parent_check(database: Database) -> None:
     with pytest.raises(IntegrityError):
         database._connection.execute(
             """
