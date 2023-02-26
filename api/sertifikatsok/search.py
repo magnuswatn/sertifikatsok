@@ -202,7 +202,7 @@ class LdapSearchParams:
             ldap_query = create_ldap_filter([(SearchAttribute.MAIL, query)])
 
             # Buypass doesn't include email in SEID2 certificates, so we warn
-            # that searches like this will only find older Buypass certs. Wheter
+            # that searches like this will only find older Buypass certs. Whether
             # it make sense for us to warn about this can be discussed, but
             # there's some historical reasons behind this.
             limitations.append("ERR-006")
