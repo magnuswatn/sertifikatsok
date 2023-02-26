@@ -29,7 +29,7 @@ CHILD_UPDATES_URL = httpx.URL(
 MAIN_SINGLE_URL = httpx.URL("https://data.brreg.no/enhetsregisteret/api/enheter/")
 CHILD_SINGLE_URL = httpx.URL("https://data.brreg.no/enhetsregisteret/api/underenheter/")
 
-MAX_UPDATE_FETCHES_PER_RUN = 200
+MAX_UPDATE_FETCHES_PER_RUN = 500
 USEFUL_UPDATES = ["Endring", "Ny"]
 
 logger = logging.getLogger(__name__)
@@ -209,6 +209,7 @@ async def run_batch(database: Database, httpx_client: httpx.AsyncClient) -> None
 
 
 def get_seconds_to_next_run() -> float:
+    return 300
     now = datetime.utcnow()
     two_am = now.replace(hour=2, minute=0, second=0, microsecond=0)
     if now > two_am:
