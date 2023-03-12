@@ -32,6 +32,10 @@ def correlation_context() -> Iterator[uuid.UUID]:
 
 
 def configure_logging(log_level: int, log_files: str | None) -> None:
+    logging.config.dictConfig(get_log_config(log_level, log_files))
+
+
+def get_log_config(log_level: int, log_files: str | None) -> dict:
     """
     Configure the logging.
 
@@ -77,7 +81,7 @@ def configure_logging(log_level: int, log_files: str | None) -> None:
                 "handlers": ["performance"],
                 "propagate": False,
             },
-            "aiohttp.access": {
+            "uvicorn.access": {
                 "level": "INFO",
                 "handlers": ["access"],
                 "propagate": False,
@@ -85,7 +89,7 @@ def configure_logging(log_level: int, log_files: str | None) -> None:
             "audit": {"level": "INFO", "handlers": ["audit"], "propagate": False},
         },
     }
-    logging.config.dictConfig(log_settings)
+    return log_settings
 
 
 TC = TypeVar("TC")

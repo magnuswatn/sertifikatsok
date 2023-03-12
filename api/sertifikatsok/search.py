@@ -6,10 +6,10 @@ import re
 from urllib.parse import unquote, urlparse
 
 import bonsai
-from aiohttp.web import Request
 from attrs import field, frozen, mutable
 from bonsai import escape_filter_exp
 from bonsai.asyncio import AIOLDAPConnection
+from starlette.requests import Request
 
 from .constants import (
     EMAIL_REGEX,
@@ -50,11 +50,11 @@ class SearchParams:
     @classmethod
     def create_from_request(cls, request: Request) -> SearchParams:
         try:
-            env = Environment(request.query.get("env"))
+            env = Environment(request.query_params.get("env"))
         except ValueError:
             raise ClientError("Unknown environment")
 
-        raw_type = request.query.get("type")
+        raw_type = request.query_params.get("type")
         if raw_type == "enterprise":
             typ = CertType.ENTERPRISE
         # Accept both for backward compatibility
@@ -63,10 +63,10 @@ class SearchParams:
         else:
             raise ClientError("Unknown certificate type")
 
-        if not (query := request.query.get("query")):
+        if not (query := request.query_params.get("query")):
             raise ClientError("Missing query parameter")
 
-        if (raw_attr := request.query.get("attr")) is not None:
+        if (raw_attr := request.query_params.get("attr")) is not None:
             try:
                 attr = SearchAttribute(raw_attr)
             except ValueError:
@@ -369,14 +369,14 @@ class CertificateSearch:
 
     @classmethod
     def create_from_request(cls, request: Request) -> CertificateSearch:
-        database: Database = request.app["Database"]
+        database: Database = request.app.state.database
 
         search_params = SearchParams.create_from_request(request)
         ldap_params = LdapSearchParams.create(search_params, database)
 
         cert_validator = CertValidator(
-            request.app["CertRetrievers"][search_params.env],
-            request.app["CrlRetriever"].get_retriever_for_request(),
+            request.app.state.cert_retrievers[search_params.env],
+            request.app.state.crl_retriever.get_retriever_for_request(),
         )
 
         return cls(search_params, ldap_params, cert_validator, database)
