@@ -87,4 +87,4 @@ COPY --from=www-build /opt/sertifikatsok/www/dist /opt/sertifikatsok/www/
 COPY --from=build /opt/sertifikatsok/venv/ /opt/sertifikatsok/venv/
 COPY --from=build /opt/sertifikatsok/api/ /opt/sertifikatsok/api/
 
-CMD ["python", "-um", "sertifikatsok"]
+ENTRYPOINT ["python", "-um", "sertifikatsok"]
