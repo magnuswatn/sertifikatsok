@@ -14,3 +14,6 @@ api/.cache/
 api/log_*.log
 .pytest_cache/
 *.db
+www/dist
+www/public/api*
+www/public/resources/external

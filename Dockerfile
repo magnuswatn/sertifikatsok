@@ -13,19 +13,19 @@ WORKDIR /tmp/extjsresources
 COPY misc/download_external_resources.sh /tmp/download_external_resources.sh
 RUN /tmp/download_external_resources.sh
 
-WORKDIR /opt/sertifikatsok
-RUN npm install terser@5.15.1 csso-cli@4.0.1 html-minifier-terser@7.0.0
-ENV PATH="/opt/sertifikatsok/node_modules/.bin:${PATH}"
-
 COPY www /opt/sertifikatsok/www
-COPY misc/dockerbuild.sh /tmp/dockerbuild.sh
-
-RUN /tmp/dockerbuild.sh
+WORKDIR /opt/sertifikatsok/www/
 
 RUN ["cp", "--preserve=all", "-R", "/tmp/extjsresources/.", \
-    "/opt/sertifikatsok/www/resources/external" ]
+    "/opt/sertifikatsok/www/public/resources/external" ]
 
-RUN [ "find", "www", "-type", "f", "-not", "-name", "*.woff2", \
+RUN npm install
+
+ARG SERTIFIKATSOK_VERSION
+
+RUN ["npm", "run", "build"]
+
+RUN [ "find", "dist", "-type", "f", "-not", "-name", "*.woff2", \
     "-not", "-name", "*.woff", "-execdir", "brotli", "{}", ";" ]
 
 #
@@ -83,8 +83,8 @@ ENV PATH="/opt/sertifikatsok/venv/bin:${PATH}" SERTIFIKATSOK_VERSION="${SERTIFIK
 
 WORKDIR /opt/sertifikatsok/api
 
-COPY --from=www-build /opt/sertifikatsok/www/ /opt/sertifikatsok/www/
+COPY --from=www-build /opt/sertifikatsok/www/dist /opt/sertifikatsok/www/
 COPY --from=build /opt/sertifikatsok/venv/ /opt/sertifikatsok/venv/
 COPY --from=build /opt/sertifikatsok/api/ /opt/sertifikatsok/api/
 
-ENTRYPOINT ["python", "-um", "sertifikatsok"]
+CMD ["python", "-um", "sertifikatsok"]

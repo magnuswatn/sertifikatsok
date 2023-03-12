@@ -1,20 +1,22 @@
 #!/bin/bash
 set -Eeuo pipefail
 
-temp_dir=$(mktemp --directory)
+MATERIALIZE_VERSION="1.2.1"
+MATERIALIZE_FILENAME="materialize-v${MATERIALIZE_VERSION}"
 
-EXPECTED_CHEKSUM="f2c4402d6f65eb10afecd1729849ebac7ca8adf162060b2d24449af9f96c44b1  ${temp_dir}/materialize-v0.100.2.zip"
+temp_dir=$(mktemp -d)
 
-wget https://github.com/Dogfalo/materialize/releases/download/v0.100.2/materialize-v0.100.2.zip \
-    -O "${temp_dir}/materialize-v0.100.2.zip"
+EXPECTED_CHEKSUM="8df8ef1f247b4ba2e89edb32fc9c8d69d4d812d3707c3cbfe1ecf3c45fffa5e4  ${temp_dir}/${MATERIALIZE_FILENAME}.zip"
+
+wget "https://github.com/materializecss/materialize/releases/download/${MATERIALIZE_VERSION}/${MATERIALIZE_FILENAME}.zip" \
+    -O "${temp_dir}/${MATERIALIZE_FILENAME}.zip"
 
 echo "${EXPECTED_CHEKSUM}" | sha256sum -c
 
-unzip "${temp_dir}/materialize-v0.100.2.zip"
+unzip "${temp_dir}/${MATERIALIZE_FILENAME}.zip"
 
 rm -Rf "${temp_dir}"
 
-mv "materialize" "materialize-v0.100.2"
+mv "materialize" "${MATERIALIZE_FILENAME}"
 
-wget https://code.jquery.com/jquery-3.2.1.min.js
-wget https://fonts.gstatic.com/s/materialicons/v29/2fcrYFNaTjcS6g4U3t-Y5ZjZjT5FdEJ140U2DJYC3mY.woff2
+wget https://fonts.gstatic.com/s/materialicons/v139/flUhRq6tzZclQEJ-Vdg-IuiaDsNZ.ttf
