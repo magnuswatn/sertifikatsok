@@ -52,9 +52,12 @@ class AuditLogger:
             else ""
         )
 
+        version = self.request.headers.get("sertifikatsok-version")
+
         audit_logger.info(
-            "IP=%s ENV=%s TYPE=%s QUERY='%s' GUIDED_MAIN_ORG_SEARCH=%s TYPE=%s "
+            "VERSION=%s IP=%s ENV=%s TYPE=%s QUERY='%s' GUIDED_MAIN_ORG_SEARCH=%s TYPE=%s "
             "ORG='%s' NUMBER_OF_RESULTS=%d RESULT=%s CORRELATION_ID=%s",
+            version,
             ip,
             self.request.query_params.get("env"),
             self.request.query_params.get("type"),
