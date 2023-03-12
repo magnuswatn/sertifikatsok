@@ -1,12 +1,18 @@
 import argparse
-import asyncio
+import contextlib
 import json
 import logging
+from collections.abc import AsyncIterator
 
-import uvloop
-from aiohttp import web
-from aiohttp.typedefs import Handler
-from aiohttp.web_response import StreamResponse
+import uvicorn
+from fastapi import FastAPI
+from starlette.datastructures import MutableHeaders
+from starlette.middleware import Middleware
+from starlette.requests import Request
+from starlette.responses import Response
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+from sertifikatsok import get_version, is_dev
 
 from .audit_log import AuditLogger
 from .brreg_batch import schedule_batch
@@ -14,113 +20,98 @@ from .crypto import AppCrlRetriever, CertRetriever, CrlDownloader
 from .db import Database
 from .enums import Environment
 from .errors import ClientError
-from .logging import configure_logging, correlation_context, performance_log
+from .logging import audit_logger, correlation_context, get_log_config, performance_log
 from .search import CertificateSearch
 from .serialization import sertifikatsok_serialization
 
 logger = logging.getLogger(__name__)
 
 
-@web.middleware
-async def error_middleware(request: web.Request, handler: Handler) -> StreamResponse:
-    try:
-        return await handler(request)
-    except web.HTTPException:  # pylint: disable=E0705
-        raise
-    except ClientError as error:
-        return web.Response(
-            text=json.dumps({"error": error.args[0]}, ensure_ascii=False),
-            status=400,
-            content_type="application/json",
-        )
-    except Exception:
-        logger.exception("An exception occured:")
-        return web.Response(
-            text=json.dumps(
-                {"error": "En ukjent feil oppstod. Vennligst prøv igjen."},
-                ensure_ascii=False,
-            ),
-            status=500,
-            content_type="application/json",
-        )
+async def handle_client_error(request: Request, exc: Exception) -> Response:
+    assert isinstance(exc, ClientError)
+    return Response(
+        content=json.dumps({"error": exc.args[0]}, ensure_ascii=False),
+        status_code=400,
+        media_type="application/json",
+    )
 
 
-@web.middleware
-async def correlation_middleware(
-    request: web.Request, handler: Handler
-) -> StreamResponse:
-    with correlation_context() as correlation_id:
-        response = await handler(request)
-        response.headers["Correlation-Id"] = str(correlation_id)
-        return response
+async def handle_exception(request: Request, exc: Exception) -> Response:
+    logger.exception("An exception occured:")
+    return Response(
+        content=json.dumps(
+            {"error": "En ukjent feil oppstod. Vennligst prøv igjen."},
+            ensure_ascii=False,
+        ),
+        status_code=500,
+        media_type="application/json",
+    )
 
 
-async def init_app(app: web.Application) -> None:
-    app["CrlRetriever"] = AppCrlRetriever(CrlDownloader())
-    app["CertRetrievers"] = {
+class CorrelationMiddleware:
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        with correlation_context() as correlation_id:
+
+            async def send_with_extra_headers(message: Message) -> None:
+                if message["type"] == "http.response.start":
+                    MutableHeaders(scope=message).append(
+                        "Correlation-Id", str(correlation_id)
+                    )
+
+                await send(message)
+
+            await self.app(scope, receive, send_with_extra_headers)
+
+
+@contextlib.asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    audit_logger.info("## Starting version %s ##", app.version)
+    app.state.dev = is_dev()
+    app.state.database = Database.connect_to_database()
+    app.state.crl_retriever = AppCrlRetriever(CrlDownloader())
+    app.state.cert_retrievers = {
         Environment.TEST: CertRetriever.create(Environment.TEST),
         Environment.PROD: CertRetriever.create(Environment.PROD),
     }
-    app["Database"] = Database.connect_to_database()
-    schedule_batch(app["Database"])
+    schedule_batch(app.state.database)
+    yield
+
+
+app = FastAPI(
+    middleware=[Middleware(CorrelationMiddleware)],
+    lifespan=lifespan,  # type: ignore
+    title="Sertifikatsøk",
+    version=get_version(),
+    exception_handlers={
+        ClientError: handle_client_error,
+        Exception: handle_exception,
+    },
+)
 
 
 @performance_log()
-async def api_endpoint(request: web.Request) -> web.Response:
-    """
-    ---
-    description: Search after certificates.
-    parameters:
-        - in: query
-          name: env
-          type: string
-          required: true
-          enum: [test, prod]
-          description: The environment to search in
-        - in: query
-          name: type
-          required: true
-          type: string
-          enum: [personal, enterprise]
-          description: The type of certificate
-        - in: query
-          name: attr
-          type: string
-          enum: [cn, mail, ou, o, serialNumber, certificateSerialNumber, organizationIdentifier]
-          description: The ldap attribute to search by (optional)
-        - in: query
-          name: query
-          required: true
-          type: string
-          description: The search query
-
-    produces:
-        - application/json
-    responses:
-        "200":
-            description: Search OK.
-        "400":
-            description: Invalid parameters.
-        "500":
-            description: Technical error in the API.
-    """
+@app.get("/api")
+async def api_endpoint(request: Request) -> Response:
     with AuditLogger(request) as audit_logger:
         certificate_search = CertificateSearch.create_from_request(request)
 
         search_response = await certificate_search.get_response()
         audit_logger.set_results(search_response)
 
-        # web.json_response() doesn't set ensure_ascii = False
-        # so the æøås get messed up
-        response = web.Response(
-            text=json.dumps(
+        response = Response(
+            content=json.dumps(
                 search_response, ensure_ascii=False, default=sertifikatsok_serialization
             ),
-            status=200,
-            content_type="application/json",
+            status_code=200,
+            media_type="application/json",
         )
 
-        if search_response.cacheable and not request.app["dev"]:
+        if search_response.cacheable and not request.app.state.dev:
             cache_control = "public, max-age=300"
         else:
             cache_control = "no-cache, no-store, must-revalidate, private, s-maxage=0"
@@ -131,36 +122,27 @@ async def api_endpoint(request: web.Request) -> web.Response:
 
 
 def run() -> None:
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-
     parser = argparse.ArgumentParser(description="Sertifikatsok API")
     parser.add_argument("--host")
     parser.add_argument("--path")
     parser.add_argument("--port")
     parser.add_argument("--log-level")
     parser.add_argument("--log-files")
-    parser.add_argument("--dev", action="store_true")
 
     args = parser.parse_args()
 
     if args.log_level:
         log_level = getattr(logging, args.log_level)
-    elif args.dev:
+    elif is_dev():
         log_level = logging.DEBUG
     else:
         log_level = logging.INFO
-    configure_logging(log_level, args.log_files)
 
-    app = web.Application(middlewares=[error_middleware, correlation_middleware])
-    app.router.add_get("/api", api_endpoint)
-    app.on_startup.append(init_app)
-    app["dev"] = False
-
-    if args.dev:
-        from aiohttp_swagger import setup_swagger  # type: ignore
-
-        setup_swagger(app)
-
-        app["dev"] = True
-
-    web.run_app(app, port=args.port, host=args.host, path=args.path)
+    uvicorn.run(
+        "sertifikatsok.web:app",
+        port=int(args.port),
+        host=args.host,
+        log_level=log_level,
+        reload=is_dev(),
+        log_config=get_log_config(log_level, args.log_files),
+    )

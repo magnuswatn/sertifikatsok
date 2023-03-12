@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from types import TracebackType
 
-from aiohttp.web import Request
+from starlette.requests import Request
 
 from .logging import audit_logger, correlation_id_var
 from .search import CertificateSearchResponse
@@ -26,7 +26,10 @@ class AuditLogger:
         traceback: TracebackType | None,
     ) -> None:
         if not (ip := self.request.headers.get("X-Forwarded-For")):
-            ip = self.request.remote
+            if self.request.client:
+                ip = self.request.client.host
+            else:
+                ip = "UNKNOWN"
 
         if value is not None or self.results is None:
             result = "ERROR"
@@ -53,10 +56,10 @@ class AuditLogger:
             "IP=%s ENV=%s TYPE=%s QUERY='%s' GUIDED_MAIN_ORG_SEARCH=%s TYPE=%s "
             "ORG='%s' NUMBER_OF_RESULTS=%d RESULT=%s CORRELATION_ID=%s",
             ip,
-            self.request.query.get("env"),
-            self.request.query.get("type"),
-            self.request.query.get("query"),
-            self.request.query.get("guidedMainOrgSearch") is not None,
+            self.request.query_params.get("env"),
+            self.request.query_params.get("type"),
+            self.request.query_params.get("query"),
+            self.request.query_params.get("guidedMainOrgSearch") is not None,
             search_type,
             org,
             len(self.results.cert_sets) if self.results else 0,

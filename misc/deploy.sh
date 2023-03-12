@@ -13,7 +13,7 @@ WWW_DIR=/var/www/sertifikatsok
 
 cd "$DIR/../api"
 
-head="$(git rev-parse HEAD)"
+head="$(git rev-parse --short HEAD)"
 last_deploy="$(cat "${BIN_DIR}/last_deploy")"
 
 if [[ $head == "$last_deploy" ]]; then
@@ -24,6 +24,7 @@ fi
 container_tag="sertifikatsok-api-${head}"
 
 docker build \
+  --build-arg SERTIFIKATSOK_VERSION="${head}" \
   -t "${container_tag}" \
   "${DIR}/.."
 

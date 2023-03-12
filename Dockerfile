@@ -77,7 +77,9 @@ RUN set -x \
     && apt-get install --no-install-recommends -y \
     libldap2-dev libsasl2-dev
 
-ENV PATH="/opt/sertifikatsok/venv/bin:${PATH}"
+ARG SERTIFIKATSOK_VERSION
+
+ENV PATH="/opt/sertifikatsok/venv/bin:${PATH}" SERTIFIKATSOK_VERSION="${SERTIFIKATSOK_VERSION}"
 
 WORKDIR /opt/sertifikatsok/api
 
