@@ -69,7 +69,7 @@
         }
 
         const queryParams = new URLSearchParams([
-            ["query", query],
+            ["query", query.trim()],
             ["env", env],
             ["type", type],
         ]);
