@@ -84,7 +84,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(
     middleware=[Middleware(CorrelationMiddleware)],
-    lifespan=lifespan,  # type: ignore
+    lifespan=lifespan,
     title="Sertifikatsøk",
     version=get_version(),
     exception_handlers={
