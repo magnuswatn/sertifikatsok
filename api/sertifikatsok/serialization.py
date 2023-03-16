@@ -152,7 +152,7 @@ def certificate_search(val: CertificateSearchResponse) -> dict[str, Any]:
         "Type": search_type,  # TODO: remove
         "Sertifikattype": search_type,
         "Søketype": _get_norwegian_search_type(val.search.ldap_params.search_type),
-        "Søkefilter": val.search.ldap_params.ldap_query,
+        "Søkefilter": str(val.search.ldap_params.ldap_query),
         "Miljø": search_env,
         "LDAP-servere forespurt": ", ".join(
             {

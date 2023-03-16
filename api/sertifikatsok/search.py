@@ -32,10 +32,9 @@ from .enums import (
     SearchType,
 )
 from .errors import ClientError
-from .ldap import LDAP_SERVERS, LdapServer
+from .ldap import LDAP_SERVERS, LdapFilter, LdapServer
 from .logging import performance_log
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
-from .utils import create_ldap_filter
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +78,7 @@ class SearchParams:
 
 @frozen
 class LdapSearchParams:
-    ldap_query: str
+    ldap_query: LdapFilter
     scope: bonsai.LDAPSearchScope
     ldap_servers: list[LdapServer]
     limitations: list[str]
@@ -98,7 +97,9 @@ class LdapSearchParams:
                 if search_params.typ in ldap_server.cert_types
             ]
 
-            ldap_query = create_ldap_filter([(search_params.attr, search_params.query)])
+            ldap_query = LdapFilter.create_from_params(
+                [(search_params.attr, search_params.query)]
+            )
 
             return cls(ldap_query, scope, ldap_servers, [], None, SearchType.CUSTOM)
 
@@ -140,7 +141,7 @@ class LdapSearchParams:
                 logger.info("Child org - adopting query accordingly")
 
                 assert organization.parent_orgnr is not None
-                base_ldap_query = create_ldap_filter(
+                base_ldap_query = LdapFilter.create_from_params(
                     [
                         (SearchAttribute.SN, organization.parent_orgnr),
                         (SearchAttribute.ORGID, f"NTRNO-{organization.parent_orgnr}"),
@@ -148,13 +149,13 @@ class LdapSearchParams:
                 )
                 # We must create the filter "by hand" here (not by using
                 # create_ldap_filter), because we need the unescaped * char.
-                ldap_query = (
+                ldap_query = LdapFilter(
                     f"(&{base_ldap_query}"
                     f"({SearchAttribute.OU.value}="
                     f"*{escape_filter_exp(organization.orgnr)}*))"
                 )
             else:
-                ldap_query = create_ldap_filter(
+                ldap_query = LdapFilter.create_from_params(
                     [
                         (SearchAttribute.SN, query),
                         (SearchAttribute.ORGID, f"NTRNO-{query}"),
@@ -170,7 +171,7 @@ class LdapSearchParams:
             if query.startswith("UN:NO-"):
                 query = query[6:]
 
-            ldap_query = create_ldap_filter(
+            ldap_query = LdapFilter.create_from_params(
                 [
                     (SearchAttribute.SN, query),
                     (SearchAttribute.SN, f"UN:NO-{query}"),
@@ -199,7 +200,7 @@ class LdapSearchParams:
         elif typ == CertType.PERSONAL and EMAIL_REGEX.fullmatch(query):
             search_type = SearchType.EMAIL
 
-            ldap_query = create_ldap_filter([(SearchAttribute.MAIL, query)])
+            ldap_query = LdapFilter.create_from_params([(SearchAttribute.MAIL, query)])
 
             # Buypass doesn't include email in SEID2 certificates, so we warn
             # that searches like this will only find older Buypass certs. Whether
@@ -214,34 +215,24 @@ class LdapSearchParams:
             search_type = SearchType.CERT_SERIAL
 
             serial_numbers = {
-                serial for serial in re.split(r"[\s;,]+", query) if serial
+                int(serial) for serial in re.split(r"[\s;,]+", query) if serial
             }
 
             if len(serial_numbers) > MAX_SERIAL_NUMBER_COUNT:
                 raise ClientError("Too many serial numbers in search")
 
-            ldap_query = create_ldap_filter(
-                [
-                    (SearchAttribute.CSN, serial_number)
-                    for serial_number in serial_numbers
-                ]
-            )
+            ldap_query = LdapFilter.create_for_cert_serials(serial_numbers)
         elif HEX_SERIALS_REGEX.fullmatch(query):
             search_type = SearchType.CERT_SERIAL
 
             serial_numbers = {
-                serial for serial in re.split(r"[\s;,]+", query) if serial
+                int(serial, 16) for serial in re.split(r"[\s;,]+", query) if serial
             }
 
             if len(serial_numbers) > MAX_SERIAL_NUMBER_COUNT:
                 raise ClientError("Too many serial numbers in search")
 
-            ldap_query = create_ldap_filter(
-                [
-                    (SearchAttribute.CSN, str(int(serial_number, 16)))
-                    for serial_number in serial_numbers
-                ]
-            )
+            ldap_query = LdapFilter.create_for_cert_serials(serial_numbers)
         elif HEX_SERIAL_REGEX.fullmatch(query):
             cleaned_query = "".join(re.split(r"[\s:]+", query)).lower()
 
@@ -251,7 +242,7 @@ class LdapSearchParams:
                 ldap_servers = database.find_cert_from_sha1(
                     cleaned_query, search_params.env
                 )
-                ldap_query = ""
+                ldap_query = LdapFilter("")
                 if not ldap_servers:
                     limitations.append("ERR-010")
 
@@ -261,19 +252,19 @@ class LdapSearchParams:
                 ldap_servers = database.find_cert_from_sha2(
                     cleaned_query, search_params.env
                 )
-                ldap_query = ""
+                ldap_query = LdapFilter("")
                 if not ldap_servers:
                     limitations.append("ERR-010")
 
             else:
                 search_type = SearchType.CERT_SERIAL
-                serial_number = str(int(cleaned_query, 16))
-                ldap_query = create_ldap_filter([(SearchAttribute.CSN, serial_number)])
+                serial_number = int(cleaned_query, 16)
+                ldap_query = LdapFilter.create_for_cert_serials([serial_number])
 
         # Fallback to the Common Name field.
         else:
             search_type = SearchType.FALLBACK
-            ldap_query = create_ldap_filter([(SearchAttribute.CN, query)])
+            ldap_query = LdapFilter.create_from_params([(SearchAttribute.CN, query)])
 
         return cls(
             ldap_query,
@@ -353,7 +344,14 @@ class LdapSearchParams:
         ):
             raise ClientError("Invalid filter in url")
 
-        return cls(filtr, scope, [ldap_server], limitations, None, SearchType.LDAP_URL)
+        return cls(
+            LdapFilter(filtr),
+            scope,
+            [ldap_server],
+            limitations,
+            None,
+            SearchType.LDAP_URL,
+        )
 
 
 @mutable
@@ -418,7 +416,7 @@ class CertificateSearch:
         count = 0
         results: list[bonsai.LDAPEntry] = []
         all_results: list[bonsai.LDAPEntry] = []
-        search_filter = self.ldap_params.ldap_query
+        search_filter = self.ldap_params.ldap_query.get_for_ldap_server(ldap_server)
         logger.debug("Starting: ldap search against: %s", ldap_server)
 
         conn: AIOLDAPConnection

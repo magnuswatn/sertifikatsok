@@ -13,8 +13,8 @@ from sertifikatsok.enums import (
     SearchType,
 )
 from sertifikatsok.errors import ClientError
+from sertifikatsok.ldap import LdapFilter
 from sertifikatsok.search import LdapSearchParams, SearchParams
-from sertifikatsok.utils import create_ldap_filter
 
 
 @pytest.fixture
@@ -39,7 +39,7 @@ def test_should_auto_detect_url_buypass(database: Database) -> None:
     )
     assert ldap_search_params.ldap_servers[0].ca == CertificateAuthority.BUYPASS
     assert (
-        ldap_search_params.ldap_query
+        str(ldap_search_params.ldap_query)
         == "(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))"
     )
     assert ldap_search_params.search_type == SearchType.LDAP_URL
@@ -62,7 +62,10 @@ def test_should_auto_detect_url_commfides(database: Database) -> None:
         == "ou=Natural-Person-G3,dc=commfides,dc=com"
     )
     assert ldap_search_params.ldap_servers[0].ca == CertificateAuthority.COMMFIDES
-    assert ldap_search_params.ldap_query == "(certificateSerialNumber=130F751161B26168)"
+    assert (
+        str(ldap_search_params.ldap_query)
+        == "(certificateSerialNumber=130F751161B26168)"
+    )
     assert ldap_search_params.search_type == SearchType.LDAP_URL
 
 
@@ -84,7 +87,7 @@ def test_should_auto_detect_url_and_warn_about_wrong_env(database: Database) -> 
     )
     assert ldap_search_params.ldap_servers[0].ca == CertificateAuthority.BUYPASS
     assert (
-        ldap_search_params.ldap_query
+        str(ldap_search_params.ldap_query)
         == "(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))"
     )
     assert ldap_search_params.search_type == SearchType.LDAP_URL
@@ -160,7 +163,7 @@ def test_should_auto_detect_url_with_garbage_prefix(database: Database) -> None:
     )
     assert ldap_search_params.ldap_servers[0].ca == CertificateAuthority.BUYPASS
     assert (
-        ldap_search_params.ldap_query
+        str(ldap_search_params.ldap_query)
         == "(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))"
     )
     assert ldap_search_params.search_type == SearchType.LDAP_URL
@@ -436,8 +439,8 @@ def test_should_auto_detect_cert_serial(
     # is not guaranteed. So we need to check every possible variant
     # of the order. But it should match one of those.
     assert ldap_search_params.ldap_query in [
-        create_ldap_filter(
-            [(SearchAttribute.CSN, serial_number) for serial_number in permutation]
+        LdapFilter.create_for_cert_serials(
+            [int(serial_number) for serial_number in permutation]
         )
         for permutation in permutations(expected_searched_for_serial_numbers)
     ]
@@ -493,7 +496,7 @@ def test_should_auto_detect_thumbprint(thumbprint: str, database: Database) -> N
     assert ldap_search_params.scope == LDAPSearchScope.SUB
     assert len(ldap_search_params.limitations) == 0
     assert len(ldap_search_params.ldap_servers) == 1
-    assert ldap_search_params.ldap_query == ""
+    assert str(ldap_search_params.ldap_query) == ""
     assert (
         ldap_search_params.ldap_servers[0].base == "mordi=213,dc=MagnusCA,dc=watn,dc=no"
     )
@@ -548,7 +551,7 @@ def test_should_auto_detect_thumbprint_handle_unknown(database: Database) -> Non
     assert ldap_search_params.scope == LDAPSearchScope.SUB
     assert len(ldap_search_params.limitations) == 1
     assert len(ldap_search_params.ldap_servers) == 0
-    assert ldap_search_params.ldap_query == ""
+    assert str(ldap_search_params.ldap_query) == ""
     assert ldap_search_params.search_type == SearchType.THUMBPRINT
 
 
@@ -572,7 +575,7 @@ def test_should_auto_detect_org_nr_not_in_db(database: Database, orgnr: str) -> 
         {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
     )
     assert (
-        ldap_search_params.ldap_query
+        str(ldap_search_params.ldap_query)
         == "(|(serialNumber=995546973)(organizationIdentifier=NTRNO-995546973))"
     )
     assert ldap_search_params.organization is None
@@ -607,7 +610,7 @@ def test_should_auto_detect_org_nr_child(database: Database, orgnr: str) -> None
         {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
     )
     assert (
-        ldap_search_params.ldap_query
+        str(ldap_search_params.ldap_query)
         == "(&(|(serialNumber=983044778)(organizationIdentifier=NTRNO-983044778))"
         "(ou=*991056505*))"
     )
@@ -646,7 +649,7 @@ def test_should_auto_detect_org_nr_main(database: Database, orgnr: str) -> None:
         {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
     )
     assert (
-        ldap_search_params.ldap_query
+        str(ldap_search_params.ldap_query)
         == "(|(serialNumber=995546973)(organizationIdentifier=NTRNO-995546973))"
     )
     assert ldap_search_params.organization is not None
@@ -697,7 +700,7 @@ def test_should_auto_detect_org_nr_main_with_parent(
         {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
     )
     assert (
-        ldap_search_params.ldap_query
+        str(ldap_search_params.ldap_query)
         == "(|(serialNumber=995546973)(organizationIdentifier=NTRNO-995546973))"
     )
     assert ldap_search_params.organization is not None
@@ -746,13 +749,11 @@ def test_should_auto_detect_personal_serial_number_commfides(
         CertificateAuthority.COMMFIDES == ldap_server.ca
         for ldap_server in ldap_search_params.ldap_servers
     )
-    assert (
+    assert str(
         ldap_search_params.ldap_query
-        == f"(|(serialNumber={serial})(serialNumber=UN:NO-{serial}))"
-        or (
-            ldap_search_params.ldap_query
-            == f"(|(serialNumber={serial[6:]})(serialNumber={serial}))"
-        )
+    ) == f"(|(serialNumber={serial})(serialNumber=UN:NO-{serial}))" or (
+        str(ldap_search_params.ldap_query)
+        == f"(|(serialNumber={serial[6:]})(serialNumber={serial}))"
     )
     assert ldap_search_params.search_type == SearchType.PERSONAL_SERIAL
 
@@ -779,7 +780,7 @@ def test_should_auto_detect_personal_serial_number_buypass(
         for ldap_server in ldap_search_params.ldap_servers
     )
     assert (
-        ldap_search_params.ldap_query == "(|(serialNumber=9578-4050-127091783)"
+        str(ldap_search_params.ldap_query) == "(|(serialNumber=9578-4050-127091783)"
         "(serialNumber=UN:NO-9578-4050-127091783))"
     )
     assert ldap_search_params.search_type == SearchType.PERSONAL_SERIAL
@@ -803,7 +804,7 @@ def test_should_auto_detect_email(database: Database) -> None:
     assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
         {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
     )
-    assert ldap_search_params.ldap_query == "(mail=fornavn@etternavn.no)"
+    assert str(ldap_search_params.ldap_query) == "(mail=fornavn@etternavn.no)"
     assert ldap_search_params.search_type == SearchType.EMAIL
 
 
@@ -825,7 +826,7 @@ def test_should_fallback_to_cn(database: Database) -> None:
     assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
         {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
     )
-    assert ldap_search_params.ldap_query == "(cn=Min supertjeneste)"
+    assert str(ldap_search_params.ldap_query) == "(cn=Min supertjeneste)"
     assert ldap_search_params.search_type == SearchType.FALLBACK
 
 
@@ -847,5 +848,5 @@ def test_should_respect_attribute(database: Database) -> None:
     assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
         {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
     )
-    assert ldap_search_params.ldap_query == "(ou=Min superunderenhet)"
+    assert str(ldap_search_params.ldap_query) == "(ou=Min superunderenhet)"
     assert ldap_search_params.search_type == SearchType.CUSTOM

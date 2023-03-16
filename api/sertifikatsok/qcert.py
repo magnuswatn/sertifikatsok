@@ -25,8 +25,8 @@ from .constants import (
 from .crypto import CertValidator
 from .enums import SEID, CertificateRoles, CertificateStatus, CertType, SearchAttribute
 from .errors import MalformedCertificateError
-from .ldap import LdapServer
-from .utils import create_ldap_filter, get_subject_order
+from .ldap import LdapFilter, LdapServer
+from .utils import get_subject_order
 
 logger = logging.getLogger(__name__)
 
@@ -383,13 +383,14 @@ class QualifiedCertificateSet:
     def ldap(self) -> str:
         """Creates an LDAP url (RFC 1959) for the certificate set"""
 
-        ldap_filter = create_ldap_filter(
+        ldap_filter = LdapFilter.create_from_params(
             [
                 (SearchAttribute.CSN, str(cert.cert_serial))
                 for cert in self.certs
                 if cert.cert_serial
             ]
         )
+
         ldap_url = "ldap://{}/{}?usercertificate;binary?sub?{}".format(
             self.certs[0].ldap_server.hostname,
             urllib.parse.quote(self.certs[0].ldap_server.base, safe="=,"),
