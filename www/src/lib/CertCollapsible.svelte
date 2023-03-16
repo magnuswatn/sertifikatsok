@@ -126,7 +126,9 @@
                             {#if cert_set.org_number}
                                 <BrregButton orgnr={cert_set.org_number} />
                             {/if}
-                            <LdapButton ldap_url={cert_set.ldap} />
+                            {#if cert_set.ldap}
+                                <LdapButton ldap_url={cert_set.ldap} />
+                            {/if}
                         </div>
                     </div>
                 </span>
