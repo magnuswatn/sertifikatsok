@@ -32,18 +32,27 @@
             <div class="card-content white-text">
                 <span class="card-title">{cert.name}</span>
                 <p />
-                <div class="left">Bruksområde(r)</div>
-                <div class="right">{cert.info["Bruksområde(r)"]}</div>
-                <br />
-                <div class="left">Serienummer (hex)</div>
-                <div class="right">{cert.info["Serienummer (hex)"]}</div>
-                <br />
-                <div class="left">Serienummer (dec)</div>
-                <div class="right">{cert.info["Serienummer (int)"]}</div>
-                <br />
-                <div class="left">Avtrykk (SHA-1)</div>
-                <div class="right">{cert.info["Avtrykk (SHA-1)"]}</div>
-                <br />
+                <div class="card-data">
+                    <div>Bruksområde(r)</div>
+                    <div class="value-div">
+                        {cert.info["Bruksområde(r)"]}
+                    </div>
+
+                    <div>Serienummer (hex)</div>
+                    <div class="value-div">
+                        {cert.info["Serienummer (hex)"]}
+                    </div>
+
+                    <div>Serienummer (dec)</div>
+                    <div class="value-div">
+                        {cert.info["Serienummer (int)"]}
+                    </div>
+
+                    <div>Avtrykk (SHA-1)</div>
+                    <div class="value-div">
+                        {cert.info["Avtrykk (SHA-1)"]}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -51,3 +60,18 @@
 {#if cert_open}
     <CertModal {cert} on:close={handleModalClose} />
 {/if}
+
+<style>
+    .card-data {
+        display: grid;
+        grid-template-columns: minmax(max-content, 4fr) 6fr;
+        grid-column-gap: 20px;
+    }
+
+    .value-div {
+        text-align: right;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
