@@ -81,7 +81,7 @@
                     <td>{cert.info["Serienummer (hex)"]}</td>
                 </tr>
                 <tr>
-                    <td><b>Serienummer (int)</b></td>
+                    <td><b>Serienummer (dec)</b></td>
                     <td>{cert.info["Serienummer (int)"]}</td>
                 </tr>
                 <tr>

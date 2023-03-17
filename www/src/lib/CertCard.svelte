@@ -38,7 +38,7 @@
                 <div class="left">Serienummer (hex)</div>
                 <div class="right">{cert.info["Serienummer (hex)"]}</div>
                 <br />
-                <div class="left">Serienummer (int)</div>
+                <div class="left">Serienummer (dec)</div>
                 <div class="right">{cert.info["Serienummer (int)"]}</div>
                 <br />
                 <div class="left">Avtrykk (SHA-1)</div>
