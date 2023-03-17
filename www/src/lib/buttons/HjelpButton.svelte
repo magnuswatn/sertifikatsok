@@ -16,18 +16,18 @@
 </div>
 {#if modalOpen}
     <StringModal on:close={() => (modalOpen = false)}>
-        <h4>Norske kvalifiserte sertifikater</h4>
+        <h4>Norske person- og virksomhetssertifikater</h4>
         <p>
-            Norske kvalifiserte sertifikater er digitale ID-papirer, som kan
-            brukes til å bekrefte identitet i den digitale verdenen. De baserer
-            seg på samme teknologi som f.eks. SSL-sertifikater, og er
-            spesifisert i <a
-                href="https://www.regjeringen.no/no/dokumenter/kravspesifikasjon-for-pki-i-offentlig-se/id611085/"
-                >Kravspesifikasjon for PKI i offentlig sektor</a
+            Norske person- og virksomhetssertifikater er digitale ID-papirer,
+            som kan brukes til å bekrefte identitet i den digitale verdenen. De
+            baserer seg på samme teknologi som f.eks. SSL-sertifikater, og er
+            spesifisert av <a
+                href="https://www.nkom.no/internett/elektronisk-id-og-tillitstjenester/seid-prosjektet"
+                target="_blank"
+                rel="noreferrer">SEID-samarbeidet</a
             >.
             <br />
         </p>
-        <p>Det finnes i praksis to typer norske kvalifiserte sertifikater:</p>
         <h5>Person-sertifikater</h5>
         Person-sertifikater representerer en norsk statsborger i folkeregisteret.
         Slike sertifikater brukes typisk til:
@@ -40,8 +40,8 @@
         eller en USB-pinne.
         <br /><br />
         <h5>Virksomhetssertifikater</h5>
-        Virksomhetssertifikater identifiserer en virksomhet registrert i Brønnøysundregistrene.
-        Brukes typisk til:
+        Virksomhetssertifikater identifiserer en virksomhet registrert i Enhetsregisteret
+        (Brønnøysundregistrene). Brukes typisk til:
         <ul class="browser-default">
             <li>
                 Autentisering av virksomheten i maskin-til-maskin-kommunikasjon
@@ -53,8 +53,8 @@
         i fysisk variant, da i form av smartkort.
         <br /><br />
         <p>
-            Det er i praksis to utstedere av kvalifiserte sertifikater Norge i
-            dag, <a href="https://www.buypass.no">Buypass</a>
+            Det er i praksis to utstedere av person- og virksomhetssertifikater
+            i Norge i dag, <a href="https://www.buypass.no">Buypass</a>
             og <a href="https://www.commfides.com/">Commfides</a>.
         </p>
     </StringModal>
