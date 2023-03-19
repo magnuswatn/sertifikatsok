@@ -13,21 +13,22 @@
     <StringModal on:close={() => (modalOpen = false)}>
         <h4>Sertifikater utstedt til underenhet</h4>
         <p>
-            Disse sertifikatene er utstedt til en underenhet av denne
-            organisasjonen. Slike sertifikater har organisasjonsnummeret til
-            hovedenheten i serialNumber- (SEID 1) eller
-            organizationIdentifier-feltet (SEID 2) og organisasjonsnummeret til
-            underenheten i OU-feltet.<br /><br />Eksempel:
+            Disse sertifikatene er utstedt til en underenhet. Slike sertifikater
+            har organisasjonsnummeret til hovedenheten spesifisert på vanlig
+            måte (serialNumber- (SEID 1) eller organizationIdentifier-feltet
+            (SEID 2)) og organisasjonsnummeret til underenheten i OU-feltet.
+            <br />
+            <br />
+            Eksempel:
         </p>
-        <div class="row">
-            <div class="col s12 m5">
-                <div class="card-panel teal">
-                    <span class="white-text">
-                        serialNumber = 995546973<br />
-                        O = WATN IT SYSTEM
-                        <br />OU = WATN UNDERENHET-113328475
-                    </span>
-                </div>
+
+        <div class="card-parent">
+            <div class="card-panel teal">
+                <span class="white-text">
+                    organizationIdentifier = NTRNO-987654321<br />
+                    O = HOVEDENHET AS<br />
+                    OU = ER:NO-123456789-UNDERENHET AS
+                </span>
             </div>
         </div>
         Vær obs på at slike sertifikater kan bli tolket forskjellig fra system til
@@ -35,3 +36,9 @@
         tolke det som tilhørende hovedenheten.
     </StringModal>
 {/if}
+
+<style>
+    .card-parent {
+        display: flex;
+    }
+</style>
