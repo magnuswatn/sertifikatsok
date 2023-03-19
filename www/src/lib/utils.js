@@ -21,7 +21,9 @@ export const getNorwegianDate = (function () {
             `${date.getDate()}. ${monthNames[date.getMonth()]} ` +
             `${date.getFullYear()}`;
         if (includeTime) {
-            norwegianDate += ` kl. ${date.getHours()}:${date.getMinutes()}`;
+            let hours = `${date.getHours()}`.padStart(2, "0");
+            let minutes = `${date.getMinutes()}`.padStart(2, "0");
+            norwegianDate += ` kl. ${hours}:${minutes}`;
         }
         return norwegianDate;
     };
