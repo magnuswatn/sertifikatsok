@@ -15,6 +15,7 @@
     import Seid2Notification from "./notifications/Seid2Notification.svelte";
     import UkjentCertTypeNotification from "./notifications/UkjentCertTypeNotification.svelte";
     import UnderenhetNotification from "./notifications/UnderenhetNotification.svelte";
+    import NotASmartCardNotification from "./notifications/NotASmartCardNotification.svelte";
 
     let collapsible;
 
@@ -105,6 +106,9 @@
                     {/if}
                     {#if cert_set.notices.includes("feilformatert")}
                         <FeilformatertNotification />
+                    {/if}
+                    {#if cert_set.notices.includes("not_a_smartcard")}
+                        <NotASmartCardNotification />
                     {/if}
                     <br />
                     <h6 class="center-align">

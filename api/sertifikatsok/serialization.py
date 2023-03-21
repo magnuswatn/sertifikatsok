@@ -87,6 +87,12 @@ def qualified_certificate_set(val: QualifiedCertificateSet) -> dict[str, Any]:
             dumped["notices"].append("ukjent")
         if val.seid2:
             dumped["notices"].append("seid2")
+        if (
+            # TODO: do this in a better way when this mess is cleaned up
+            val.main_cert.description is not None
+            and "Buypass person-sertifikat (HSM)" in val.main_cert.description
+        ):
+            dumped["notices"].append("not_a_smartcard")
 
     dumped["issuer"] = val.issuer
 
