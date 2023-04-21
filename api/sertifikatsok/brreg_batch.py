@@ -122,6 +122,10 @@ async def get_organizations_from_brreg(
             # Is to be expected if the unit has status 'Fjernet'
             continue
 
+        if resp.status_code == 404:
+            # Not really expected, but what you gonna do /shrug
+            continue
+
         resp.raise_for_status()
         raw_org = resp.json()
 

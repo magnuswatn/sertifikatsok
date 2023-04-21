@@ -31,6 +31,7 @@ def database() -> Database:
 class ChangedOrganization(Organization):
     removed: bool  # 410 GONE
     deleted: bool  # with "slettedato"
+    disappeared: bool  # 404 not found
     change_type: Literal["Ny"] | Literal["Endring"] | Literal["Sletting"]
 
     def __attrs_post_init__(self) -> None:
@@ -163,6 +164,9 @@ def get_mock_httpx_client(
             if org.removed:
                 status_code = 410
                 body = None
+            elif org.disappeared:
+                status_code = 404
+                body = None
             else:
                 body = generate_single_unit_resp(org)
         elif request.url.path.startswith(CHILD_SINGLE_URL.path):
@@ -170,6 +174,9 @@ def get_mock_httpx_client(
             [org] = [org for org in all_child_units if org.orgnr == org_nr]
             if org.removed:
                 status_code = 410
+                body = None
+            elif org.disappeared:
+                status_code = 404
                 body = None
             else:
                 body = generate_single_unit_resp(org)
@@ -204,6 +211,7 @@ async def test_starts_from_where_it_left_of(database: Database) -> None:
         parent_orgnr=None,
         removed=False,
         deleted=True,
+        disappeared=False,
         change_type="Sletting",
     )
     child_org = ChangedOrganization(
@@ -213,6 +221,7 @@ async def test_starts_from_where_it_left_of(database: Database) -> None:
         parent_orgnr="234567890",
         removed=False,
         deleted=True,
+        disappeared=False,
         change_type="Sletting",
     )
 
@@ -254,6 +263,7 @@ async def test_updates_exisiting_orgs(database: Database) -> None:
         parent_orgnr=None,
         removed=False,
         deleted=False,
+        disappeared=False,
         change_type="Endring",
     )
     existing_child_org = ChangedOrganization(
@@ -263,6 +273,7 @@ async def test_updates_exisiting_orgs(database: Database) -> None:
         parent_orgnr="234567890",
         removed=False,
         deleted=False,
+        disappeared=False,
         change_type="Endring",
     )
 
@@ -309,6 +320,7 @@ async def test_handles_gone_orgs(database: Database) -> None:
         parent_orgnr=None,
         removed=True,
         deleted=False,
+        disappeared=False,
         change_type="Endring",
     )
     existing_child_org = ChangedOrganization(
@@ -318,7 +330,61 @@ async def test_handles_gone_orgs(database: Database) -> None:
         parent_orgnr="234567890",
         removed=True,
         deleted=False,
+        disappeared=False,
         change_type="Endring",
+    )
+
+    assert database.get_organization(existing_main_org.orgnr) is None
+    assert database.get_organization(existing_child_org.orgnr) is None
+
+    main_update_list, max_main_update_id = generate_update_list(
+        INITIAL_UPDATE_ID + 13, [existing_main_org]
+    )
+    child_update_list, max_child_update_id = generate_update_list(
+        INITIAL_UPDATE_ID + 24, [existing_child_org]
+    )
+
+    httpx_client = get_mock_httpx_client(
+        main_update_list,
+        child_update_list,
+        [existing_main_org],
+        [existing_child_org],
+    )
+
+    await run_batch(database, httpx_client)
+
+    batch_data = BrregBatchRun.from_batch_run(
+        database.get_last_successful_batch_run(BATCH_NAME)
+    )
+    assert batch_data is not None
+
+    assert batch_data.main_updateid == max_main_update_id
+    assert batch_data.child_updateid == max_child_update_id
+
+    assert database.get_organization(existing_main_org.orgnr) is None
+    assert database.get_organization(existing_child_org.orgnr) is None
+
+
+async def test_handles_mysteriously_disappeared_orgs(database: Database) -> None:
+    existing_main_org = ChangedOrganization(
+        "931221671",
+        "Gammelt navn på 931221671",
+        is_child=False,
+        parent_orgnr=None,
+        removed=False,
+        deleted=False,
+        disappeared=True,
+        change_type="Ny",
+    )
+    existing_child_org = ChangedOrganization(
+        "931164147",
+        "Gammelt navn på 931164147",
+        is_child=True,
+        parent_orgnr="234567890",
+        removed=False,
+        deleted=False,
+        disappeared=True,
+        change_type="Ny",
     )
 
     assert database.get_organization(existing_main_org.orgnr) is None
@@ -360,6 +426,7 @@ async def test_handles_changed_org_but_later_deleted(database: Database) -> None
         parent_orgnr=None,
         removed=False,
         deleted=True,
+        disappeared=False,
         change_type="Endring",
     )
     existing_child_org = ChangedOrganization(
@@ -369,6 +436,7 @@ async def test_handles_changed_org_but_later_deleted(database: Database) -> None
         parent_orgnr="234567890",
         removed=False,
         deleted=True,
+        disappeared=False,
         change_type="Endring",
     )
 
@@ -412,6 +480,7 @@ async def test_handles_several_pages(database: Database) -> None:
             parent_orgnr=None,
             removed=False,
             deleted=False,
+            disappeared=False,
             change_type="Endring",
         )
         for org_nr in range(989643214, 989643284)
@@ -425,6 +494,7 @@ async def test_handles_several_pages(database: Database) -> None:
             parent_orgnr=str(org_nr - 40000),
             removed=False,
             deleted=False,
+            disappeared=False,
             change_type="Endring",
         )
         for org_nr in range(969643214, 969643284)
@@ -467,6 +537,7 @@ async def test_doesnt_update_more_than_limit(database: Database) -> None:
             parent_orgnr=str(org_nr - 10000),
             removed=False,
             deleted=False,
+            disappeared=False,
             change_type="Endring",
         )
         for org_nr in range(989643214, 989643214 + (MAX_UPDATE_FETCHES_PER_RUN * 30))
@@ -480,6 +551,7 @@ async def test_doesnt_update_more_than_limit(database: Database) -> None:
             parent_orgnr=str(org_nr - 40000),
             removed=False,
             deleted=False,
+            disappeared=False,
             change_type="Endring",
         )
         for org_nr in range(969643214, 969643214 + (MAX_UPDATE_FETCHES_PER_RUN * 30))
@@ -555,6 +627,7 @@ async def test_inserts_new_organizations(database: Database) -> None:
         parent_orgnr="123456789",
         removed=False,
         deleted=False,
+        disappeared=False,
         change_type="Ny",
     )
     child_org = ChangedOrganization(
@@ -564,6 +637,7 @@ async def test_inserts_new_organizations(database: Database) -> None:
         parent_orgnr="123456789",
         removed=False,
         deleted=False,
+        disappeared=False,
         change_type="Ny",
     )
 
