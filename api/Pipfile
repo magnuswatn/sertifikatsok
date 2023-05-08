@@ -13,7 +13,6 @@ fastapi = "*"
 
 [dev-packages]
 pytest = "*"
-black = "*"
 mypy = "*"
 pytest-asyncio = "*"
 
