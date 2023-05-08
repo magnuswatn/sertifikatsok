@@ -1,3 +1,6 @@
+from datetime import datetime, timezone
+
+
 def get_subject_order(field: str) -> int:
     """Returns the order of the subject element, for pretty printing"""
     order = {
@@ -15,3 +18,7 @@ def get_subject_order(field: str) -> int:
     }
     field_name = field.split("=")[0]
     return order.get(field_name, 100)
+
+
+def datetime_now_utc() -> datetime:
+    return datetime.now(tz=timezone.utc)

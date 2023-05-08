@@ -127,7 +127,9 @@ class AppCrlRetriever:
         try:
             crl = self.crls[url]
         except KeyError:
-            raise CouldNotGetValidCRLError("Not in AppCrlRetriever memory cache")
+            raise CouldNotGetValidCRLError(
+                "Not in AppCrlRetriever memory cache"
+            ) from None
 
         self._validate(crl, issuer)
 
@@ -141,7 +143,7 @@ class AppCrlRetriever:
         try:
             crl_bytes = Path("crls", urllib.parse.quote_plus(url)).read_bytes()
         except FileNotFoundError:
-            raise CouldNotGetValidCRLError("Not found on disk")
+            raise CouldNotGetValidCRLError("Not found on disk") from None
 
         try:
             crl = x509.load_der_x509_crl(crl_bytes)
@@ -183,9 +185,8 @@ class AppCrlRetriever:
             # include the nextUpdate field in all CRLs.
             raise CouldNotGetValidCRLError("CRL is missing next update field")
 
-        if not (
-            crl.next_update > datetime.utcnow() and crl.last_update < datetime.utcnow()
-        ):
+        now = datetime.utcnow()  # noqa: DTZ003
+        if not (crl.next_update > now and crl.last_update < now):
             raise CouldNotGetValidCRLError(
                 f"CRL failed date validation. "
                 f"Last update: '{crl.last_update}' Next Update: '{crl.next_update}'"
@@ -346,7 +347,7 @@ class CertValidator:
         try:
             cdps = cert.cdp
         except x509.ExtensionNotFound:
-            logger.warn(
+            logger.warning(
                 "Certificate without CDP extension: Subject: '%s' Issuer:'%s'",
                 cert.subject.rfc4514_string() if cert.subject else "__INVALID__",
                 cert.issuer.rfc4514_string(),
@@ -374,10 +375,8 @@ class CertValidator:
     @staticmethod
     def _check_date_on_cert(cert: x509.Certificate) -> bool:
         """Returns whether the certificate is valid wrt. the dates"""
-        return (
-            cert.not_valid_after > datetime.utcnow()
-            and cert.not_valid_before < datetime.utcnow()
-        )
+        now = datetime.utcnow()  # noqa: DTZ003
+        return cert.not_valid_after > now and cert.not_valid_before < now
 
     @staticmethod
     def _validate_cert_against_issuer(

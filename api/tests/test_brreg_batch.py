@@ -79,7 +79,7 @@ def generate_update_list(
                 }
             },
         }
-        for update_id, changed_org in zip(update_ids, units)
+        for update_id, changed_org in zip(update_ids, units, strict=True)
     }, update_ids[-1]
 
 

@@ -9,6 +9,8 @@ from uuid import UUID
 
 from attrs import frozen
 
+from sertifikatsok.utils import datetime_now_utc
+
 from .enums import BatchResult, CertificateAuthority, Environment
 from .ldap import LDAP_SERVERS, LdapServer
 from .logging import performance_log_sync
@@ -163,7 +165,7 @@ class Database:
             """,
             [
                 {
-                    "sha1": hashlib.sha1(cert[1][0]).hexdigest(),
+                    "sha1": hashlib.sha1(cert[1][0]).hexdigest(),  # noqa: S324
                     "sha2": hashlib.sha256(cert[1][0]).hexdigest(),
                     "distinguished_name": cert[0],
                     "l_id": ldap_server_id,
@@ -293,7 +295,7 @@ class Database:
             {
                 "name": batch_name,
                 "uuid": str(uuid),
-                "finished_time": datetime.utcnow().isoformat(),
+                "finished_time": datetime_now_utc().isoformat(),
                 "result": result.value,
                 "data": json.dumps(data) if data is not None else None,
             },

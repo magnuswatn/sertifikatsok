@@ -26,10 +26,7 @@ class AuditLogger:
         traceback: TracebackType | None,
     ) -> None:
         if not (ip := self.request.headers.get("X-Forwarded-For")):
-            if self.request.client:
-                ip = self.request.client.host
-            else:
-                ip = "UNKNOWN"
+            ip = self.request.client.host if self.request.client else "UNKNOWN"
 
         if value is not None or self.results is None:
             result = "ERROR"

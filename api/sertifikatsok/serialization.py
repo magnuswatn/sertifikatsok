@@ -41,7 +41,7 @@ def qualified_certificate(val: QualifiedCertificate) -> dict[str, str | dict[str
 
     # We use SHA1 here since thats what Windows uses
     info["Avtrykk (SHA-1)"] = codecs.encode(
-        val.cert.cert.fingerprint(hashes.SHA1()), "hex"
+        val.cert.cert.fingerprint(hashes.SHA1()), "hex"  # noqa: S303
     ).decode("ascii")
     info["Emne"] = val.print_subject(full=True)
     info["Utsteder"] = val.issuer

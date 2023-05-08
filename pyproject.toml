@@ -2,7 +2,27 @@
 asyncio_mode = "auto"
 
 [tool.ruff]
-select = ['E', 'F', 'I', 'N', 'W', 'UP', 'C4']
+select = [
+    "E",
+    "F",
+    "PLW",
+    "PLE",
+    "W",
+    "B",
+    "UP",
+    "DTZ",
+    "TRY",
+    "C4",
+    "I",
+    "N",
+    "G",
+    "PIE",
+    "Q",
+    "PTH",
+    "S",
+    "SIM",
+]
+ignore = ["TRY003", "S101"]
 line-length = 100
 
 [tool.ruff.per-file-ignores]

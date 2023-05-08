@@ -3,10 +3,10 @@
 Quick script to compare results from old and new API.
 """
 import json
-import os
 import subprocess
+from pathlib import Path
 
-import requests
+import httpx
 
 OLD_SERVER = "https://sertifikatsok.no/api"
 NEW_SERVER = "http://localhost:7000/api"
@@ -35,22 +35,20 @@ PARAMS = [
     {"query": "KJERNEJOURNAL", "type": "enterprise", "env": "prod"},
 ]
 
-session = requests.Session()
+session = httpx.Client()
 
 for params in PARAMS:
     old_response = session.get(OLD_SERVER, params=params)
     new_response = session.get(NEW_SERVER, params=params)
 
-    with open("old", "w") as open_file:
-        open_file.write(json.dumps(old_response.json(), indent=4, sort_keys=True))
+    Path("old").write_text(json.dumps(old_response.json(), indent=4, sort_keys=True))
 
-    with open("new", "w") as open_file:
-        open_file.write(json.dumps(new_response.json(), indent=4, sort_keys=True))
+    Path("new").write_text(json.dumps(new_response.json(), indent=4, sort_keys=True))
 
     print("###################################################")
     print(f"DIFF FOR PARAMS: {params}")
-    subprocess.run(["diff", "old", "new"])
+    subprocess.run(["diff", "old", "new"])  # noqa
     print("###################################################")
 
-os.remove("old")
-os.remove("new")
+Path("old").unlink()
+Path("new").unlink()

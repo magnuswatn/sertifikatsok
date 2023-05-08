@@ -74,14 +74,17 @@ class QualifiedCertificate:
 
         for policy in cert_policies:
             try:
-                oid: str = policy.policy_identifier.dotted_string
-                return KNOWN_CERT_TYPES[(self.issuer, oid)]
+                return KNOWN_CERT_TYPES[
+                    (self.issuer, policy.policy_identifier.dotted_string)
+                ]
             except KeyError:
                 pass
 
         oids = [policy.policy_identifier.dotted_string for policy in cert_policies]
 
-        logger.warn("Unknown certificate type. OIDs=%s Issuer='%s'", oids, self.issuer)
+        logger.warning(
+            "Unknown certificate type. OIDs=%s Issuer='%s'", oids, self.issuer
+        )
 
         return (CertType.UNKNOWN, ", ".join(oids), SEID.UNKNOWN)
 
@@ -179,7 +182,7 @@ class QualifiedCertificate:
             if organization_identifier.startswith("NTRNO-"):
                 org_number = organization_identifier[6:]
             else:
-                logger.warn(
+                logger.warning(
                     "Semantic Identifier is not NTRNO: %s", organization_identifier
                 )
                 return None, False
@@ -214,7 +217,7 @@ class QualifiedCertificate:
             return f"RSA ({pub_key.key_size} bits)"
         if isinstance(pub_key, EllipticCurvePublicKey):
             return f"ECC ({pub_key.curve.name})"
-        logger.warn(f"Unexpected key type: {pub_key}")
+        logger.warning("Unexpected key type: %s", pub_key)
         return None
 
     def get_key_usages(self) -> str:
@@ -248,7 +251,7 @@ class QualifiedCertificate:
             try:
                 ekus.append(EXTENDED_KEY_USAGES[eku.dotted_string])
             except KeyError:
-                logger.warn("Unknown EKU. OID=%s", eku.dotted_string)
+                logger.warning("Unknown EKU. OID=%s", eku.dotted_string)
                 ekus.append(eku.dotted_string)
 
         return ", ".join(ekus)

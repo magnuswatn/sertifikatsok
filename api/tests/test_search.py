@@ -746,7 +746,7 @@ def test_should_auto_detect_personal_serial_number_commfides(
         for ldap_server in ldap_search_params.ldap_servers
     )
     assert all(
-        CertificateAuthority.COMMFIDES == ldap_server.ca
+        ldap_server.ca == CertificateAuthority.COMMFIDES
         for ldap_server in ldap_search_params.ldap_servers
     )
     assert str(
@@ -776,7 +776,7 @@ def test_should_auto_detect_personal_serial_number_buypass(
         for ldap_server in ldap_search_params.ldap_servers
     )
     assert all(
-        CertificateAuthority.BUYPASS == ldap_server.ca
+        ldap_server.ca == CertificateAuthority.BUYPASS
         for ldap_server in ldap_search_params.ldap_servers
     )
     assert (

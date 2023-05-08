@@ -20,7 +20,8 @@ from sertifikatsok.crypto import (
     RequestCrlRetriever,
 )
 from sertifikatsok.enums import CertificateStatus
-from sertifikatsok.errors import CouldNotGetValidCRLError
+from sertifikatsok.errors import CouldNotGetValidCRLError, SertifikatSokError
+from sertifikatsok.utils import datetime_now_utc
 
 ONE_DAY = datetime.timedelta(1, 0, 0)
 
@@ -69,8 +70,8 @@ class CertificateAuthority:
                     ]
                 )
             )
-            .not_valid_before(datetime.datetime.utcnow() - ONE_DAY)
-            .not_valid_after(datetime.datetime.utcnow() + (ONE_DAY * 14))
+            .not_valid_before(datetime_now_utc() - ONE_DAY)
+            .not_valid_after(datetime_now_utc() + (ONE_DAY * 14))
             .serial_number(x509.random_serial_number())
             .public_key(private_key.public_key())
             .add_extension(
@@ -98,15 +99,15 @@ class CertificateAuthority:
                     ]
                 )
             )
-            .last_update(datetime.datetime.utcnow() + date_skew)
-            .next_update(datetime.datetime.utcnow() + ONE_DAY + date_skew)
+            .last_update(datetime_now_utc() + date_skew)
+            .next_update(datetime_now_utc() + ONE_DAY + date_skew)
         )
 
         for revoked_cert in revoked_certs:
             crl_builder = crl_builder.add_revoked_certificate(
                 x509.RevokedCertificateBuilder()
                 .serial_number(revoked_cert.serial_number)
-                .revocation_date(datetime.datetime.utcnow())
+                .revocation_date(datetime_now_utc())
                 .build()
             )
 
@@ -143,8 +144,8 @@ class CertificateAuthority:
                     ]
                 )
             )
-            .not_valid_before(datetime.datetime.utcnow() - ONE_DAY + date_skew)
-            .not_valid_after(datetime.datetime.utcnow() + (ONE_DAY * 3) + date_skew)
+            .not_valid_before(datetime_now_utc() - ONE_DAY + date_skew)
+            .not_valid_after(datetime_now_utc() + (ONE_DAY * 3) + date_skew)
             .serial_number(x509.random_serial_number())
             .public_key(private_key.public_key())
             .add_extension(
@@ -225,7 +226,7 @@ class TestRequestCrlRetriever:
                 self.count += 1
                 if url == "http://crl.watn.no" and issuer == ca.cert:
                     return crl
-                raise Exception("Called with wrong params")
+                raise SertifikatSokError("Called with wrong params")
 
         dummy_app_crl_retriever = DummyAppCrlRetriever()
         request_crl_retriever = RequestCrlRetriever(dummy_app_crl_retriever)
@@ -382,7 +383,7 @@ class TestCertValidator:
             async def retrieve(
                 self, url: str, issuer: x509.Certificate
             ) -> x509.CertificateRevocationList | None:
-                raise Exception("Should not get called")
+                raise SertifikatSokError("Should not get called")
 
         cert_validator = CertValidator(
             CertRetriever({ca.cert.subject: ca.cert}),

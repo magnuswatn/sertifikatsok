@@ -50,8 +50,8 @@ class SearchParams:
     def create_from_request(cls, request: Request) -> SearchParams:
         try:
             env = Environment(request.query_params.get("env"))
-        except ValueError:
-            raise ClientError("Unknown environment")
+        except ValueError as e:
+            raise ClientError("Unknown environment") from e
 
         raw_type = request.query_params.get("type")
         if raw_type == "enterprise":
@@ -68,8 +68,8 @@ class SearchParams:
         if (raw_attr := request.query_params.get("attr")) is not None:
             try:
                 attr = SearchAttribute(raw_attr)
-            except ValueError:
-                raise ClientError("Unknown search attribute")
+            except ValueError as e:
+                raise ClientError("Unknown search attribute") from e
         else:
             attr = None
 
@@ -397,7 +397,7 @@ class CertificateSearch:
             elif ldap_server.ca == CertificateAuthority.COMMFIDES:
                 self.errors.append("ERR-002")
             else:
-                raise RuntimeError(f"Unexpeced ca: {ldap_server.ca}")
+                raise RuntimeError(f"Unexpeced ca: {ldap_server.ca}") from None
         else:
             logger.debug("End: query against %s", ldap_server)
 

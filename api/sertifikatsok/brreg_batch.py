@@ -3,13 +3,14 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Iterable
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import httpx
 from attrs import asdict, frozen
 
 from sertifikatsok.enums import BatchResult
 from sertifikatsok.logging import configure_logging, correlation_context
+from sertifikatsok.utils import datetime_now_utc
 
 from .db import BatchRun, Database, Organization
 
@@ -210,7 +211,7 @@ async def run_batch(database: Database, httpx_client: httpx.AsyncClient) -> None
 
 
 def get_seconds_to_next_run() -> float:
-    now = datetime.utcnow()
+    now = datetime_now_utc()
     two_am = now.replace(hour=2, minute=0, second=0, microsecond=0)
     if now > two_am:
         two_am = two_am + timedelta(days=1)
