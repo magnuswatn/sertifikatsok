@@ -16,9 +16,9 @@
         <p>
             Disse sertifikatene er produsert feil av sertifikatutstederen (dette
             kan f.eks. være at særnorske tegn er kodet på feil måte). Noen
-            systemer vil fortsatt kunne tolke og bruke det korrekt, mens andre
-            systemer vil avvise sertifikatet. Dette sertifikatet bør erstattes,
-            og vises derfor som ugyldig.
+            systemer vil fortsatt kunne tolke og bruke de korrekt, mens andre
+            systemer vil avvise sertifikatene. Slike sertifikater bør erstattes,
+            og de vises derfor som ugyldige.
         </p>
     </StringModal>
 {/if}

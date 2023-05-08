@@ -15,8 +15,8 @@
         <p>
             Revokerte sertifikater er tilbaketrukket fra sertifikatutstederen.
             Det kan være pga. informasjonen i sertifikatet ikke lenger er gyldig
-            (f.eks. selskap avviklet), eller at den private nøkkelen har kommet
-            på avveie. Slike sertifikater må ikke stoles på eller brukes.
+            (f.eks. virksomhet avviklet), eller at den private nøkkelen har
+            kommet på avveie. Slike sertifikater må ikke stoles på eller brukes.
         </p>
     </StringModal>
 {/if}
