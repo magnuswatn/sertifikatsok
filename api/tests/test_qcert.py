@@ -154,14 +154,12 @@ class TestQualifiedCertificateSet:
 
     def test_get_non_encryption_cert_seid2(self) -> None:
         raw_certs = [
-            # krypt
-            "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",
-            # sign
-            "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",
+            read_pem_file("tests/resources/cert_personal_seid2_krypt.pem"),
+            read_pem_file("tests/resources/cert_personal_seid2_sign.pem"),
         ]
         certs = [
             QualifiedCertificate(
-                MaybeInvalidCertificate.create(b64decode(cert)),
+                MaybeInvalidCertificate.create(cert),
                 "",
                 LdapServer("", "", CertificateAuthority.BUYPASS, []),
                 CertificateStatus.EXPIRED,
@@ -209,3 +207,53 @@ class TestQualifiedCertificateSet:
 
         [qcert_set] = QualifiedCertificateSet.create_sets_from_certs([qcert])
         assert qcert_set.status == CertificateStatus.INVALID
+
+    def test_ldap_url(self) -> None:
+        raw_certs = [
+            read_pem_file("tests/resources/cert_personal_seid2_krypt.pem"),
+            read_pem_file("tests/resources/cert_personal_seid2_sign.pem"),
+        ]
+        certs = [
+            QualifiedCertificate(
+                MaybeInvalidCertificate.create(cert),
+                str(x),
+                LdapServer(
+                    "ldap://ldap.watn.no",
+                    "ou=certs,dc=watn,dc=no",
+                    CertificateAuthority.BUYPASS,
+                    [],
+                ),
+                CertificateStatus.EXPIRED,
+                None,
+            )
+            for (x, cert) in enumerate(raw_certs)
+        ]
+        [qcert] = QualifiedCertificateSet.create_sets_from_certs(certs)
+        assert (
+            qcert.ldap
+            == "ldap://ldap://ldap.watn.no/ou=certs,dc=watn,dc=no?usercertificate;binary?sub?"
+            "(|(certificateSerialNumber=0)(certificateSerialNumber=1))"
+        )
+
+    def test_ldap_url_one_cert_without_serial(self) -> None:
+        raw_certs = [
+            read_pem_file("tests/resources/cert_personal_seid2_krypt.pem"),
+            read_pem_file("tests/resources/cert_personal_seid2_sign.pem"),
+        ]
+        certs = [
+            QualifiedCertificate(
+                MaybeInvalidCertificate.create(cert),
+                str(x) if x else None,  # 0 is falsey, so one will have and one wont
+                LdapServer(
+                    "ldap://ldap.watn.no",
+                    "ou=certs,dc=watn,dc=no",
+                    CertificateAuthority.BUYPASS,
+                    [],
+                ),
+                CertificateStatus.EXPIRED,
+                None,
+            )
+            for (x, cert) in enumerate(raw_certs)
+        ]
+        [qcert] = QualifiedCertificateSet.create_sets_from_certs(certs)
+        assert qcert.ldap is None

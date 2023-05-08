@@ -383,15 +383,14 @@ class QualifiedCertificateSet:
         return self.main_cert.print_subject()
 
     @property
-    def ldap(self) -> str:
+    def ldap(self) -> str | None:
         """Creates an LDAP url (RFC 1959) for the certificate set"""
 
+        if not all(cert.cert_serial for cert in self.certs):
+            return None
+
         ldap_filter = LdapFilter.create_from_params(
-            [
-                (SearchAttribute.CSN, str(cert.cert_serial))
-                for cert in self.certs
-                if cert.cert_serial
-            ]
+            [(SearchAttribute.CSN, str(cert.cert_serial)) for cert in self.certs]
         )
 
         ldap_url = "ldap://{}/{}?usercertificate;binary?sub?{}".format(
