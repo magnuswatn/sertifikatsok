@@ -48,8 +48,10 @@ class CertificateAuthority:
     key: rsa.RSAPrivateKey
 
     @classmethod
-    def create(cls, name: str) -> CertificateAuthority:
-        private_key = rsa.generate_private_key(
+    def create(
+        cls, name: str, private_key: rsa.RSAPrivateKey | None = None
+    ) -> CertificateAuthority:
+        private_key = private_key or rsa.generate_private_key(
             public_exponent=65537,
             key_size=2048,
         )
@@ -315,6 +317,21 @@ class TestCertValidator:
 
         cert_validator = CertValidator(
             CertRetriever({ca2.cert.subject: ca2.cert}),
+            DummyRequestCrlRetriever({}),
+        )
+        cert_status, revocation_date = await cert_validator.validate_cert(ee_cert)
+        assert cert_status == CertificateStatus.INVALID
+        assert revocation_date is None
+
+    async def test_invalid_ca_name(
+        self, ca: CertificateAuthority, ee_cert: MaybeInvalidCertificate
+    ) -> None:
+        # same key. but different name
+        ca2 = CertificateAuthority.create("sertifikatsok.no CA2", ca.key)
+
+        cert_validator = CertValidator(
+            # wrong mapping
+            CertRetriever({ca.cert.subject: ca2.cert}),
             DummyRequestCrlRetriever({}),
         )
         cert_status, revocation_date = await cert_validator.validate_cert(ee_cert)
