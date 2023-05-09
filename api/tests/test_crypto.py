@@ -19,9 +19,10 @@ from sertifikatsok.crypto import (
     CrlDownloader,
     RequestCrlRetriever,
 )
-from sertifikatsok.enums import CertificateStatus
+from sertifikatsok.enums import CertificateStatus, Environment
 from sertifikatsok.errors import CouldNotGetValidCRLError, SertifikatSokError
 from sertifikatsok.utils import datetime_now_utc
+from tests.testlib import read_pem_file
 
 ONE_DAY = datetime.timedelta(1, 0, 0)
 
@@ -390,6 +391,30 @@ class TestCertValidator:
 
         cert_status, revocation_date = await cert_validator.validate_cert(ee_cert)
         assert cert_status == CertificateStatus.OK
+        assert revocation_date is None
+
+    async def test_sha1_expired_cert(self) -> None:
+        class ExceptionRequestCrlRetriever:
+            def __init__(self) -> None:
+                self.errors: list[str] = []
+
+            async def retrieve(
+                self, url: str, issuer: x509.Certificate
+            ) -> x509.CertificateRevocationList | None:
+                raise SertifikatSokError("Should not get called")
+
+        # Can't create a SHA1 cert with cryptography, so must
+        # use a real one from prod.
+        cert_validator = CertValidator(
+            CertRetriever.create(Environment.PROD),
+            ExceptionRequestCrlRetriever(),
+        )
+
+        raw_cert = read_pem_file("tests/resources/cert_sha1_sign.pem")
+        ee_cert = MaybeInvalidCertificate.create(raw_cert)
+
+        cert_status, revocation_date = await cert_validator.validate_cert(ee_cert)
+        assert cert_status == CertificateStatus.EXPIRED
         assert revocation_date is None
 
     async def test_ldap_url_cert(self, ca: CertificateAuthority) -> None:

@@ -9,7 +9,9 @@ from typing import Protocol, cast
 from attrs import field, frozen
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+from cryptography.hazmat.primitives.hashes import HashAlgorithm
 from httpx import AsyncClient, HTTPError
 
 from .cert import MaybeInvalidCertificate
@@ -382,9 +384,19 @@ class CertValidator:
     ) -> bool:
         """Validates a certificate against it's (alleged) issuer"""
 
+        if cert.issuer != issuer.subject:
+            logger.info("Cert validation: Name mismatch against issuer")
+            return False
         try:
-            cert.verify_directly_issued_by(issuer)
-        except (ValueError, TypeError, InvalidSignature):
-            logger.info("Cert failed validation against issuer", exc_info=True)
+            # casts because mypy. The type of key is checked
+            # when it is loaded in CertRetriever.
+            cast(RSAPublicKey, issuer.public_key()).verify(
+                cert.signature,
+                cert.tbs_certificate_bytes,
+                PKCS1v15(),
+                cast(HashAlgorithm, cert.signature_hash_algorithm),
+            )
+        except InvalidSignature:
+            logger.info("Cert validation: Signature failed validation")
             return False
         return True
