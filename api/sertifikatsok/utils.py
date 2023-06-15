@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def get_subject_order(field: str) -> int:
@@ -21,4 +21,4 @@ def get_subject_order(field: str) -> int:
 
 
 def datetime_now_utc() -> datetime:
-    return datetime.now(tz=timezone.utc)
+    return datetime.now(tz=UTC)

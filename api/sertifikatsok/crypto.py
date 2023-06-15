@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import urllib.parse
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol, cast
 
@@ -331,9 +331,7 @@ class CertValidator:
                 )
                 if revoked_cert is not None:
                     status = CertificateStatus.REVOKED
-                    revocation_date = revoked_cert.revocation_date.replace(
-                        tzinfo=timezone.utc
-                    )
+                    revocation_date = revoked_cert.revocation_date.replace(tzinfo=UTC)
                 else:
                     status = CertificateStatus.OK
         return status, revocation_date
