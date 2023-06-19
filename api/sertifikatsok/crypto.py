@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import urllib.parse
+from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol, cast
@@ -95,8 +97,15 @@ class AppCrlRetriever:
 
     crl_downloader: CrlDownloaderProto
     crls: dict[str, x509.CertificateRevocationList] = field(factory=dict)
+    locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
     async def retrieve(
+        self, url: str, issuer: x509.Certificate
+    ) -> x509.CertificateRevocationList:
+        async with self.locks[url]:
+            return await self._retrieve(url, issuer)
+
+    async def _retrieve(
         self, url: str, issuer: x509.Certificate
     ) -> x509.CertificateRevocationList:
         """Retrieves the CRL from the specified url"""
