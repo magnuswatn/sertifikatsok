@@ -94,8 +94,8 @@ app = FastAPI(
 )
 
 
-@performance_log()
 @app.get("/api")
+@performance_log()
 async def api_endpoint(request: Request) -> Response:
     with AuditLogger(request) as audit_logger:
         certificate_search = CertificateSearch.create_from_request(request)
