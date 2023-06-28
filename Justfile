@@ -17,5 +17,8 @@ export LDFLAGS := "-L/opt/homebrew/opt/openldap/lib"
 
 @checks: pre-commit mypy tests
 
+alias py := python
+@python:
+  cd ./api && pipenv run python
 
 # TODO: add frontend stuff also here

@@ -6,7 +6,7 @@ import urllib.parse
 from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Protocol, cast
+from typing import ClassVar, Protocol, cast
 
 from attrs import field, frozen
 from cryptography import x509
@@ -55,7 +55,7 @@ class RequestCrlRetrieverProto(Protocol):
 
 
 class CrlDownloader:
-    HEADERS = {"user-agent": "sertifikatsok.no"}
+    HEADERS: ClassVar[dict[str, str]] = {"user-agent": "sertifikatsok.no"}
 
     async def download_crl(self, url: str) -> bytes:
         async with AsyncClient() as client:
@@ -97,7 +97,7 @@ class AppCrlRetriever:
 
     crl_downloader: CrlDownloaderProto
     crls: dict[str, x509.CertificateRevocationList] = field(factory=dict)
-    locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+    locks: dict[str, asyncio.Lock] = field(factory=lambda: defaultdict(asyncio.Lock))
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
