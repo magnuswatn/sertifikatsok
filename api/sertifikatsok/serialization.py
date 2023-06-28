@@ -34,7 +34,7 @@ def qualified_certificate(val: QualifiedCertificate) -> dict[str, str | dict[str
     dumped: dict[str, str | dict[str, str]] = {}
     name, usage = _get_norwegian_display_name(val)
     dumped["name"] = name
-    info = {}  # noqa: SIM904
+    info = {}
     info["Bruksområde(r)"] = usage
     info["Serienummer (hex)"] = format(val.cert.cert.serial_number, "x")
     info["Serienummer (int)"] = str(val.cert.cert.serial_number)

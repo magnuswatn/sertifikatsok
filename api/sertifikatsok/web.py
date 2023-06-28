@@ -78,7 +78,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         Environment.TEST: CertRetriever.create(Environment.TEST),
         Environment.PROD: CertRetriever.create(Environment.PROD),
     }
-    schedule_batch(app.state.database)
+    # Need a reference to this, so the garbage collector
+    # doesn't clean it up.
+    _batch_task = schedule_batch(app.state.database)
     yield
 
 

@@ -227,9 +227,9 @@ async def run_batch_when_scheduled(database: Database) -> None:
             await run_batch(database, httpx_client)
 
 
-def schedule_batch(database: Database) -> None:
+def schedule_batch(database: Database) -> asyncio.Task:
     # Hackish? Yes. Works? Also yes.
-    asyncio.ensure_future(run_batch_when_scheduled(database))
+    return asyncio.ensure_future(run_batch_when_scheduled(database))
 
 
 async def run_adhoc() -> None:
