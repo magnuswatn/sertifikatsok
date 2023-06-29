@@ -25,17 +25,17 @@ jobs:
           cache: "pipenv"
       - name: Install pipenv
         run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
-      - name: Install bonsai + rustup dependencies
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libldap2-dev libsasl2-dev gcc curl
+      - name: Install bonsai dependencies
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libldap2-dev libsasl2-dev gcc
       - name: Install dependencies
         run: |
           cd api
           pipenv sync --categories="packages dev-packages rust"
-      - name: Build the lib
+      - name: Build ruldap3
         run: |
           cd api
           pipenv run maturin build -m ../ruldap3/Cargo.toml --manylinux off
-      - name: Install the lib
+      - name: Install ruldap3
         run: |
           cd api
           pipenv run pip install ../ruldap3/target/wheels/*
