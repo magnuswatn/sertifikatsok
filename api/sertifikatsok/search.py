@@ -10,6 +10,8 @@ from attrs import field, frozen, mutable
 from bonsai import escape_filter_exp
 from bonsai.asyncio import AIOLDAPConnection
 
+from ruldap3 import is_ldap_filter_valid
+
 from .constants import (
     EMAIL_REGEX,
     HEX_SERIAL_REGEX,
@@ -306,12 +308,8 @@ class LdapSearchParams:
         else:
             raise ClientError("Unsupported scope in url")
 
-        if (
-            len(filtr) > 150
-            or filtr.count("(") != filtr.count(")")
-            or filtr[0] != "("
-            or filtr[-1] != ")"
-        ):
+        if not is_ldap_filter_valid(filtr):
+            logger.info("Rejecting ldap filter %s", filtr)
             raise ClientError("Invalid filter in url")
 
         return cls(

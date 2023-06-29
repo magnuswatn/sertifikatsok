@@ -2,8 +2,13 @@ export LDFLAGS := "-L/opt/homebrew/opt/openldap/lib"
 
 set positional-arguments
 
-@mkvenv:
-  cd ./api && ( pipenv --rm || true ) && pipenv sync --dev --extra-pip-args '--no-binary 'bonsai''
+@clean-venv:
+  cd ./api && ( pipenv --rm || true )
+
+@create-venv:
+  cd ./api && pipenv sync --categories="packages dev-packages rust"  --extra-pip-args '--no-binary 'bonsai''
+
+@mkvenv: clean-venv create-venv update-lib
 
 @run-dev:
   cd ./api && DEV=true pipenv run python -m sertifikatsok --host 127.0.0.1 --port 7001 2>&1
@@ -22,5 +27,12 @@ set positional-arguments
 alias py := python
 @python:
   cd ./api && pipenv run python
+
+alias ulib := update-lib
+@update-lib:
+  cd api && pipenv run maturin develop -m ../ruldap3/Cargo.toml
+
+@build-lib:
+  cd api && pipenv run maturin build -m ../ruldap3/Cargo.toml
 
 # TODO: add frontend stuff also here

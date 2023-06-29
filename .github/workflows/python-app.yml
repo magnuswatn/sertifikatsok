@@ -30,7 +30,15 @@ jobs:
       - name: Install dependencies
         run: |
           cd api
-          pipenv install --dev
+          pipenv sync --categories="packages dev-packages rust"
+      - name: Build ruldap3
+        run: |
+          cd api
+          pipenv run maturin build -m ../ruldap3/Cargo.toml --manylinux off
+      - name: Install ruldap3
+        run: |
+          cd api
+          pipenv run pip install ../ruldap3/target/wheels/*
       - name: Check with mypy
         run: |
           cd api

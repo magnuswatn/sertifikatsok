@@ -39,12 +39,18 @@ RUN set -x \
     && apt-get install --no-install-recommends -y \
     libldap2-dev libsasl2-dev
 
-# Requirement for building bonsai. Separated to its own step
+# Requirement for building bonsai + downloading rustup. Separated to its own step
 # so that the cache from the last step can be reused for the
 # prod container.
 RUN set -x \
     && apt-get install --no-install-recommends -y \
-    gcc
+    gcc curl
+
+# Download and install rustup
+RUN set -x && curl https://sh.rustup.rs -sSf | sh -s -- -y \
+    --default-toolchain stable --profile minimal
+
+ENV PATH="/root/.cargo/bin/:${PATH}"
 
 # Create venv for pipenv
 RUN set -x && python3 -m venv /tmp/pipenv-venv
@@ -52,9 +58,13 @@ RUN set -x \
     && /tmp/pipenv-venv/bin/pip --no-cache-dir --disable-pip-version-check install --upgrade pip \
     && /tmp/pipenv-venv/bin/pip --no-cache-dir --disable-pip-version-check install --upgrade pipenv
 
+# Create venv for building the rust lib
+RUN set -x && python3 -m venv /opt/sertifikatsok/rust-venv
+RUN set -x && /opt/sertifikatsok/rust-venv/bin/pip --no-cache-dir --disable-pip-version-check install --upgrade pip
+
 # Create venv for the app
 RUN set -x && python3 -m venv /opt/sertifikatsok/venv
-RUN set -x && pip --no-cache-dir --disable-pip-version-check install --upgrade pip
+RUN set -x && /opt/sertifikatsok/venv/bin/pip --no-cache-dir --disable-pip-version-check install --upgrade pip
 ENV PATH="/opt/sertifikatsok/venv/bin:${PATH}"
 
 COPY api/Pipfile /tmp/Pipfile
@@ -62,7 +72,18 @@ COPY api/Pipfile.lock /tmp/Pipfile.lock
 
 RUN set -x \
     && cd /tmp \
-    && VIRTUAL_ENV=/opt/sertifikatsok/venv /tmp/pipenv-venv/bin/pipenv install --deploy
+    && VIRTUAL_ENV=/opt/sertifikatsok/venv /tmp/pipenv-venv/bin/pipenv sync
+
+RUN set -x \
+    && cd /tmp \
+    && VIRTUAL_ENV=/opt/sertifikatsok/rust-venv /tmp/pipenv-venv/bin/pipenv sync --categories="rust"
+
+COPY ruldap3 /opt/sertifikatsok/ruldap3
+
+RUN set -x \
+    && /opt/sertifikatsok/rust-venv/bin/maturin build -m /opt/sertifikatsok/ruldap3/Cargo.toml --manylinux off
+
+RUN /opt/sertifikatsok/venv/bin/pip install /opt/sertifikatsok/ruldap3/target/wheels/*
 
 COPY api /opt/sertifikatsok/api
 
