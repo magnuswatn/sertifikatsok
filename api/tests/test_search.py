@@ -22,50 +22,81 @@ def database() -> Database:
     return Database.connect_to_database(":memory:")
 
 
-def test_should_auto_detect_url_buypass(database: Database) -> None:
+@pytest.mark.parametrize(
+    [
+        "ldap_url",
+        "expected_scope",
+        "expected_hostname",
+        "expected_base",
+        "expected_ca",
+        "expected_query",
+    ],
+    [
+        (
+            "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?usercertificate;binary?sub?(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))",
+            LDAPSearchScope.SUB,
+            "ldap.buypass.no",
+            "dc=Buypass,dc=no,CN=Buypass Class 3",
+            CertificateAuthority.BUYPASS,
+            "(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))",
+        ),
+        (
+            "ldap://ldap.test.commfides.com/ou=Natural-Person-G3,dc=commfides,dc=com?usercertificate;binary?sub?(certificateSerialNumber=130F751161B26168)",
+            LDAPSearchScope.SUB,
+            "ldap.test.commfides.com",
+            "ou=Natural-Person-G3,dc=commfides,dc=com",
+            CertificateAuthority.COMMFIDES,
+            "(certificateSerialNumber=130F751161B26168)",
+        ),
+        (
+            "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203%20CA?usercertificate;binary?sub?sn=817920632",
+            LDAPSearchScope.SUB,
+            "ldap.buypass.no",
+            "dc=Buypass,dc=no,CN=Buypass Class 3 CA",
+            CertificateAuthority.BUYPASS,
+            "sn=817920632",
+        ),
+        (
+            "ldap://ldap.test4.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203%20Test4%20CA%203?usercertificate;binary?sub?(|(certificateSerialNumber=6037264911774452840947791)(certificateSerialNumber=6037281003928955883830016)(certificateSerialNumber=2702531723605056595025380)(certificateSerialNumber=2702541841969098455178190))",
+            LDAPSearchScope.SUB,
+            "ldap.test4.buypass.no",
+            "dc=Buypass,dc=no,CN=Buypass Class 3 Test4 CA 3",
+            CertificateAuthority.BUYPASS,
+            "(|(certificateSerialNumber=6037264911774452840947791)(certificateSerialNumber=6037281003928955883830016)(certificateSerialNumber=2702531723605056595025380)(certificateSerialNumber=2702541841969098455178190))",
+        ),
+        (
+            "ldap://ldap.commfides.com/ou=Enterprise,dc=commfides,dc=com?usercertificate;binary?sub?(|(certificateSerialNumber=4ccf299b219b43c24d5887ab626010d01ee3e609)(certificateSerialNumber=449371eda29b8802af8a3cb3639381c09d805e09)(certificateSerialNumber=298409dc176f1b9e6f07e9fed71dc44194785833))",
+            LDAPSearchScope.SUB,
+            "ldap.commfides.com",
+            "ou=Enterprise,dc=commfides,dc=com",
+            CertificateAuthority.COMMFIDES,
+            "(|(certificateSerialNumber=4ccf299b219b43c24d5887ab626010d01ee3e609)(certificateSerialNumber=449371eda29b8802af8a3cb3639381c09d805e09)(certificateSerialNumber=298409dc176f1b9e6f07e9fed71dc44194785833))",
+        ),
+    ],
+)
+def test_should_auto_detect_url(
+    database: Database,
+    ldap_url: str,
+    expected_scope: LDAPSearchScope,
+    expected_hostname: str,
+    expected_base: str,
+    expected_ca: CertificateAuthority,
+    expected_query: str,
+) -> None:
     search_params = SearchParams(
         Environment.PROD,
         CertType.ENTERPRISE,
-        "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?usercertificate;binary?sub?(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))",
+        ldap_url,
         None,
     )
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
+    assert ldap_search_params.scope == expected_scope
     assert len(ldap_search_params.ldap_servers) == 1
-    assert ldap_search_params.ldap_servers[0].hostname == "ldap.buypass.no"
-    assert (
-        ldap_search_params.ldap_servers[0].base == "dc=Buypass,dc=no,CN=Buypass Class 3"
-    )
-    assert ldap_search_params.ldap_servers[0].ca == CertificateAuthority.BUYPASS
-    assert (
-        str(ldap_search_params.ldap_query)
-        == "(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))"
-    )
-    assert ldap_search_params.search_type == SearchType.LDAP_URL
-
-
-def test_should_auto_detect_url_commfides(database: Database) -> None:
-    search_params = SearchParams(
-        Environment.TEST,
-        CertType.PERSONAL,
-        "ldap://ldap.test.commfides.com/ou=Natural-Person-G3,dc=commfides,dc=com?usercertificate;binary?sub?(certificateSerialNumber=130F751161B26168)",
-        None,
-    )
-
-    ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
-    assert len(ldap_search_params.ldap_servers) == 1
-    assert ldap_search_params.ldap_servers[0].hostname == "ldap.test.commfides.com"
-    assert (
-        ldap_search_params.ldap_servers[0].base
-        == "ou=Natural-Person-G3,dc=commfides,dc=com"
-    )
-    assert ldap_search_params.ldap_servers[0].ca == CertificateAuthority.COMMFIDES
-    assert (
-        str(ldap_search_params.ldap_query)
-        == "(certificateSerialNumber=130F751161B26168)"
-    )
+    assert ldap_search_params.ldap_servers[0].hostname == expected_hostname
+    assert ldap_search_params.ldap_servers[0].base == expected_base
+    assert ldap_search_params.ldap_servers[0].ca == expected_ca
+    assert str(ldap_search_params.ldap_query) == expected_query
     assert ldap_search_params.search_type == SearchType.LDAP_URL
 
 
@@ -126,6 +157,22 @@ def test_should_auto_detect_url_and_warn_about_wrong_env(database: Database) -> 
         ),
         (
             "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?usercertificate;binary?sub?(|(certificateSerialNumber=912052)(certificateSerialNumber=912051)).",
+            "Invalid filter in url",
+        ),
+        (
+            "ldap://ldap.buypass.no/dc=Buypass,dc=NO,CN=Buypass%20Class%203%20CA%203?usercertificate;binary?sub?((certificateSerialNumber=912052)(certificateSerialNumber=912051))",
+            "Invalid filter in url",
+        ),
+        (
+            "ldap://ldap.buypass.no/dc=Buypass,dc=NO,CN=Buypass%20Class%203%20CA%203?usercertificate;binary?sub?((|certificateSerialNumber=912052)(certificateSerialNumber=912051))",
+            "Invalid filter in url",
+        ),
+        (
+            "ldap://ldap.test4.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203%20Test4%20CA%203?usercertificate;binary?sub?(|(certificateSerialNumber=2702531723605056595025380)(certificateSerialNumber=2702541841969098455178190))'",
+            "Invalid filter in url",
+        ),
+        (
+            "ldap://ldap.commfides.com/ou=Person-High,dc=commfides,dc=com?usercertificate;binary?sub?(|(certificateSerialNumber=6785900982646169401)(certificateSerialNumber=5124756047439246454)(certificateSerialNumber=1158136303048187837)%29",
             "Invalid filter in url",
         ),
     ],

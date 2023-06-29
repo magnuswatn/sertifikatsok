@@ -4,3 +4,11 @@ updates:
     directory: "/api"
     schedule:
       interval: "daily"
+  - package-ecosystem: npm
+    directory: "/www"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: cargo
+    directory: "/ruldap3"
+    schedule:
+      interval: "daily"
