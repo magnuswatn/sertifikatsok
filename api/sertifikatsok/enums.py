@@ -7,6 +7,20 @@ class CertType(Enum):
     UNKNOWN = 3
 
 
+class RequestCertType(Enum):
+    PERSON = "person"
+    PERSONAL = "personal"
+    ENTERPRISE = "enterprise"
+
+    def to_cert_type(self) -> CertType:
+        if self == RequestCertType.ENTERPRISE:
+            return CertType.ENTERPRISE
+        # Accept both for backward compatibility
+        elif self in {RequestCertType.PERSONAL, RequestCertType.PERSON}:
+            return CertType.PERSONAL
+        raise NotImplementedError
+
+
 class Environment(Enum):
     TEST = "test"
     PROD = "prod"

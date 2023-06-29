@@ -1,11 +1,13 @@
 import argparse
-import contextlib
 import json
 import logging
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import Annotated
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+from fastapi.exceptions import RequestValidationError
 from starlette.datastructures import MutableHeaders
 from starlette.middleware import Middleware
 from starlette.requests import Request
@@ -16,19 +18,36 @@ from sertifikatsok import get_version, is_dev
 
 from .audit_log import AuditLogger
 from .brreg_batch import schedule_batch
-from .crypto import AppCrlRetriever, CertRetriever, CrlDownloader
+from .crypto import AppCrlRetriever, CertRetriever, CertValidator, CrlDownloader
 from .db import Database
-from .enums import Environment
+from .enums import Environment, RequestCertType, SearchAttribute
 from .errors import ClientError
 from .logging import audit_logger, correlation_context, get_log_config, performance_log
-from .search import CertificateSearch
+from .search import CertificateSearch, SearchParams
 from .serialization import sertifikatsok_serialization
 
 logger = logging.getLogger(__name__)
 
 
+async def handle_request_validation_error(request: Request, exc: Exception) -> Response:
+    assert isinstance(exc, RequestValidationError)
+    logger.info("Request validation error %s", exc)
+    error = exc.errors()[0]
+    error_loc = error["loc"][-1]
+    error_msg = error["msg"]
+    return Response(
+        content=json.dumps(
+            {"error": f"Error for query field '{error_loc}': {error_msg}"},
+            ensure_ascii=False,
+        ),
+        status_code=400,
+        media_type="application/json",
+    )
+
+
 async def handle_client_error(request: Request, exc: Exception) -> Response:
     assert isinstance(exc, ClientError)
+    logger.debug("Returning client error", exc_info=True)
     return Response(
         content=json.dumps({"error": exc.args[0]}, ensure_ascii=False),
         status_code=400,
@@ -68,7 +87,7 @@ class CorrelationMiddleware:
             await self.app(scope, receive, send_with_extra_headers)
 
 
-@contextlib.asynccontextmanager
+@asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     audit_logger.info("## Starting version %s ##", app.version)
     app.state.dev = is_dev()
@@ -91,6 +110,7 @@ app = FastAPI(
     version=get_version(),
     exception_handlers={
         ClientError: handle_client_error,
+        RequestValidationError: handle_request_validation_error,
         Exception: handle_exception,
     },
 )
@@ -98,9 +118,25 @@ app = FastAPI(
 
 @app.get("/api")
 @performance_log()
-async def api_endpoint(request: Request) -> Response:
-    with AuditLogger(request) as audit_logger:
-        certificate_search = CertificateSearch.create_from_request(request)
+async def api_endpoint(
+    env: Environment,
+    type: RequestCertType,
+    query: str,
+    request: Request,
+    audit_logger: Annotated[AuditLogger, Depends(AuditLogger)],
+    attr: SearchAttribute | None = None,
+) -> Response:
+    with audit_logger:
+        search_params = SearchParams(env, type.to_cert_type(), query, attr)
+
+        certificate_search = CertificateSearch.create(
+            search_params,
+            CertValidator(
+                request.app.state.cert_retrievers[search_params.env],
+                request.app.state.crl_retriever.get_retriever_for_request(),
+            ),
+            request.app.state.database,
+        )
 
         search_response = await certificate_search.get_response()
         audit_logger.set_results(search_response)
