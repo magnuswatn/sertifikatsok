@@ -9,7 +9,6 @@ import bonsai
 from attrs import field, frozen, mutable
 from bonsai import escape_filter_exp
 from bonsai.asyncio import AIOLDAPConnection
-from starlette.requests import Request
 
 from .constants import (
     EMAIL_REGEX,
@@ -45,35 +44,6 @@ class SearchParams:
     typ: CertType
     query: str
     attr: SearchAttribute | None
-
-    @classmethod
-    def create_from_request(cls, request: Request) -> SearchParams:
-        try:
-            env = Environment(request.query_params.get("env"))
-        except ValueError as e:
-            raise ClientError("Unknown environment") from e
-
-        raw_type = request.query_params.get("type")
-        if raw_type == "enterprise":
-            typ = CertType.ENTERPRISE
-        # Accept both for backward compatibility
-        elif raw_type in {"personal", "person"}:
-            typ = CertType.PERSONAL
-        else:
-            raise ClientError("Unknown certificate type")
-
-        if not (query := request.query_params.get("query")):
-            raise ClientError("Missing query parameter")
-
-        if (raw_attr := request.query_params.get("attr")) is not None:
-            try:
-                attr = SearchAttribute(raw_attr)
-            except ValueError as e:
-                raise ClientError("Unknown search attribute") from e
-        else:
-            attr = None
-
-        return cls(env, typ, query, attr)
 
 
 @frozen
@@ -366,16 +336,13 @@ class CertificateSearch:
     results: list[QualifiedCertificate] = field(factory=list)
 
     @classmethod
-    def create_from_request(cls, request: Request) -> CertificateSearch:
-        database: Database = request.app.state.database
-
-        search_params = SearchParams.create_from_request(request)
+    def create(
+        cls,
+        search_params: SearchParams,
+        cert_validator: CertValidator,
+        database: Database,
+    ) -> CertificateSearch:
         ldap_params = LdapSearchParams.create(search_params, database)
-
-        cert_validator = CertValidator(
-            request.app.state.cert_retrievers[search_params.env],
-            request.app.state.crl_retriever.get_retriever_for_request(),
-        )
 
         return cls(search_params, ldap_params, cert_validator, database)
 
