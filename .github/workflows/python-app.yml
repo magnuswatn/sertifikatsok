@@ -42,7 +42,7 @@ jobs:
       - name: Install the lib
         run: |
           cd api
-          pipenv run install ../ruldap3/target/wheels/*
+          pipenv run pip install ../ruldap3/target/wheels/*
       - name: Check with mypy
         run: |
           cd api
