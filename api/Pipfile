@@ -15,9 +15,7 @@ fastapi = "*"
 pytest = "*"
 mypy = "*"
 pytest-asyncio = "*"
+maturin = "*"
 
 [requires]
 python_version = "3.11"
-
-[rust]
-maturin = "*"
