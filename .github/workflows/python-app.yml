@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd api
-          pipenv sync --categories="packages dev-packages rust"
+          pipenv sync --dev
       - name: Build ruldap3
         run: |
           cd api

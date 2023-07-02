@@ -6,7 +6,7 @@ set positional-arguments
   cd ./api && ( pipenv --rm || true )
 
 @create-venv:
-  cd ./api && pipenv sync --categories="packages dev-packages rust"  --extra-pip-args '--no-binary 'bonsai''
+  cd ./api && pipenv sync --dev  --extra-pip-args '--no-binary 'bonsai''
 
 @mkvenv: clean-venv create-venv update-lib
 
