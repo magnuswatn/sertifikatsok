@@ -38,7 +38,7 @@ jobs:
       - name: Install ruldap3
         run: |
           cd api
-          pipenv run pip install ../ruldap3/target/wheels/*
+          pipenv run pip install --force-reinstall ../ruldap3/target/wheels/*
       - name: Check with mypy
         run: |
           cd api
