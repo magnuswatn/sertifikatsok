@@ -7,7 +7,7 @@ fn is_ldap_filter_valid(filter: String) -> PyResult<bool> {
     if parse_result.is_err() {
         return Ok(false);
     }
-    return Ok(true);
+    return Ok(false);
 }
 
 #[pymodule]
