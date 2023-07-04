@@ -36,6 +36,9 @@ jobs:
           cd api
           pipenv run maturin build -m ../ruldap3/Cargo.toml --manylinux off
       - name: Install ruldap3
+        # Since we cache the venv based on Pipfile, `ruldap3` may already be
+        # installed, so we need to force reinstall to be sure it's the version
+        # from this branch.
         run: |
           cd api
           pipenv run pip install --force-reinstall ../ruldap3/target/wheels/*
