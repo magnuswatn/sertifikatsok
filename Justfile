@@ -3,10 +3,10 @@ export LDFLAGS := "-L/opt/homebrew/opt/openldap/lib"
 set positional-arguments
 
 @clean-venv:
-  cd ./api && ( pipenv --rm || true )
+  pipenv --rm || true
 
 @create-venv:
-  cd ./api && pipenv sync --dev  --extra-pip-args '--no-binary 'bonsai''
+  pipenv sync --dev  --extra-pip-args '--no-binary 'bonsai''
 
 @mkvenv: clean-venv create-venv update-lib
 
@@ -26,13 +26,13 @@ set positional-arguments
 
 alias py := python
 @python:
-  cd ./api && pipenv run python
+  pipenv run python
 
 alias ulib := update-lib
 @update-lib:
-  cd api && pipenv run maturin develop -m ../ruldap3/Cargo.toml
+  pipenv run maturin develop -m ruldap3/Cargo.toml
 
 @build-lib:
-  cd api && pipenv run maturin build -m ../ruldap3/Cargo.toml
+  pipenv run maturin build -m ruldap3/Cargo.toml
 
 # TODO: add frontend stuff also here

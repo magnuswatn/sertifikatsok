@@ -89,8 +89,8 @@ RUN set -x && python3 -m venv /opt/sertifikatsok/venv
 RUN set -x && /opt/sertifikatsok/venv/bin/pip --no-cache-dir --disable-pip-version-check install --upgrade pip
 ENV PATH="/opt/sertifikatsok/venv/bin:${PATH}"
 
-COPY api/Pipfile /tmp/Pipfile
-COPY api/Pipfile.lock /tmp/Pipfile.lock
+COPY Pipfile /tmp/Pipfile
+COPY Pipfile.lock /tmp/Pipfile.lock
 
 RUN set -x \
     && cd /tmp \

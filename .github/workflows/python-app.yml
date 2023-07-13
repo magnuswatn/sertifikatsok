@@ -28,20 +28,14 @@ jobs:
       - name: Install bonsai dependencies
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libldap2-dev libsasl2-dev gcc
       - name: Install dependencies
-        run: |
-          cd api
-          pipenv sync --dev
+        run: pipenv sync --dev
       - name: Build ruldap3
-        run: |
-          cd api
-          pipenv run maturin build -m ../ruldap3/Cargo.toml --manylinux off
+        run: pipenv run maturin build -m ruldap3/Cargo.toml --manylinux off
       - name: Install ruldap3
         # Since we cache the venv based on Pipfile, `ruldap3` may already be
         # installed, so we need to force reinstall to be sure it's the version
         # from this branch.
-        run: |
-          cd api
-          pipenv run pip install --force-reinstall ../ruldap3/target/wheels/*
+        run: pipenv run pip install --force-reinstall ruldap3/target/wheels/*
       - name: Check with mypy
         run: |
           cd api
