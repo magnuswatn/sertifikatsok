@@ -288,7 +288,7 @@ class CertRetriever:
     def _load_all_certs(cls, env: Environment) -> dict[x509.Name, x509.Certificate]:
         certs: dict[x509.Name, x509.Certificate] = {}
         for path in Path("certs", env.value).iterdir():
-            if path.is_file():
+            if path.is_file() and path.suffix in (".crt", ".pem"):
                 try:
                     cls._load_certificate(path, certs)
                 except (OSError, ValueError):

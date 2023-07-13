@@ -111,7 +111,7 @@ KNOWN_CERT_TYPES: dict[tuple[str, str], tuple[CertType, str, SEID]] = {
     ("CN=Buypass Class 3 CA G2 ST Business,O=Buypass AS,organizationIdentifier=NTRNO-983163327,C=NO", "2.16.578.1.26.1.3.2"):
     (CertType.ENTERPRISE, "Buypass virksomhetssertifikat (softsertifikat)", SEID.SEID2),
 
-    ("C=NO, O=Buypass,  CN=Buypass Class 3 Test4 CA 1", "2.16.578.1.26.1.0",):
+    ("CN=Buypass Class 3 Test4 CA 1,O=Buypass,C=NO", "2.16.578.1.26.1.0",):
     (CertType.PERSONAL, "Buypass TEST person-sertifikat (smartkort)", SEID.SEID1),
 
     ("CN=Buypass Class 3 CA 1,O=Buypass AS-983163327,C=NO", "2.16.578.1.26.1.3.1"):

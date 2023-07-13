@@ -1,0 +1,82 @@
+services:
+  test:
+    build:
+      dockerfile: Dockerfile
+      target: test
+    depends_on:
+      - sertifikatsok
+    volumes:
+      - ./api:/opt/sertifikatsok/api
+    command: bash -c "trap 'exit 0' SIGTERM; while true; do sleep 2; done"
+  startupcheck:
+    build:
+      dockerfile: Dockerfile
+      target: test
+    depends_on:
+      - ldap_server_test
+      - ldap_server_prod
+    volumes:
+      - ./misc:/opt/sertifikatsok/misc
+    command: "bash /opt/sertifikatsok/misc/check_if_testserver_started.sh"
+  sertifikatsok:
+    build:
+      dockerfile: Dockerfile
+      args:
+        SERTIFIKATSOK_VERSION: dev
+    ports:
+      - 7001:7001
+    depends_on:
+      startupcheck:
+        condition: service_completed_successfully
+    volumes:
+      - ./api:/opt/sertifikatsok/api
+      - ./testserver/cloned_certs:/opt/sertifikatsok/api/certs
+    command: "--port 7001"
+  ldap_server_test:
+    build:
+      dockerfile: Dockerfile
+      target: test
+    environment:
+      - ENVIRONMENT=test
+    working_dir: /opt/sertifikatsok/testserver
+    command: python3 -m testserver
+    ports:
+      - 391:389
+    volumes:
+      - ./api:/opt/sertifikatsok/api
+      - ./testserver:/opt/sertifikatsok/testserver
+    networks:
+      default:
+        aliases:
+          - ldap.test4.buypass.no
+          - crl.test4.buypass.no
+          - crl.test4.buypassca.com
+          - ldap.test.commfides.com
+          - crl1.test.commfides.com
+          - crl.test.commfides.com
+  ldap_server_prod:
+    build:
+      dockerfile: Dockerfile
+      target: test
+    environment:
+      - ENVIRONMENT=prod
+    working_dir: /opt/sertifikatsok/testserver
+    command: python3 -m testserver
+    ports:
+      - 390:389
+    volumes:
+      - ./api:/opt/sertifikatsok/api
+      - ./testserver:/opt/sertifikatsok/testserver
+    networks:
+      default:
+        aliases:
+          - ldap.buypass.no
+          - crl.buypass.no
+          - crl.buypassca.com
+          - ldap.commfides.com
+          - crl1.commfides.com
+          - crl.commfides.com
+
+networks:
+  default:
+    name: sertifikatsok

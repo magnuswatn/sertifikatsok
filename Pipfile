@@ -16,6 +16,7 @@ pytest = "*"
 mypy = "*"
 pytest-asyncio = "*"
 maturin = "*"
+ldaptor = "*"
 
 [requires]
 python_version = "3.11"

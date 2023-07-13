@@ -17,3 +17,5 @@ api/log_*.log
 www/dist
 www/public/api*
 www/public/resources/external
+testserver/cloned_certs/*/*.pem
+testserver/cloned_certs/*/*.crt
