@@ -95,6 +95,7 @@ COPY Pipfile.lock /tmp/Pipfile.lock
 RUN set -x \
     && cd /tmp \
     && VIRTUAL_ENV=/opt/sertifikatsok/venv /tmp/pipenv-venv/bin/pipenv sync
+
 #
 # Python container for testing
 #
