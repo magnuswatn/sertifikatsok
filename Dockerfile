@@ -97,6 +97,19 @@ RUN set -x \
     && VIRTUAL_ENV=/opt/sertifikatsok/venv /tmp/pipenv-venv/bin/pipenv sync
 
 #
+# Python container for testing
+#
+FROM build as test
+
+RUN set -x \
+    && cd /tmp \
+    && VIRTUAL_ENV=/opt/sertifikatsok/venv /tmp/pipenv-venv/bin/pipenv sync --dev
+
+COPY --from=rust-build /opt/sertifikatsok/ruldap3/target/wheels /opt/sertifikatsok/ruldap3/target/wheels
+
+RUN pip install /opt/sertifikatsok/ruldap3/target/wheels/*
+
+#
 # PROD container
 #
 FROM python-base

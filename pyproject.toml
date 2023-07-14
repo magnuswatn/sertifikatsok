@@ -1,5 +1,6 @@
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = ["apitest: api tests to be run in the docker compose stack"]
 
 [tool.ruff]
 select = [
@@ -30,6 +31,8 @@ target-version = "py311"
 [tool.ruff.per-file-ignores]
 # Lot's of long ldap strings here
 "api/tests/test_search.py" = ["E501"]
+# Twisted...
+"testserver/testserver/**" = ["N802", "N815"]
 
 [tool.ruff.isort]
 known-first-party = ["sertifikatsok"]
@@ -46,3 +49,8 @@ no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_return_any = true
+
+[[tool.mypy.overrides]]
+# Twisted/ldaptor not very well typed :/
+disallow_untyped_calls = false
+module = ["testserver.main"]

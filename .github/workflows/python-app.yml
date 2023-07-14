@@ -18,29 +18,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-          cache: "pipenv"
-      - name: Install pipenv
-        run: curl https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
-      - name: Install bonsai dependencies
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libldap2-dev libsasl2-dev gcc
-      - name: Install dependencies
-        run: pipenv sync --dev
-      - name: Build ruldap3
-        run: pipenv run maturin build -m ruldap3/Cargo.toml --manylinux off
-      - name: Install ruldap3
-        # Since we cache the venv based on Pipfile, `ruldap3` may already be
-        # installed, so we need to force reinstall to be sure it's the version
-        # from this branch.
-        run: pipenv run pip install --force-reinstall ruldap3/target/wheels/*
+      - name: Build docker stack
+        run: docker compose build
+      - name: Start docker stack
+        run: docker compose up -d
       - name: Check with mypy
-        run: |
-          cd api
-          pipenv run mypy sertifikatsok
+        run: docker compose exec test mypy .
       - name: Test with pytest
-        run: |
-          cd api
-          pipenv run pytest
+        run: docker compose exec test pytest

@@ -1,0 +1,6 @@
+services:
+  sertifikatsok:
+    volumes:
+      - ./api:/opt/sertifikatsok/api
+    environment:
+      - DEV=true

@@ -13,8 +13,11 @@ set positional-arguments
 @run-dev:
   cd ./api && DEV=true pipenv run python -m sertifikatsok --host 127.0.0.1 --port 7001 2>&1
 
+@run-testserver:
+  cd ./testserver && pipenv run python -m testserver
+
 @tests *args='':
-  cd ./api && pipenv run pytest "$@"
+  cd ./api && pipenv run pytest -m "not apitest" "$@"
 
 @mypy:
   cd ./api && pipenv run mypy --version && pipenv run mypy .
@@ -35,4 +38,30 @@ alias ulib := update-lib
 @build-lib:
   pipenv run maturin build -m ruldap3/Cargo.toml
 
-# TODO: add frontend stuff also here
+# docker compose stuff
+
+@doctests *args='':
+  docker compose -f docker-compose.yaml -f docker-compose.dev.yaml exec test pytest "$@"
+
+@apitests:
+  just doctests -m apitest
+
+@docbuild:
+  docker compose -f docker-compose.yaml -f docker-compose.dev.yaml build
+
+@docps:
+  docker compose -f docker-compose.yaml -f docker-compose.dev.yaml ps
+
+@docdown:
+  docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down
+
+@docup: docdown
+  docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
+
+# frontend stuff
+
+@wwwdev:
+  cd www && npm run dev || true
+
+@wwwbuild:
+  cd www && npm run build
