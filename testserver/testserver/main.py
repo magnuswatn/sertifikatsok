@@ -26,7 +26,7 @@ class CrlResource(resource.Resource):
 
     def __init__(self, crls: dict[str, dict[str, bytes]]) -> None:
         self.crls = crls
-        super().__init__()  # type: ignore
+        super().__init__()
 
     @classmethod
     def create(cls, cas: Iterable[CertificateAuthority]) -> Self:
@@ -39,11 +39,12 @@ class CrlResource(resource.Resource):
         return cls(dict(crls))
 
     def render_GET(self, req: Request) -> bytes:
-        if req.path == b"/ping":
+        path = req.path or b""
+        if path == b"/ping":
             return b"pong"
 
-        req.setHeader("Content-Type", "application/pkix-crl")  # type: ignore
-        return self.crls[req.getRequestHostname().decode()][req.path.decode()]  # type: ignore
+        req.setHeader("Content-Type", "application/pkix-crl")
+        return self.crls[req.getRequestHostname().decode()][path.decode()]
 
 
 def is_valid_market(env: str) -> TypeGuard[Literal["test", "prod"]]:
@@ -60,7 +61,7 @@ def main() -> None:
         ldap_port = 3389
         http_port = 8080
 
-    log.startLogging(sys.stderr)  # type: ignore
+    log.startLogging(sys.stderr)
     logging.basicConfig(level=logging.DEBUG)
 
     env = os.environ.get("ENVIRONMENT", "test")
@@ -89,21 +90,15 @@ def main() -> None:
     crl_resource = CrlResource.create(loaded_ca_s.values())
 
     # Create endpoints and mount up Twisted stuff
-    endpoint = endpoints.TCP4ServerEndpoint(
-        reactor,
-        http_port,
-        interface=listen_host,
-    )  # type: ignore
-    endpoint.listen(server.Site(crl_resource))  # type: ignore
+    endpoint = endpoints.TCP4ServerEndpoint(reactor, http_port, interface=listen_host)
+    endpoint.listen(server.Site(crl_resource))
 
     # sprincle some more Twisted magic
-    registerAdapter(lambda x: x.root, LDAPServerFactory, IConnectedLDAPEntry)  # type: ignore
+    registerAdapter(lambda x: x.root, LDAPServerFactory, IConnectedLDAPEntry)
 
     ldap_endpoint = endpoints.TCP4ServerEndpoint(
-        reactor,
-        ldap_port,
-        interface=listen_host,
-    )  # type: ignore
-    ldap_endpoint.listen(ldap_server_factory)  # type: ignore
+        reactor, ldap_port, interface=listen_host
+    )
+    ldap_endpoint.listen(ldap_server_factory)
 
     reactor.run()  # type: ignore
