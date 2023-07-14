@@ -51,6 +51,15 @@ def is_valid_market(env: str) -> TypeGuard[Literal["test", "prod"]]:
 
 
 def main() -> None:
+    if os.getenv("RUNNING_IN_DOCKER"):
+        listen_host = "0.0.0.0"  # ruff: noqa: S104
+        ldap_port = 389
+        http_port = 80
+    else:
+        listen_host = "127.0.0.1"
+        ldap_port = 3389
+        http_port = 8080
+
     log.startLogging(sys.stderr)  # type: ignore
     logging.basicConfig(level=logging.DEBUG)
 
@@ -80,13 +89,21 @@ def main() -> None:
     crl_resource = CrlResource.create(loaded_ca_s.values())
 
     # Create endpoints and mount up Twisted stuff
-    endpoint = endpoints.TCP4ServerEndpoint(reactor, 80)  # type: ignore
+    endpoint = endpoints.TCP4ServerEndpoint(
+        reactor,
+        http_port,
+        interface=listen_host,
+    )  # type: ignore
     endpoint.listen(server.Site(crl_resource))  # type: ignore
 
     # sprincle some more Twisted magic
     registerAdapter(lambda x: x.root, LDAPServerFactory, IConnectedLDAPEntry)  # type: ignore
 
-    ldap_endpoint = endpoints.TCP4ServerEndpoint(reactor, 389)  # type: ignore
+    ldap_endpoint = endpoints.TCP4ServerEndpoint(
+        reactor,
+        ldap_port,
+        interface=listen_host,
+    )  # type: ignore
     ldap_endpoint.listen(ldap_server_factory)  # type: ignore
 
     reactor.run()  # type: ignore

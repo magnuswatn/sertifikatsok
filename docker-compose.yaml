@@ -38,6 +38,7 @@ services:
       target: test
     environment:
       - ENVIRONMENT=test
+      - RUNNING_IN_DOCKER=true
     working_dir: /opt/sertifikatsok/testserver
     command: python3 -m testserver
     ports:
@@ -60,6 +61,7 @@ services:
       target: test
     environment:
       - ENVIRONMENT=prod
+      - RUNNING_IN_DOCKER=true
     working_dir: /opt/sertifikatsok/testserver
     command: python3 -m testserver
     ports:
