@@ -40,17 +40,22 @@ alias ulib := update-lib
 
 # docker-compose stuff
 
+@doctests *args='':
+  docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml exec test pytest "$@"
+
+@apitests:
+  just doctests 'tests/test_api.py'
+
 @docbuild:
   docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml build
 
-@ps:
+@docps:
   docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml ps
 
-@apitests:
-  docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml exec test pytest 'tests/test_api.py'
-
-@docup:
+@docdown:
   docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml down
+
+@docup: docdown
   docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
 
 # frontend stuff
