@@ -7,6 +7,8 @@ import pytest
 
 Env = Literal["test", "prod"]
 
+pytestmark = pytest.mark.apitest
+
 
 class Client:
     def __init__(self, httpx_client: httpx.Client) -> None:

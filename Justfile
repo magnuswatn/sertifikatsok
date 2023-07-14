@@ -17,7 +17,7 @@ set positional-arguments
   cd ./testserver && pipenv run python -m testserver
 
 @tests *args='':
-  cd ./api && pipenv run pytest "$@"
+  cd ./api && pipenv run pytest -m "not apitest" "$@"
 
 @mypy:
   cd ./api && pipenv run mypy --version && pipenv run mypy .
@@ -44,7 +44,7 @@ alias ulib := update-lib
   docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml exec test pytest "$@"
 
 @apitests:
-  just doctests 'tests/test_api.py'
+  just doctests -m apitest
 
 @docbuild:
   docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml build
