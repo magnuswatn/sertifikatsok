@@ -69,9 +69,6 @@ def _validate_individual_certs_is_searchable(
     for cert_set in cert_sets:
         for cert in cert_set["certificates"]:
             for attr in ["Avtrykk (SHA-1)", "Serienummer (hex)", "Serienummer (int)"]:
-                if attr == "Serienummer (hex)":
-                    # https://github.com/magnuswatn/sertifikatsok/issues/270
-                    continue
                 val = cert["info"][attr]
                 resp = client.search(env, typ, query=val)
                 resp_cert_sets = resp["certificate_sets"]
@@ -270,3 +267,43 @@ def test_search_specific_attr(client: Client, env: Env) -> None:
     _validate_individual_certs_is_searchable(client, env, "enterprise", cert_sets)
 
     assert len(cert_sets) == 5
+
+
+@pytest.mark.parametrize("env", ["test", "prod"])
+def test_search_nonexisting_thumbprint_should_fallback_to_serial(
+    client: Client, env: Env
+) -> None:
+    resp = client.search_resp(
+        env=env, typ="enterprise", query="48b63447e55ec1694d5cd581a9e082be293007a1"
+    )
+
+    correlation_id = resp.headers.get("Correlation-Id")
+
+    resp_json = resp.json()
+    assert len(resp_json["errors"]) == 1
+    assert resp_json["errors"][0] == (
+        "Søk på avtrykk/thumbprint er ikke helt pålitelig, så det er"
+        " mulig at sertifikatet eksisterer, selv om det ikke ble funnet"
+    )
+
+    search_details = resp_json["searchDetails"]
+    ldap_servers = search_details.pop("LDAP-servere forespurt")
+    assert ldap_servers in [
+        ", ".join(permutation)
+        for permutation in permutations(
+            ["ldap.test.commfides.com", "ldap.test4.buypass.no"]
+            if env == "test"
+            else ["ldap.commfides.com", "ldap.buypass.no"]
+        )
+    ]
+
+    assert search_details == {
+        "Type": "Virksomhetssertifikater",
+        "Sertifikattype": "Virksomhetssertifikater",
+        "Søketype": "Avtrykk eller sertifikatserienummer",
+        "Søkefilter": "(certificateSerialNumber=415110625429250731863403542919228693486335166369)",
+        "Miljø": "Test" if env == "test" else "Produksjon",
+        "Korrelasjonsid": correlation_id,
+        "hovedOrgNr": None,
+    }
+    assert len(resp_json["certificate_sets"]) == 0

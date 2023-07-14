@@ -207,31 +207,28 @@ class LdapSearchParams:
             ldap_query = LdapFilter.create_for_cert_serials(serial_numbers)
         elif HEX_SERIAL_REGEX.fullmatch(query):
             cleaned_query = "".join(re.split(r"[\s:]+", query)).lower()
+            serial_number = int(cleaned_query, 16)
+            ldap_query = LdapFilter.create_for_cert_serials([serial_number])
 
-            if len(cleaned_query) == 40:
-                search_type = SearchType.THUMBPRINT
-                # matches the length of a SHA1 thumbprint
-                ldap_servers = database.find_cert_from_sha1(
-                    cleaned_query, search_params.env
+            if (cleaned_query_len := len(cleaned_query)) in (40, 64):
+                # Might be a thumbprint
+                hash_ldap_servers = (
+                    database.find_cert_from_sha1(cleaned_query, search_params.env)
+                    if cleaned_query_len == 40
+                    else database.find_cert_from_sha2(cleaned_query, search_params.env)
                 )
-                ldap_query = LdapFilter("")
-                if not ldap_servers:
-                    limitations.append("ERR-010")
 
-            elif len(cleaned_query) == 64:
-                search_type = SearchType.THUMBPRINT
-                # matches the length of a SHA256 thumbprint
-                ldap_servers = database.find_cert_from_sha2(
-                    cleaned_query, search_params.env
-                )
-                ldap_query = LdapFilter("")
-                if not ldap_servers:
-                    limitations.append("ERR-010")
-
+                if hash_ldap_servers:
+                    # We found a match for this as a thumbprint.
+                    search_type = SearchType.THUMBPRINT
+                    ldap_query = LdapFilter("")
+                    ldap_servers = hash_ldap_servers
+                else:
+                    # Not a known thumbprint, let's continue the search
+                    # for it as a serial number
+                    search_type = SearchType.THUMBPRINT_OR_CERT_SERIAL
             else:
                 search_type = SearchType.CERT_SERIAL
-                serial_number = int(cleaned_query, 16)
-                ldap_query = LdapFilter.create_for_cert_serials([serial_number])
 
         # Fallback to the Common Name field.
         else:
@@ -480,8 +477,11 @@ class CertificateSearch:
         )
         self.errors.extend(self.cert_validator.errors)
         self.warnings.extend(self.ldap_params.limitations)
-        if len(self.results) == 0 and self.filtered_results:
-            self.warnings.append("ERR-009")
+        if len(self.results) == 0:
+            if self.filtered_results:
+                self.warnings.append("ERR-009")
+            if self.ldap_params.search_type == SearchType.THUMBPRINT_OR_CERT_SERIAL:
+                self.warnings.append("ERR-010")
 
         return CertificateSearchResponse.create(self)
 

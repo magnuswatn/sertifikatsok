@@ -565,7 +565,7 @@ def test_should_auto_detect_thumbprint(thumbprint: str, database: Database) -> N
         "F9D1AF62D004D4DA648929BC7DDE552685979D6E6A78DC8F9B64EB08E9C4CCB7",
     ],
 )
-def test_should_warn_when_thumbprint_yielded_no_match(
+def test_should_search_for_sn_when_thumbprint_yielded_no_match(
     thumbprint: str, database: Database
 ) -> None:
     search_params = SearchParams(
@@ -577,29 +577,28 @@ def test_should_warn_when_thumbprint_yielded_no_match(
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
     assert ldap_search_params.scope == LDAPSearchScope.SUB
-    assert len(ldap_search_params.ldap_servers) == 0
-    assert len(ldap_search_params.limitations) == 1
-    assert ldap_search_params.limitations == ["ERR-010"]
-
-
-def test_should_auto_detect_thumbprint_handle_unknown(database: Database) -> None:
-    database.insert_certificates(
-        [("mordi=213,dc=MagnusCA,dc=watn,dc=no", [b"hei"])], "ldap.buypass.no"
+    assert len(ldap_search_params.ldap_servers) == 5
+    assert len(ldap_search_params.limitations) == 0
+    assert all(
+        CertType.PERSONAL in ldap_server.cert_types
+        for ldap_server in ldap_search_params.ldap_servers
     )
-
-    search_params = SearchParams(
-        Environment.PROD,
-        CertType.PERSONAL,
-        "38a6dcc494484553c8291fce2ab8d5b5311caa01",
-        None,
+    assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
+        {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
     )
-
-    ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
-    assert len(ldap_search_params.limitations) == 1
-    assert len(ldap_search_params.ldap_servers) == 0
-    assert str(ldap_search_params.ldap_query) == ""
-    assert ldap_search_params.search_type == SearchType.THUMBPRINT
+    assert ldap_search_params.ldap_query in [
+        # the sha1 one
+        LdapFilter.create_for_cert_serials(
+            [323424638464440995430880998016818972657434012162]
+        ),
+        # the sha2 one
+        LdapFilter.create_for_cert_serials(
+            [
+                112996380803364418972622033757955332609174229588838720641324396341116998569143
+            ]
+        ),
+    ]
+    assert ldap_search_params.search_type == SearchType.THUMBPRINT_OR_CERT_SERIAL
 
 
 @pytest.mark.parametrize("orgnr", ["995546973", "995 546 973", "NTRNO-995546973"])

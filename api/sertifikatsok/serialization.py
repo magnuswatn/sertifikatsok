@@ -261,6 +261,8 @@ def _get_norwegian_search_type(search_type: SearchType) -> str:
             return "Personlig serienummer"
         case SearchType.THUMBPRINT:
             return "Avtrykk"
+        case SearchType.THUMBPRINT_OR_CERT_SERIAL:
+            return "Avtrykk eller sertifikatserienummer"
         case SearchType.EMAIL:
             return "E-post-adresse"
         case SearchType.CERT_SERIAL:

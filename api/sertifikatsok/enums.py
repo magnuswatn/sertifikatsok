@@ -70,6 +70,7 @@ class SearchType(Enum):
     CUSTOM = "custom"
     LDAP_URL = "ldap_url"
     FALLBACK = "fallback"
+    THUMBPRINT_OR_CERT_SERIAL = "thumbprint_or_cert_serial"
 
 
 class BatchResult(Enum):
