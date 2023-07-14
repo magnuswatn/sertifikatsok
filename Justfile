@@ -41,16 +41,17 @@ alias ulib := update-lib
 # docker-compose stuff
 
 @docbuild:
-  docker-compose build
+  docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml build
 
 @ps:
-  docker-compose ps
+  docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml ps
 
 @apitests:
-  docker-compose exec test pytest 'tests/test_api.py'
+  docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml exec test pytest 'tests/test_api.py'
 
 @docup:
-  docker-compose down && docker-compose up -d
+  docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml down
+  docker-compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
 
 # frontend stuff
 

@@ -6,7 +6,8 @@ services:
     depends_on:
       - sertifikatsok
     volumes:
-      - ./api:/opt/sertifikatsok/api
+      - .:/opt/sertifikatsok/repo
+    working_dir: /opt/sertifikatsok/repo/api
     command: bash -c "trap 'exit 0' SIGTERM; while true; do sleep 2; done"
   startupcheck:
     build:
@@ -24,14 +25,13 @@ services:
       args:
         SERTIFIKATSOK_VERSION: dev
     ports:
-      - 7001:7001
+      - 127.0.0.1:7001:7001
     depends_on:
       startupcheck:
         condition: service_completed_successfully
     volumes:
-      - ./api:/opt/sertifikatsok/api
       - ./testserver/cloned_certs:/opt/sertifikatsok/api/certs
-    command: "--port 7001"
+    command: "--host 0.0.0.0 --port 7001"
   ldap_server_test:
     build:
       dockerfile: Dockerfile
@@ -41,7 +41,7 @@ services:
     working_dir: /opt/sertifikatsok/testserver
     command: python3 -m testserver
     ports:
-      - 391:389
+      - 127.0.0.1:3890:389
     volumes:
       - ./api:/opt/sertifikatsok/api
       - ./testserver:/opt/sertifikatsok/testserver
@@ -63,7 +63,7 @@ services:
     working_dir: /opt/sertifikatsok/testserver
     command: python3 -m testserver
     ports:
-      - 390:389
+      - 127.0.0.1:3891:389
     volumes:
       - ./api:/opt/sertifikatsok/api
       - ./testserver:/opt/sertifikatsok/testserver

@@ -12,6 +12,13 @@ class Client:
     def __init__(self, httpx_client: httpx.Client) -> None:
         self.httpx_client = httpx_client
 
+    def raw_search(self, params: dict[str, str]) -> httpx.Response:
+        resp = self.httpx_client.get(
+            "http://sertifikatsok:7001/api",
+            params=params,
+        )
+        return resp
+
     def _search(
         self, env: str, typ: str, query: str, attr: str | None = None
     ) -> httpx.Response:
@@ -19,12 +26,7 @@ class Client:
 
         if attr is not None:
             params["attr"] = attr
-
-        resp = self.httpx_client.get(
-            "http://sertifikatsok:7001/api",
-            params=params,
-        )
-        return resp
+        return self.raw_search(params)
 
     def search_resp(
         self, env: str, typ: str, query: str, attr: str | None = None
@@ -73,6 +75,35 @@ def _validate_individual_certs_is_searchable(
                 resp_cert_sets = resp["certificate_sets"]
                 assert len(resp_cert_sets) == 1
                 assert cert == resp_cert_sets[0]["certificates"][0]
+
+
+@pytest.mark.parametrize("invalid", [False, True])
+@pytest.mark.parametrize("param", ["env", "type", "query", "attr"])
+def test_invalid_params(client: Client, param: str, invalid: bool) -> None:
+    if (invalid and param == "query") or (not invalid and param == "attr"):
+        # `query` is a string, so can't have an invalid value,
+        # and `attr` is optional, so can't be missing.
+        return
+
+    params = {"env": "test", "type": "personal", "query": "Silje Fos port"}
+
+    if invalid:
+        params[param] = "invalid_value"
+    else:
+        params.pop(param)
+
+    resp = client.raw_search(params)
+    assert resp.status_code == 400
+    resp_json = resp.json()
+    assert "error" in resp_json
+
+    expected_error_msg = (
+        f"Error for query field '{param}': Input should be"
+        if invalid
+        else f"Error for query field '{param}': Field required"
+    )
+
+    assert expected_error_msg in resp_json["error"]
 
 
 @pytest.mark.parametrize("env", ["test", "prod"])

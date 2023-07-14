@@ -102,7 +102,6 @@ RUN set -x \
     && cd /tmp \
     && VIRTUAL_ENV=/opt/sertifikatsok/venv /tmp/pipenv-venv/bin/pipenv sync --dev
 
-WORKDIR /opt/sertifikatsok/api
 COPY --from=rust-build /opt/sertifikatsok/ruldap3/target/wheels /opt/sertifikatsok/ruldap3/target/wheels
 
 RUN pip install /opt/sertifikatsok/ruldap3/target/wheels/*
