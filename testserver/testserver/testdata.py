@@ -23,12 +23,14 @@ PERSON_CA_S = [
 
 
 def generate_testdata(loaded_ca_s: dict[ClonedCa, CertificateAuthority]) -> None:
+    # Vanilla person
     silje = Person("Silje Fos", "Port", "9578-4050-100105758", "silje@example.com")
 
     for ca in PERSON_CA_S:
         iss_impl = loaded_ca_s[ca].impl
         iss_impl.issue_person_certs(silje, datetime.now(UTC))
 
+    # Vanilla organization
     min_virksomhet = Enterprise("123456789", "Min virksomhet")
 
     for ca in BUSINESS_CA_S:
@@ -39,3 +41,10 @@ def generate_testdata(loaded_ca_s: dict[ClonedCa, CertificateAuthority]) -> None
             datetime.now(UTC),
             ou="Min tjeneste",
         )
+
+    # Apotek... (lot's of certs)
+    apotek1 = Enterprise("983044778", "APOTEK 1 GRUPPEN AS")
+
+    for _ in range(52):
+        iss_impl = loaded_ca_s[ClonedCa.BUYPASS_CLASS_3_CA_3].impl
+        iss_impl.issue_enterprise_certs(apotek1, datetime.now(UTC))

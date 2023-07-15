@@ -1,9 +1,20 @@
+import logging
 from collections import defaultdict
-from typing import Self
+from collections.abc import Callable
+from typing import Any, Self
 
 from cryptography.hazmat.primitives.serialization import Encoding
 from ldaptor.inmemory import ReadOnlyInMemoryLDAPEntry  # type: ignore
+from ldaptor.protocols.ldap.ldaperrors import LDAPNoSuchAttribute  # type: ignore
 from ldaptor.protocols.ldap.ldapserver import BaseLDAPServer, LDAPServer  # type: ignore
+from ldaptor.protocols.pureldap import (  # type: ignore
+    LDAPAttributeDescription,
+    LDAPAttributeValueAssertion,
+    LDAPFilter,
+    LDAPFilterSet,
+    LDAPProtocolResponse,
+    LDAPSearchRequest,
+)
 from twisted.internet.interfaces import IAddress
 from twisted.internet.protocol import ServerFactory
 
@@ -11,9 +22,67 @@ from testserver import LdapOU
 from testserver.ca import LdapPublishedCertificate
 from testserver.config import CertificateAuthority
 
+logger = logging.getLogger(__name__)
+
+
+class SertifikatsokLDAPServer(LDAPServer):  # type: ignore
+    def handle_LDAPSearchRequest(
+        self, request: LDAPSearchRequest, controls: Any, reply: Callable
+    ) -> Any:
+        logger.info(
+            "Received search request for base '%s'", request.baseObject.decode()
+        )
+        buypass_request = b"Buypass" in request.baseObject
+
+        if buypass_request:
+            # Buypass returns `no such attribute` for querys
+            # that filters `certificateSerialNumber` on something
+            # not a number. Let's do the same, since we have
+            # special handling because of it.
+            self.check_for_malformed_cert_sn(request.filter)
+
+        # Buypass return max 20 results per query,
+        # so let's ignore all results after we have
+        # returned 20, if we're emulating Buypass.
+        reply_count = 0
+
+        def _buypass_reply(resp: LDAPProtocolResponse) -> Any:
+            nonlocal reply_count
+            if reply_count >= 20:
+                return
+            reply_count += 1
+            return reply(resp)
+
+        return super().handle_LDAPSearchRequest(
+            request, controls, _buypass_reply if buypass_request else reply
+        )
+
+    def check_for_malformed_cert_sn(self, filter: Any) -> None:
+        if isinstance(filter, LDAPFilterSet):
+            for attr in filter:
+                self.check_for_malformed_cert_sn(attr)
+            return
+
+        if isinstance(filter, LDAPFilter):
+            self.check_for_malformed_cert_sn(filter.value)
+            return
+
+        if isinstance(filter, LDAPAttributeDescription):
+            return
+
+        if isinstance(filter, LDAPAttributeValueAssertion):
+            if filter.attributeDesc.value.lower() == b"certificateserialnumber":
+                try:
+                    int(filter.assertionValue.value)
+                except ValueError as e:
+                    raise LDAPNoSuchAttribute("Buypass no like this serial") from e
+            return
+
+        logger.warning("Unexpected filter class: %s: %s", type(filter), repr(filter))
+
 
 class LDAPServerFactory(ServerFactory):
-    protocol = LDAPServer
+    protocol = SertifikatsokLDAPServer
 
     def __init__(
         self, root: ReadOnlyInMemoryLDAPEntry, commfides_root: ReadOnlyInMemoryLDAPEntry

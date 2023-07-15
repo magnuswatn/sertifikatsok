@@ -56,6 +56,7 @@ def _validate_ldap_urls(
     for cert_set in cert_sets:
         ldap_url = cert_set["ldap"]
         ldap_resp = client.search(env, typ, query=ldap_url)
+        assert not ldap_resp["errors"]
         ldap_url_cert_sets = ldap_resp["certificate_sets"]
         assert len(ldap_url_cert_sets) == 1
         assert ldap_url_cert_sets == [cert_set]
@@ -71,6 +72,7 @@ def _validate_individual_certs_is_searchable(
             for attr in ["Avtrykk (SHA-1)", "Serienummer (hex)", "Serienummer (int)"]:
                 val = cert["info"][attr]
                 resp = client.search(env, typ, query=val)
+                assert not resp["errors"]
                 resp_cert_sets = resp["certificate_sets"]
                 assert len(resp_cert_sets) == 1
                 assert cert == resp_cert_sets[0]["certificates"][0]
@@ -307,3 +309,18 @@ def test_search_nonexisting_thumbprint_should_fallback_to_serial(
         "hovedOrgNr": None,
     }
     assert len(resp_json["certificate_sets"]) == 0
+
+
+@pytest.mark.parametrize("env", ["test", "prod"])
+def test_search_bypass_buypass_size_limit(client: Client, env: Env) -> None:
+    # Buypass only returns 20 certs each time. We should bypass (hihi) this
+    # and get up to 100 certs.
+    resp = client.search(env=env, typ="enterprise", query="983044778")
+
+    assert len(resp["errors"]) == 1
+    assert resp["errors"][0] == (
+        "Det er mulig noen gamle sertifikater ikke vises, "
+        "da søket returnerte for mange resultater"
+    )
+
+    assert len(resp["certificate_sets"]) == 50
