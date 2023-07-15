@@ -3,7 +3,13 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
 
 from attr import field, frozen
-from cryptography.hazmat.primitives.serialization import Encoding
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    load_pem_private_key,
+)
 from cryptography.x509 import load_pem_x509_certificate
 
 from . import ClonedCa, Env
@@ -38,18 +44,42 @@ class CaLoader:
 
         input_file = self.input_folder.joinpath(ca_cert)
         output_file = self.output_folder.joinpath(ca_cert)
+        cache_folder = self.output_folder.joinpath(".key_cache")
+        key_cache_file = cache_folder.joinpath(ca_cert)
 
-        logger.info("Duplicating CA %s", cloned_ca)
-        ca = CertificateAuthority.create(
-            cdp,
-            load_pem_x509_certificate(input_file.read_bytes()),
-            cloned_ca_config.seid_v,
-            impl,
-            cloned_ca_config.ldap_name,
-            env,
-        )
+        cache_folder.mkdir(exist_ok=True)
 
-        output_file.write_bytes(ca.impl.cert.public_bytes(Encoding.PEM))
+        if output_file.exists() and key_cache_file.exists():
+            logger.info("Loading cached duplicated CA %s", cloned_ca)
+            cached_priv_key = load_pem_private_key(
+                key_cache_file.read_bytes(), password=None
+            )
+            assert isinstance(cached_priv_key, RSAPrivateKey)
+            ca = CertificateAuthority.create_from_cache(
+                cdp,
+                load_pem_x509_certificate(output_file.read_bytes()),
+                cached_priv_key,
+                cloned_ca_config.seid_v,
+                impl,
+                cloned_ca_config.ldap_name,
+                env,
+            )
+        else:
+            logger.info("Duplicating CA %s", cloned_ca)
+            ca = CertificateAuthority.create_from_original(
+                cdp,
+                load_pem_x509_certificate(input_file.read_bytes()),
+                cloned_ca_config.seid_v,
+                impl,
+                cloned_ca_config.ldap_name,
+                env,
+            )
+            output_file.write_bytes(ca.impl.cert.public_bytes(Encoding.PEM))
+            key_cache_file.write_bytes(
+                ca.impl.private_key.private_bytes(
+                    Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()
+                )
+            )
         self.loaded_ca_s[cloned_ca] = ca
         return ca
 

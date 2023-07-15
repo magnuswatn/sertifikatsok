@@ -4,13 +4,14 @@ import logging
 import string
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
-from secrets import choice, randbelow
+from secrets import choice, randbelow, randbits
 from typing import Literal, Self
 
 from attr import field, frozen
 from cryptography.hazmat.primitives.asymmetric.rsa import (
     RSAPrivateKey,
     RSAPublicKey,
+    RSAPublicNumbers,
     generate_private_key,
 )
 from cryptography.hazmat.primitives.hashes import SHA256
@@ -76,6 +77,16 @@ def get_key_usage(
         encipher_only=False,
         decipher_only=False,
     )
+
+
+def generate_dummy_rsa_public_key(key_size: int) -> RSAPublicKey:
+    # We need our integer to be exactly the key size,
+    # so we need to make sure that the most significant bit
+    # is 1, not 0.
+    ksmo = key_size - 1
+    n = randbits(ksmo) + (1 << ksmo)
+
+    return RSAPublicNumbers(e=65537, n=n).public_key()
 
 
 @frozen
@@ -395,7 +406,7 @@ class CommfidesCertIssuingImpl(CertIssuingImpl):
                 critical=False,
             )
             .serial_number(random_serial_number())
-            .public_key(generate_private_key(65537, key_size).public_key())
+            .public_key(generate_dummy_rsa_public_key(key_size))
             .sign(self.private_key, SHA256())
         )
 
@@ -429,7 +440,7 @@ class CommfidesCertIssuingImpl(CertIssuingImpl):
                 critical=False,
             )
             .serial_number(random_serial_number())
-            .public_key(generate_private_key(65537, key_size).public_key())
+            .public_key(generate_dummy_rsa_public_key(key_size))
             .sign(self.private_key, SHA256())
         )
 
@@ -467,7 +478,7 @@ class CommfidesCertIssuingImpl(CertIssuingImpl):
                 critical=False,
             )
             .serial_number(random_serial_number())
-            .public_key(generate_private_key(65537, key_size).public_key())
+            .public_key(generate_dummy_rsa_public_key(key_size))
             .sign(self.private_key, SHA256())
         )
 
@@ -624,7 +635,7 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
                 critical=True,
             )
             .serial_number(random_serial_number())
-            .public_key(generate_private_key(65537, key_size).public_key())
+            .public_key(generate_dummy_rsa_public_key(key_size))
             .sign(self.private_key, SHA256())
         )
 
@@ -638,7 +649,7 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
                 critical=True,
             )
             .serial_number(random_serial_number())
-            .public_key(generate_private_key(65537, key_size).public_key())
+            .public_key(generate_dummy_rsa_public_key(key_size))
             .sign(self.private_key, SHA256())
         )
 
@@ -759,7 +770,22 @@ class CertificateAuthority:
         }
 
     @classmethod
-    def create(
+    def create_from_cache(
+        cls,
+        cdp: str,
+        cached_cert: Certificate,
+        cached_key: RSAPrivateKey,
+        seid_v: Literal[1, 2],
+        impl_class: type[CertIssuingImpl],
+        ldap_name: str | None,
+        env: Env,
+    ) -> Self:
+        return cls(
+            cdp, impl_class(cached_cert, cached_key, cdp, seid_v, env), ldap_name
+        )
+
+    @classmethod
+    def create_from_original(
         cls,
         cdp: str,
         org_cert: Certificate,
