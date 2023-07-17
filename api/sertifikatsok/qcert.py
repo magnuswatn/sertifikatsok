@@ -147,10 +147,7 @@ class QualifiedCertificate:
         subject = []
         for field in subject_name:
             subject.append(
-                "{}={}".format(
-                    SUBJECT_FIELDS.get(field.oid, field.oid.dotted_string),
-                    cast(str, field.value),
-                )
+                f"{SUBJECT_FIELDS.get(field.oid, field.oid.dotted_string)}={cast(str, field.value)}"
             )
 
         # If not full (e.g. used for pretty printing),
