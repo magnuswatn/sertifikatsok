@@ -2,7 +2,7 @@ use ldap3::parse_filter;
 use pyo3::prelude::*;
 
 #[pyfunction]
-fn is_ldap_filter_valid(filter: String) -> PyResult<bool> {
+fn is_ldap_filter_valid(filter: &str) -> PyResult<bool> {
     let parse_result = parse_filter(filter);
     if parse_result.is_err() {
         return Ok(false);
