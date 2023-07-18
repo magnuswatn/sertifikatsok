@@ -25,7 +25,7 @@ from .constants import (
 from .crypto import CertValidator
 from .enums import SEID, CertificateRoles, CertificateStatus, CertType, SearchAttribute
 from .errors import MalformedCertificateError
-from .ldap import LdapFilter, LdapServer
+from .ldap import LdapCertificateEntry, LdapFilter
 from .utils import get_subject_order
 
 logger = logging.getLogger(__name__)
@@ -37,33 +37,29 @@ class QualifiedCertificate:
     def __init__(
         self,
         cert: MaybeInvalidCertificate,
-        cert_serial: str | None,
-        ldap_server: LdapServer,
+        ldap_cert_entry: LdapCertificateEntry,
         cert_status: CertificateStatus,
         revocation_date: datetime | None,
     ):
         self.cert: MaybeInvalidCertificate = cert
-        self.cert_serial = cert_serial
+        self.ldap_cert_entry = ldap_cert_entry
         self.issuer = self.cert.issuer.rfc4514_string(SUBJECT_FIELDS)
         self.type, self.description, self.seid = self._get_type()
         self.roles = self._get_roles()
-        self.ldap_server = ldap_server
         self.status = cert_status
         self.revocation_date = revocation_date
 
     @classmethod
     async def create(
         cls,
-        raw_cert: bytes,
-        cert_serial: str | None,
-        ldap_server: LdapServer,
+        ldap_cert_entry: LdapCertificateEntry,
         cert_validator: CertValidator,
     ) -> QualifiedCertificate:
-        cert = MaybeInvalidCertificate.create(raw_cert)
+        cert = MaybeInvalidCertificate.create(ldap_cert_entry.raw_cert)
 
         cert_status, revocation_date = await cert_validator.validate_cert(cert)
 
-        return cls(cert, cert_serial, ldap_server, cert_status, revocation_date)
+        return cls(cert, ldap_cert_entry, cert_status, revocation_date)
 
     def _get_type(self) -> tuple[CertType, str | None, SEID]:
         """Returns the type of certificate, based on issuer and Policy OID"""
@@ -383,16 +379,20 @@ class QualifiedCertificateSet:
     def ldap(self) -> str | None:
         """Creates an LDAP url (RFC 1959) for the certificate set"""
 
-        if not all(cert.cert_serial for cert in self.certs):
+        if not all(cert.ldap_cert_entry.cert_serial for cert in self.certs):
             return None
 
         ldap_filter = LdapFilter.create_from_params(
-            [(SearchAttribute.CSN, str(cert.cert_serial)) for cert in self.certs]
+            [
+                (SearchAttribute.CSN, str(cert.ldap_cert_entry.cert_serial))
+                for cert in self.certs
+            ]
         )
 
+        ldap_server = self.certs[0].ldap_cert_entry.ldap_server
         ldap_url = "ldap://{}/{}?usercertificate;binary?sub?{}".format(
-            self.certs[0].ldap_server.hostname,
-            urllib.parse.quote(self.certs[0].ldap_server.base, safe="=,"),
+            ldap_server.hostname,
+            urllib.parse.quote(ldap_server.base, safe="=,"),
             ldap_filter,
         )
         return ldap_url

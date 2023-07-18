@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import sqlite3
@@ -12,7 +11,7 @@ from attrs import frozen
 from sertifikatsok.utils import datetime_now_utc
 
 from .enums import BatchResult, CertificateAuthority, Environment
-from .ldap import LDAP_SERVERS, LdapServer
+from .ldap import LDAP_SERVERS, LdapCertificateEntry, LdapServer
 from .logging import performance_log_sync
 
 logger = logging.getLogger(__name__)
@@ -141,7 +140,7 @@ class Database:
 
     @performance_log_sync()
     def insert_certificates(
-        self, certs: list[tuple[str, list[bytes] | None]], ldap_server: str
+        self, ldap_cert_entries: list[LdapCertificateEntry], ldap_server: str
     ) -> None:
         [ldap_server_id] = self._connection.execute(
             """
@@ -165,13 +164,12 @@ class Database:
             """,
             [
                 {
-                    "sha1": hashlib.sha1(cert[1][0]).hexdigest(),  # noqa: S324
-                    "sha2": hashlib.sha256(cert[1][0]).hexdigest(),
-                    "distinguished_name": cert[0],
+                    "sha1": ldap_cert_entry.cert_sha1sum(),
+                    "sha2": ldap_cert_entry.cert_sha256sum(),
+                    "distinguished_name": ldap_cert_entry.dn,
                     "l_id": ldap_server_id,
                 }
-                for cert in certs
-                if cert[1] is not None and len(cert[1]) > 0
+                for ldap_cert_entry in ldap_cert_entries
             ],
         )
         self._connection.commit()

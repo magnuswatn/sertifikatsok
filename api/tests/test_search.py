@@ -13,7 +13,7 @@ from sertifikatsok.enums import (
     SearchType,
 )
 from sertifikatsok.errors import ClientError
-from sertifikatsok.ldap import LdapFilter
+from sertifikatsok.ldap import LdapCertificateEntry, LdapFilter, LdapServer
 from sertifikatsok.search import LdapSearchParams, SearchParams
 
 
@@ -529,7 +529,20 @@ def test_should_reject_too_many_cert_serials(database: Database) -> None:
 )
 def test_should_auto_detect_thumbprint(thumbprint: str, database: Database) -> None:
     database.insert_certificates(
-        [("mordi=213,dc=MagnusCA,dc=watn,dc=no", [b"hei"])], "ldap.buypass.no"
+        [
+            LdapCertificateEntry(
+                "mordi=213,dc=MagnusCA,dc=watn,dc=no",
+                b"hei",
+                cert_serial=None,
+                ldap_server=LdapServer(
+                    "ldap.buypass.no",
+                    "dc=MagnusCA,dc=watn,dc=no",
+                    CertificateAuthority.BUYPASS,
+                    [],
+                ),
+            )
+        ],
+        "ldap.buypass.no",
     )
 
     search_params = SearchParams(

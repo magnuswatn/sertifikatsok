@@ -1,9 +1,9 @@
-from __future__ import annotations
-
+import hashlib
 from collections.abc import Collection
+from typing import Self
 
 from attr import frozen
-from bonsai import escape_filter_exp
+from bonsai import LDAPEntry, escape_filter_exp
 
 from .enums import CertificateAuthority, CertType, Environment, SearchAttribute
 
@@ -19,6 +19,35 @@ class LdapServer:
     def __str__(self) -> str:
         # Used for logging.
         return f"{self.hostname}: {self.base}"
+
+
+@frozen
+class LdapCertificateEntry:
+    dn: str
+    raw_cert: bytes
+    cert_serial: str | None
+    ldap_server: LdapServer
+
+    @classmethod
+    def create(cls, ldap_entry: LDAPEntry, ldap_server: LdapServer) -> Self | None:
+        raw_certs = ldap_entry.get("userCertificate;binary")
+        if raw_certs is None or len(raw_certs) < 1:
+            return None
+        [raw_cert] = raw_certs
+
+        cert_serials = ldap_entry.get("certificateSerialNumber")
+        if cert_serials is not None and len(cert_serials) > 0:
+            [cert_serial] = cert_serials
+        else:
+            cert_serial = None
+
+        return cls(str(ldap_entry.dn), raw_cert, cert_serial, ldap_server)
+
+    def cert_sha1sum(self) -> str:
+        return hashlib.sha1(self.raw_cert).hexdigest()  # noqa: S324
+
+    def cert_sha256sum(self) -> str:
+        return hashlib.sha256(self.raw_cert).hexdigest()
 
 
 @frozen
@@ -43,13 +72,11 @@ class LdapFilter:
         return self._filtr
 
     @classmethod
-    def create_from_params(
-        cls, params: list[tuple[SearchAttribute, str]]
-    ) -> LdapFilter:
+    def create_from_params(cls, params: list[tuple[SearchAttribute, str]]) -> Self:
         return cls(cls._create_ldap_filter(params))
 
     @classmethod
-    def create_for_cert_serials(cls, serials: Collection[int]) -> LdapFilter:
+    def create_for_cert_serials(cls, serials: Collection[int]) -> Self:
         filtr = cls._create_ldap_filter(
             [(SearchAttribute.CSN, str(serial)) for serial in serials]
         )

@@ -33,7 +33,7 @@ from .enums import (
     SearchType,
 )
 from .errors import ClientError
-from .ldap import LDAP_SERVERS, LdapFilter, LdapServer
+from .ldap import LDAP_SERVERS, LdapCertificateEntry, LdapFilter, LdapServer
 from .logging import performance_log
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
 
@@ -426,30 +426,22 @@ class CertificateSearch:
         """Takes a ldap response and creates a list of QualifiedCertificateSet"""
         logger.debug("Start: parsing certificates from %s", ldap_server)
 
+        ldap_cert_entries = [
+            entry
+            for result in search_results
+            if (entry := LdapCertificateEntry.create(result, ldap_server))
+        ]
+
         self.database.insert_certificates(
-            [
-                (str(result.dn), result.get("userCertificate;binary"))
-                for result in search_results
-            ],
+            ldap_cert_entries,
             ldap_server.hostname,
         )
 
         qualified_certs = []
-        for result in search_results:
-            raw_cert = result.get("userCertificate;binary")
-            if raw_cert is None or len(raw_cert) < 1:
-                # Commfides have entries in their LDAP without a cert...
-                continue
-
-            cert_serials = result.get("certificateSerialNumber")
-            if cert_serials is not None and len(cert_serials) > 0:
-                cert_serial = cert_serials[0]
-            else:
-                cert_serial = None
-
+        for ldap_cert_entry in ldap_cert_entries:
             try:
                 qualified_cert = await QualifiedCertificate.create(
-                    raw_cert[0], cert_serial, ldap_server, self.cert_validator
+                    ldap_cert_entry, self.cert_validator
                 )
             except ValueError:
                 # https://github.com/magnuswatn/sertifikatsok/issues/22

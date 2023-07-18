@@ -10,7 +10,7 @@ from sertifikatsok.enums import (
     CertificateStatus,
     CertType,
 )
-from sertifikatsok.ldap import LdapServer
+from sertifikatsok.ldap import LdapCertificateEntry, LdapServer
 from sertifikatsok.qcert import QualifiedCertificate, QualifiedCertificateSet
 
 from .testlib import read_pem_file
@@ -27,8 +27,12 @@ class TestQualifiedCertificateSet:
         certs = [
             QualifiedCertificate(
                 MaybeInvalidCertificate.create(b64decode(cert)),
-                "",
-                LdapServer("", "", CertificateAuthority.BUYPASS, []),
+                LdapCertificateEntry(
+                    "",
+                    b64decode(cert),
+                    None,
+                    LdapServer("", "", CertificateAuthority.BUYPASS, []),
+                ),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -47,8 +51,12 @@ class TestQualifiedCertificateSet:
         certs = [
             QualifiedCertificate(
                 MaybeInvalidCertificate.create(b64decode(cert)),
-                "",
-                LdapServer("", "", CertificateAuthority.COMMFIDES, []),
+                LdapCertificateEntry(
+                    "",
+                    b64decode(cert),
+                    None,
+                    LdapServer("", "", CertificateAuthority.COMMFIDES, []),
+                ),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -67,8 +75,12 @@ class TestQualifiedCertificateSet:
         certs = [
             QualifiedCertificate(
                 MaybeInvalidCertificate.create(b64decode(cert)),
-                "",
-                LdapServer("", "", CertificateAuthority.COMMFIDES, []),
+                LdapCertificateEntry(
+                    "",
+                    b64decode(cert),
+                    None,
+                    LdapServer("", "", CertificateAuthority.COMMFIDES, []),
+                ),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -89,8 +101,12 @@ class TestQualifiedCertificateSet:
         certs = [
             QualifiedCertificate(
                 MaybeInvalidCertificate.create(b64decode(cert)),
-                "",
-                LdapServer("", "", CertificateAuthority.COMMFIDES, []),
+                LdapCertificateEntry(
+                    "",
+                    b64decode(cert),
+                    None,
+                    LdapServer("", "", CertificateAuthority.COMMFIDES, []),
+                ),
                 CertificateStatus.OK,
                 None,
             )
@@ -118,8 +134,12 @@ class TestQualifiedCertificateSet:
         certs = [
             QualifiedCertificate(
                 MaybeInvalidCertificate.create(b64decode(cert)),
-                "",
-                LdapServer("", "", CertificateAuthority.COMMFIDES, []),
+                LdapCertificateEntry(
+                    "",
+                    b64decode(cert),
+                    None,
+                    LdapServer("", "", CertificateAuthority.COMMFIDES, []),
+                ),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -141,8 +161,12 @@ class TestQualifiedCertificateSet:
         certs = [
             QualifiedCertificate(
                 MaybeInvalidCertificate.create(b64decode(cert)),
-                "",
-                LdapServer("", "", CertificateAuthority.COMMFIDES, []),
+                LdapCertificateEntry(
+                    "",
+                    b64decode(cert),
+                    None,
+                    LdapServer("", "", CertificateAuthority.COMMFIDES, []),
+                ),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -160,8 +184,12 @@ class TestQualifiedCertificateSet:
         certs = [
             QualifiedCertificate(
                 MaybeInvalidCertificate.create(cert),
-                "",
-                LdapServer("", "", CertificateAuthority.BUYPASS, []),
+                LdapCertificateEntry(
+                    "",
+                    cert,
+                    None,
+                    LdapServer("", "", CertificateAuthority.BUYPASS, []),
+                ),
                 CertificateStatus.EXPIRED,
                 None,
             )
@@ -189,8 +217,12 @@ class TestQualifiedCertificateSet:
         raw_cert = read_pem_file(file_path)
         qcert = QualifiedCertificate(
             MaybeInvalidCertificate.create(raw_cert),
-            "",
-            LdapServer("", "", CertificateAuthority.BUYPASS, []),
+            LdapCertificateEntry(
+                "",
+                raw_cert,
+                None,
+                LdapServer("", "", CertificateAuthority.BUYPASS, []),
+            ),
             CertificateStatus.UNKNOWN,
             None,
         )
@@ -216,12 +248,16 @@ class TestQualifiedCertificateSet:
         certs = [
             QualifiedCertificate(
                 MaybeInvalidCertificate.create(cert),
-                str(x),
-                LdapServer(
-                    "ldap://ldap.watn.no",
-                    "ou=certs,dc=watn,dc=no",
-                    CertificateAuthority.BUYPASS,
-                    [],
+                LdapCertificateEntry(
+                    f"serial={x},ou=certs,dc=watn,dc=no",
+                    cert,
+                    str(x),
+                    LdapServer(
+                        "ldap://ldap.watn.no",
+                        "ou=certs,dc=watn,dc=no",
+                        CertificateAuthority.BUYPASS,
+                        [],
+                    ),
                 ),
                 CertificateStatus.EXPIRED,
                 None,
@@ -243,12 +279,18 @@ class TestQualifiedCertificateSet:
         certs = [
             QualifiedCertificate(
                 MaybeInvalidCertificate.create(cert),
-                str(x) if x else None,  # 0 is falsey, so one will have and one wont
-                LdapServer(
-                    "ldap://ldap.watn.no",
-                    "ou=certs,dc=watn,dc=no",
-                    CertificateAuthority.BUYPASS,
-                    [],
+                LdapCertificateEntry(
+                    f"serial={x},ou=certs,dc=watn,dc=no",
+                    cert,
+                    str(x)
+                    if x
+                    else None,  # 0 is falsey, so one will have and one wont),
+                    LdapServer(
+                        "ldap://ldap.watn.no",
+                        "ou=certs,dc=watn,dc=no",
+                        CertificateAuthority.BUYPASS,
+                        [],
+                    ),
                 ),
                 CertificateStatus.EXPIRED,
                 None,
