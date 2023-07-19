@@ -397,9 +397,9 @@ class CertificateSearch:
 
                 results = await conn.search(
                     ldap_server.base,
-                    search_filter,
-                    ["certificateSerialNumber", "userCertificate;binary"],
                     self.ldap_params.scope,
+                    search_filter,
+                    attrlist=["certificateSerialNumber", "userCertificate;binary"],
                     timeout_sec=LDAP_TIMEOUT,
                 )
                 all_results += results

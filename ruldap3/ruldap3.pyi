@@ -29,9 +29,9 @@ class LdapConnection:
     async def search(
         self,
         base: str,
-        filtr: str,
-        attrs: list[str],
         scope: LDAPSearchScope,
+        filtr: str,
+        attrlist: list[str],
         timeout_sec: int,
     ) -> list[SearchEntry]: ...
     @classmethod

@@ -118,9 +118,9 @@ impl LdapConnection {
         &self,
         py: pyo3::Python<'a>,
         base: String,
-        filtr: String,
-        attrs: Vec<String>,
         scope: &LDAPSearchScope,
+        filtr: String,
+        attrlist: Vec<String>,
         timeout_sec: u64,
     ) -> PyResult<&'a PyAny> {
         let mut ldap = self.ldap.clone();
@@ -130,7 +130,7 @@ impl LdapConnection {
         pyo3_asyncio::tokio::future_into_py(py, async move {
             let ldap_result = match ldap
                 .with_timeout(Duration::new(timeout_sec, 0))
-                .search(&base, rust_scope, &filtr, attrs)
+                .search(&base, rust_scope, &filtr, attrlist)
                 .await
             {
                 Ok(ldap_result) => ldap_result,
