@@ -3,7 +3,9 @@ from collections.abc import Collection
 from typing import Self
 
 from attr import frozen
-from bonsai import LDAPEntry, escape_filter_exp
+
+from ruldap3 import SearchEntry
+from sertifikatsok.utils import escape_ldap_query
 
 from .enums import CertificateAuthority, CertType, Environment, SearchAttribute
 
@@ -29,19 +31,21 @@ class LdapCertificateEntry:
     ldap_server: LdapServer
 
     @classmethod
-    def create(cls, ldap_entry: LDAPEntry, ldap_server: LdapServer) -> Self | None:
-        raw_certs = ldap_entry.get("userCertificate;binary")
+    def create(cls, ldap_entry: SearchEntry, ldap_server: LdapServer) -> Self | None:
+        raw_certs = ldap_entry.bin_attrs.get("userCertificate;binary")
         if raw_certs is None or len(raw_certs) < 1:
+            assert "userCertificate;binary" not in ldap_entry.attrs
             return None
         [raw_cert] = raw_certs
 
-        cert_serials = ldap_entry.get("certificateSerialNumber")
+        cert_serials = ldap_entry.attrs.get("certificateSerialNumber")
         if cert_serials is not None and len(cert_serials) > 0:
             [cert_serial] = cert_serials
         else:
+            assert "certificateSerialNumber" not in ldap_entry.bin_attrs
             cert_serial = None
 
-        return cls(str(ldap_entry.dn), raw_cert, cert_serial, ldap_server)
+        return cls(str(ldap_entry.dn), bytes(raw_cert), cert_serial, ldap_server)
 
     def cert_sha1sum(self) -> str:
         return hashlib.sha1(self.raw_cert).hexdigest()  # noqa: S324
@@ -95,7 +99,7 @@ class LdapFilter:
     @staticmethod
     def _create_ldap_filter(params: list[tuple[SearchAttribute, str]]) -> str:
         search_params = "".join(
-            [f"({param[0].value}={escape_filter_exp(param[1])})" for param in params]
+            [f"({param[0].value}={escape_ldap_query(param[1])})" for param in params]
         )
 
         if len(params) > 1:

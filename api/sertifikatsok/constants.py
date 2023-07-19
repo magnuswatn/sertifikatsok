@@ -10,6 +10,7 @@ from .enums import SEID, CertType
 # flake8: noqa
 
 
+LDAP_CONN_TIMEOUT = 2
 LDAP_TIMEOUT = 7
 LDAP_RETRIES = 5
 

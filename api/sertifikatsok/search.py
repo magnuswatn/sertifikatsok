@@ -5,18 +5,18 @@ import logging
 import re
 from urllib.parse import unquote, urlparse
 
-import bonsai
 from attrs import field, frozen, mutable
-from bonsai import escape_filter_exp
-from bonsai.asyncio import AIOLDAPConnection
 
-from ruldap3 import is_ldap_filter_valid
+from ruldap3 import LDAPSearchScope, Ruldap3Error, SearchEntry, is_ldap_filter_valid
+from ruldap3 import connect as ruldap3_connect
+from sertifikatsok.utils import escape_ldap_query
 
 from .constants import (
     EMAIL_REGEX,
     HEX_SERIAL_REGEX,
     HEX_SERIALS_REGEX,
     INT_SERIALS_REGEX,
+    LDAP_CONN_TIMEOUT,
     LDAP_RETRIES,
     LDAP_TIMEOUT,
     MAX_SERIAL_NUMBER_COUNT,
@@ -51,7 +51,7 @@ class SearchParams:
 @frozen
 class LdapSearchParams:
     ldap_query: LdapFilter
-    scope: bonsai.LDAPSearchScope
+    scope: LDAPSearchScope
     ldap_servers: list[LdapServer]
     limitations: list[str]
     organization: Organization | None
@@ -62,7 +62,7 @@ class LdapSearchParams:
         cls, search_params: SearchParams, database: Database
     ) -> LdapSearchParams:
         if search_params.attr is not None:
-            scope = bonsai.LDAPSearchScope.SUBTREE
+            scope = LDAPSearchScope.SUB
             ldap_servers = [
                 ldap_server
                 for ldap_server in LDAP_SERVERS[search_params.env]
@@ -124,7 +124,7 @@ class LdapSearchParams:
                 ldap_query = LdapFilter(
                     f"(&{base_ldap_query}"
                     f"({SearchAttribute.OU.value}="
-                    f"*{escape_filter_exp(organization.orgnr)}*))"
+                    f"*{escape_ldap_query(organization.orgnr)}*))"
                 )
             else:
                 ldap_query = LdapFilter.create_from_params(
@@ -221,7 +221,7 @@ class LdapSearchParams:
                 if hash_ldap_servers:
                     # We found a match for this as a thumbprint.
                     search_type = SearchType.THUMBPRINT
-                    ldap_query = LdapFilter("")
+                    ldap_query = LdapFilter("(objectClass=*)")
                     ldap_servers = hash_ldap_servers
                 else:
                     # Not a known thumbprint, let's continue the search
@@ -237,7 +237,7 @@ class LdapSearchParams:
 
         return cls(
             ldap_query,
-            bonsai.LDAPSearchScope.SUBTREE,
+            LDAPSearchScope.SUB,
             ldap_servers,
             limitations,
             organization,
@@ -296,12 +296,12 @@ class LdapSearchParams:
             )
 
         if raw_scope == "one":
-            scope = bonsai.LDAPSearchScope.ONE
+            scope = LDAPSearchScope.ONE
         elif raw_scope == "sub":
-            scope = bonsai.LDAPSearchScope.SUB
+            scope = LDAPSearchScope.SUB
         # rfc1959: If <scope> is omitted, a scope of "base" is assumed.
         elif raw_scope in {"base", ""}:
-            scope = bonsai.LDAPSearchScope.BASE
+            scope = LDAPSearchScope.BASE
         else:
             raise ClientError("Unsupported scope in url")
 
@@ -352,7 +352,7 @@ class CertificateSearch:
                     retry=ldap_server.ca == CertificateAuthority.BUYPASS,
                 )
             )
-        except (bonsai.LDAPError, asyncio.TimeoutError):
+        except (Ruldap3Error, asyncio.TimeoutError):
             logger.exception("Error during ldap query against '%s'", ldap_server)
             if ldap_server.ca == CertificateAuthority.BUYPASS:
                 self.errors.append("ERR-001")
@@ -374,33 +374,36 @@ class CertificateSearch:
         certs we have already gotten. The queries get uglier and uglier,
         so this shouldn't be repeated too many times
         """
-        client = bonsai.LDAPClient(f"ldap://{ldap_server.hostname}")
         count = 0
-        results: list[bonsai.LDAPEntry] = []
-        all_results: list[bonsai.LDAPEntry] = []
+        results: list[SearchEntry] = []
+        all_results: list[SearchEntry] = []
         search_filter = self.ldap_params.ldap_query.get_for_ldap_server(ldap_server)
         logger.debug("Starting: ldap search against: %s", ldap_server)
 
-        conn: AIOLDAPConnection
-        async with client.connect(is_async=True, timeout=LDAP_TIMEOUT) as conn:
+        async with await ruldap3_connect(
+            f"ldap://{ldap_server.hostname}", timeout_sec=LDAP_CONN_TIMEOUT
+        ) as connection:
             while count < LDAP_RETRIES:
                 logger.debug(
                     'Doing search with filter "%s" against "%s"',
                     search_filter,
                     ldap_server,
                 )
-                results = await conn.search(
+
+                results = await connection.search(
                     ldap_server.base,
-                    self.ldap_params.scope,
                     search_filter,
-                    attrlist=["certificateSerialNumber", "userCertificate;binary"],
+                    ["certificateSerialNumber", "userCertificate;binary"],
+                    self.ldap_params.scope,
+                    timeout_sec=LDAP_TIMEOUT,
                 )
                 all_results += results
 
                 if len(results) == 20 and retry:
                     certs_to_exclude = ""
                     for result in results:
-                        certs_to_exclude += f"(!({result.dn[0]}))"
+                        dn = result.dn.split(",")[0]
+                        certs_to_exclude += f"(!({dn}))"
                     search_filter = f"(&{search_filter}{certs_to_exclude})"
                     count += 1
                 else:
@@ -421,7 +424,7 @@ class CertificateSearch:
 
     @performance_log(id_param=2)
     async def _parse_ldap_results(
-        self, search_results: list[bonsai.LDAPEntry], ldap_server: LdapServer
+        self, search_results: list[SearchEntry], ldap_server: LdapServer
     ) -> list[QualifiedCertificate]:
         """Takes a ldap response and creates a list of QualifiedCertificateSet"""
         logger.debug("Start: parsing certificates from %s", ldap_server)

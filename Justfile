@@ -1,12 +1,10 @@
-export LDFLAGS := "-L/opt/homebrew/opt/openldap/lib"
-
 set positional-arguments
 
 @clean-venv:
   pipenv --rm || true
 
 @create-venv:
-  pipenv sync --dev  --extra-pip-args '--no-binary 'bonsai''
+  pipenv sync --dev
 
 @mkvenv: clean-venv create-venv update-lib
 

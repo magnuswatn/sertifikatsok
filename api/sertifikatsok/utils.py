@@ -1,6 +1,17 @@
 from datetime import UTC, datetime
 
 
+def escape_ldap_query(query: str) -> str:
+    """Escapes an ldap query as described in RFC 4515"""
+    return (
+        query.replace(r"\\", r"\5c")
+        .replace(r"*", r"\2A")
+        .replace(r"(", r"\28")
+        .replace(r")", r"\29")
+        .replace("\x00", r"\00")
+    )
+
+
 def get_subject_order(field: str) -> int:
     """Returns the order of the subject element, for pretty printing"""
     order = {

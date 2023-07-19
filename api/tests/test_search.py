@@ -1,8 +1,8 @@
 from itertools import permutations
 
 import pytest
-from bonsai import LDAPSearchScope
 
+from ruldap3 import LDAPSearchScope
 from sertifikatsok.constants import MAX_SERIAL_NUMBER_COUNT
 from sertifikatsok.db import Database
 from sertifikatsok.enums import (
@@ -556,7 +556,7 @@ def test_should_auto_detect_thumbprint(thumbprint: str, database: Database) -> N
     assert ldap_search_params.scope == LDAPSearchScope.SUB
     assert len(ldap_search_params.limitations) == 0
     assert len(ldap_search_params.ldap_servers) == 1
-    assert str(ldap_search_params.ldap_query) == ""
+    assert str(ldap_search_params.ldap_query) == "(objectClass=*)"
     assert (
         ldap_search_params.ldap_servers[0].base == "mordi=213,dc=MagnusCA,dc=watn,dc=no"
     )
