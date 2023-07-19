@@ -18,7 +18,7 @@ class SearchEntry:
 
 def is_ldap_filter_valid(filtr: str) -> bool: ...
 
-class Connection:
+class LdapConnection:
     async def __aenter__(self) -> Self: ...
     async def __aexit__(
         self,
@@ -34,5 +34,5 @@ class Connection:
         scope: LDAPSearchScope,
         timeout_sec: int,
     ) -> list[SearchEntry]: ...
-
-async def connect(ldap_server: str, timeout_sec: int) -> Connection: ...
+    @classmethod
+    async def connect(cls, ldap_server: str, timeout_sec: int) -> Self: ...

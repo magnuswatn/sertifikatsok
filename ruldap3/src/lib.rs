@@ -9,6 +9,7 @@ use ldap3::{
 use pyo3::create_exception;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
+use pyo3::types::PyType;
 
 // TODO: When pyo3 gets better exception support
 // (see https://github.com/PyO3/pyo3/issues/295.),
@@ -84,12 +85,12 @@ impl From<RustSearchEntry> for SearchEntry {
 }
 
 #[pyclass]
-struct Connection {
+struct LdapConnection {
     ldap: Ldap,
 }
 
 #[pymethods]
-impl Connection {
+impl LdapConnection {
     pub fn __aenter__(slf: Py<Self>, py: pyo3::Python<'_>) -> PyResult<&PyAny> {
         pyo3_asyncio::tokio::future_into_py(py, async {
             return Ok(slf);
@@ -151,36 +152,40 @@ impl Connection {
             return Ok(vec);
         })
     }
-}
 
-#[pyfunction]
-fn connect<'a>(py: Python<'a>, ldap_server: String, timeout_sec: u64) -> PyResult<&'a PyAny> {
-    pyo3_asyncio::tokio::future_into_py(py, async move {
-        let settings: LdapConnSettings =
-            LdapConnSettings::new().set_conn_timeout(Duration::new(timeout_sec, 0));
+    #[classmethod]
+    fn connect<'a>(
+        _cls: &PyType,
+        py: Python<'a>,
+        ldap_server: String,
+        timeout_sec: u64,
+    ) -> PyResult<&'a PyAny> {
+        pyo3_asyncio::tokio::future_into_py(py, async move {
+            let settings: LdapConnSettings =
+                LdapConnSettings::new().set_conn_timeout(Duration::new(timeout_sec, 0));
 
-        let ldap_conn = LdapConnAsync::with_settings(settings, &ldap_server).await;
+            let ldap_conn = LdapConnAsync::with_settings(settings, &ldap_server).await;
 
-        let (conn, ldap) = match ldap_conn {
-            Ok((conn, ldap)) => (conn, ldap),
-            Err(e) => {
-                return Err(LdapError::from(e).into());
-            }
-        };
+            let (conn, ldap) = match ldap_conn {
+                Ok((conn, ldap)) => (conn, ldap),
+                Err(e) => {
+                    return Err(LdapError::from(e).into());
+                }
+            };
 
-        ldap3::drive!(conn);
+            ldap3::drive!(conn);
 
-        return Ok(Connection { ldap });
-    })
+            return Ok(LdapConnection { ldap });
+        })
+    }
 }
 
 #[pymodule]
 fn ruldap3(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(is_ldap_filter_valid, m)?)?;
-    m.add_function(wrap_pyfunction!(connect, m)?)?;
     m.add_class::<SearchEntry>()?;
-    m.add_class::<Connection>()?;
     m.add_class::<LDAPSearchScope>()?;
+    m.add_class::<LdapConnection>()?;
     m.add("Ruldap3Error", py.get_type::<Ruldap3Error>())?;
     m.add("InvalidFilterError", py.get_type::<InvalidFilterError>())?;
     m.add(

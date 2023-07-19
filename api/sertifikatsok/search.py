@@ -7,8 +7,13 @@ from urllib.parse import unquote, urlparse
 
 from attrs import field, frozen, mutable
 
-from ruldap3 import LDAPSearchScope, Ruldap3Error, SearchEntry, is_ldap_filter_valid
-from ruldap3 import connect as ruldap3_connect
+from ruldap3 import (
+    LdapConnection,
+    LDAPSearchScope,
+    Ruldap3Error,
+    SearchEntry,
+    is_ldap_filter_valid,
+)
 from sertifikatsok.utils import escape_ldap_query
 
 from .constants import (
@@ -380,9 +385,9 @@ class CertificateSearch:
         search_filter = self.ldap_params.ldap_query.get_for_ldap_server(ldap_server)
         logger.debug("Starting: ldap search against: %s", ldap_server)
 
-        async with await ruldap3_connect(
+        async with await LdapConnection.connect(
             f"ldap://{ldap_server.hostname}", timeout_sec=LDAP_CONN_TIMEOUT
-        ) as connection:
+        ) as conn:
             while count < LDAP_RETRIES:
                 logger.debug(
                     'Doing search with filter "%s" against "%s"',
@@ -390,7 +395,7 @@ class CertificateSearch:
                     ldap_server,
                 )
 
-                results = await connection.search(
+                results = await conn.search(
                     ldap_server.base,
                     search_filter,
                     ["certificateSerialNumber", "userCertificate;binary"],
