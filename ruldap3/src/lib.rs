@@ -2,10 +2,8 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use ldap3::parse_filter;
-use ldap3::result::LdapError as RustLdapError;
-use ldap3::{
-    Ldap, LdapConnAsync, LdapConnSettings, Scope as RustScope, SearchEntry as RustSearchEntry,
-};
+use ldap3::result::LdapError;
+use ldap3::{Ldap, LdapConnAsync, LdapConnSettings, Scope, SearchEntry as RustSearchEntry};
 use pyo3::create_exception;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
@@ -18,14 +16,14 @@ create_exception!(ruldap3, Ruldap3Error, PyException);
 create_exception!(ruldap3, InvalidFilterError, Ruldap3Error);
 create_exception!(ruldap3, LdapSearchFailedError, Ruldap3Error);
 
-struct LdapError(RustLdapError);
-impl From<LdapError> for PyErr {
-    fn from(error: LdapError) -> Self {
+struct PyLdapError(LdapError);
+impl From<PyLdapError> for PyErr {
+    fn from(error: PyLdapError) -> Self {
         match error.0 {
             // TODO: split out more as needed
-            RustLdapError::FilterParsing => InvalidFilterError::new_err(error.0.to_string()),
+            LdapError::FilterParsing => InvalidFilterError::new_err(error.0.to_string()),
 
-            RustLdapError::LdapResult { result } => LdapSearchFailedError::new_err(format!(
+            LdapError::LdapResult { result } => LdapSearchFailedError::new_err(format!(
                 "Received error from ldap server: {}",
                 result.to_string()
             )),
@@ -34,23 +32,18 @@ impl From<LdapError> for PyErr {
     }
 }
 
-impl From<RustLdapError> for LdapError {
-    fn from(other: RustLdapError) -> Self {
-        Self(other)
-    }
-}
 #[pyclass]
 pub enum LDAPSearchScope {
     BASE,
     ONE,
     SUB,
 }
-impl From<&LDAPSearchScope> for RustScope {
+impl From<&LDAPSearchScope> for Scope {
     fn from(scope: &LDAPSearchScope) -> Self {
         match scope {
-            LDAPSearchScope::BASE => RustScope::Base,
-            LDAPSearchScope::ONE => RustScope::OneLevel,
-            LDAPSearchScope::SUB => RustScope::Subtree,
+            LDAPSearchScope::BASE => Scope::Base,
+            LDAPSearchScope::ONE => Scope::OneLevel,
+            LDAPSearchScope::SUB => Scope::Subtree,
         }
     }
 }
@@ -108,7 +101,7 @@ impl LdapConnection {
 
         pyo3_asyncio::tokio::future_into_py(py, async move {
             if let Err(e) = ldap.unbind().await {
-                return Err(LdapError::from(e).into());
+                return Err(PyLdapError(e).into());
             }
             return Ok(());
         })
@@ -125,22 +118,16 @@ impl LdapConnection {
     ) -> PyResult<&'a PyAny> {
         let mut ldap = self.ldap.clone();
 
-        let rust_scope = RustScope::from(scope);
+        let rust_scope = Scope::from(scope);
 
         pyo3_asyncio::tokio::future_into_py(py, async move {
-            let ldap_result = match ldap
+            let (rs, _res) = ldap
                 .with_timeout(Duration::new(timeout_sec, 0))
                 .search(&base, rust_scope, &filtr, attrlist)
                 .await
-            {
-                Ok(ldap_result) => ldap_result,
-                Err(e) => return Err(LdapError::from(e).into()),
-            };
-
-            let (rs, _res) = match ldap_result.success() {
-                Ok((rs, _res)) => (rs, _res),
-                Err(e) => return Err(LdapError::from(e).into()),
-            };
+                .map_err(PyLdapError)?
+                .success()
+                .map_err(PyLdapError)?;
 
             let mut vec: Vec<SearchEntry> = Vec::new();
 
@@ -164,14 +151,9 @@ impl LdapConnection {
             let settings: LdapConnSettings =
                 LdapConnSettings::new().set_conn_timeout(Duration::new(timeout_sec, 0));
 
-            let ldap_conn = LdapConnAsync::with_settings(settings, &ldap_server).await;
-
-            let (conn, ldap) = match ldap_conn {
-                Ok((conn, ldap)) => (conn, ldap),
-                Err(e) => {
-                    return Err(LdapError::from(e).into());
-                }
-            };
+            let (conn, ldap) = LdapConnAsync::with_settings(settings, &ldap_server)
+                .await
+                .map_err(PyLdapError)?;
 
             ldap3::drive!(conn);
 

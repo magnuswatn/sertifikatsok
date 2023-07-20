@@ -394,7 +394,6 @@ class CertificateSearch:
                     search_filter,
                     ldap_server,
                 )
-
                 results = await conn.search(
                     ldap_server.base,
                     self.ldap_params.scope,
