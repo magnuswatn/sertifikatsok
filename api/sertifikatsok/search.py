@@ -9,12 +9,12 @@ from attrs import field, frozen, mutable
 
 from ruldap3 import (
     LdapConnection,
+    LdapEntry,
     LDAPSearchScope,
     Ruldap3Error,
-    SearchEntry,
     is_ldap_filter_valid,
 )
-from sertifikatsok.utils import escape_ldap_query
+from sertifikatsok.utils import escape_filter_exp
 
 from .constants import (
     EMAIL_REGEX,
@@ -129,7 +129,7 @@ class LdapSearchParams:
                 ldap_query = LdapFilter(
                     f"(&{base_ldap_query}"
                     f"({SearchAttribute.OU.value}="
-                    f"*{escape_ldap_query(organization.orgnr)}*))"
+                    f"*{escape_filter_exp(organization.orgnr)}*))"
                 )
             else:
                 ldap_query = LdapFilter.create_from_params(
@@ -380,8 +380,8 @@ class CertificateSearch:
         so this shouldn't be repeated too many times
         """
         count = 0
-        results: list[SearchEntry] = []
-        all_results: list[SearchEntry] = []
+        results: list[LdapEntry] = []
+        all_results: list[LdapEntry] = []
         search_filter = self.ldap_params.ldap_query.get_for_ldap_server(ldap_server)
         logger.debug("Starting: ldap search against: %s", ldap_server)
 
@@ -428,7 +428,7 @@ class CertificateSearch:
 
     @performance_log(id_param=2)
     async def _parse_ldap_results(
-        self, search_results: list[SearchEntry], ldap_server: LdapServer
+        self, search_results: list[LdapEntry], ldap_server: LdapServer
     ) -> list[QualifiedCertificate]:
         """Takes a ldap response and creates a list of QualifiedCertificateSet"""
         logger.debug("Start: parsing certificates from %s", ldap_server)

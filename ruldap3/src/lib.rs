@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use ldap3::parse_filter;
 use ldap3::result::LdapError;
-use ldap3::{Ldap, LdapConnAsync, LdapConnSettings, Scope, SearchEntry as RustSearchEntry};
+use ldap3::{Ldap, LdapConnAsync, LdapConnSettings, Scope, SearchEntry};
 use pyo3::create_exception;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
@@ -59,7 +59,7 @@ fn is_ldap_filter_valid(filter: &str) -> PyResult<bool> {
 
 #[derive(Debug)]
 #[pyclass]
-pub struct SearchEntry {
+pub struct LdapEntry {
     #[pyo3(get)]
     pub dn: String,
     #[pyo3(get)]
@@ -67,9 +67,9 @@ pub struct SearchEntry {
     #[pyo3(get)]
     pub bin_attrs: HashMap<String, Vec<Vec<u8>>>,
 }
-impl From<RustSearchEntry> for SearchEntry {
-    fn from(search_entry: RustSearchEntry) -> Self {
-        SearchEntry {
+impl From<SearchEntry> for LdapEntry {
+    fn from(search_entry: SearchEntry) -> Self {
+        LdapEntry {
             dn: search_entry.dn,
             attrs: search_entry.attrs,
             bin_attrs: search_entry.bin_attrs,
@@ -129,10 +129,10 @@ impl LdapConnection {
                 .success()
                 .map_err(PyLdapError)?;
 
-            let mut vec: Vec<SearchEntry> = Vec::new();
+            let mut vec: Vec<LdapEntry> = Vec::new();
 
             for entry in rs {
-                let py_search_entry = SearchEntry::from(RustSearchEntry::construct(entry));
+                let py_search_entry = LdapEntry::from(SearchEntry::construct(entry));
                 vec.push(py_search_entry);
             }
 
@@ -165,7 +165,7 @@ impl LdapConnection {
 #[pymodule]
 fn ruldap3(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(is_ldap_filter_valid, m)?)?;
-    m.add_class::<SearchEntry>()?;
+    m.add_class::<LdapEntry>()?;
     m.add_class::<LDAPSearchScope>()?;
     m.add_class::<LdapConnection>()?;
     m.add("Ruldap3Error", py.get_type::<Ruldap3Error>())?;

@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 
-def escape_ldap_query(query: str) -> str:
+def escape_filter_exp(query: str) -> str:
     """Escapes an ldap query as described in RFC 4515"""
     return (
         query.replace(r"\\", r"\5c")

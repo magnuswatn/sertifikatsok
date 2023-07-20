@@ -11,7 +11,7 @@ class LDAPSearchScope(Enum):
     ONE = 2
     SUB = 3
 
-class SearchEntry:
+class LdapEntry:
     dn: str
     attrs: dict[str, list[str]]
     bin_attrs: dict[str, list[list[int]]]
@@ -33,6 +33,6 @@ class LdapConnection:
         filtr: str,
         attrlist: list[str],
         timeout_sec: int,
-    ) -> list[SearchEntry]: ...
+    ) -> list[LdapEntry]: ...
     @classmethod
     async def connect(cls, ldap_server: str, timeout_sec: int) -> Self: ...

@@ -4,8 +4,8 @@ from typing import Self
 
 from attr import frozen
 
-from ruldap3 import SearchEntry
-from sertifikatsok.utils import escape_ldap_query
+from ruldap3 import LdapEntry
+from sertifikatsok.utils import escape_filter_exp
 
 from .enums import CertificateAuthority, CertType, Environment, SearchAttribute
 
@@ -31,7 +31,7 @@ class LdapCertificateEntry:
     ldap_server: LdapServer
 
     @classmethod
-    def create(cls, ldap_entry: SearchEntry, ldap_server: LdapServer) -> Self | None:
+    def create(cls, ldap_entry: LdapEntry, ldap_server: LdapServer) -> Self | None:
         raw_certs = ldap_entry.bin_attrs.get("userCertificate;binary")
         if raw_certs is None or len(raw_certs) < 1:
             assert "userCertificate;binary" not in ldap_entry.attrs
@@ -99,7 +99,7 @@ class LdapFilter:
     @staticmethod
     def _create_ldap_filter(params: list[tuple[SearchAttribute, str]]) -> str:
         search_params = "".join(
-            [f"({param[0].value}={escape_ldap_query(param[1])})" for param in params]
+            [f"({param[0].value}={escape_filter_exp(param[1])})" for param in params]
         )
 
         if len(params) > 1:
