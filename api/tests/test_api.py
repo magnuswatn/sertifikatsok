@@ -39,7 +39,7 @@ class Client:
 
     def search(self, env: str, typ: str, query: str, attr: str | None = None) -> dict:
         resp = self._search(env, typ, query, attr)
-        assert resp.is_success
+        resp.raise_for_status()
         resp_json = resp.json()
         assert isinstance(resp_json, dict)
         return resp_json
@@ -324,3 +324,22 @@ def test_search_bypass_buypass_size_limit(client: Client, env: Env) -> None:
     )
 
     assert len(resp["certificate_sets"]) == 50
+
+
+@pytest.mark.parametrize("env", ["test", "prod"])
+def test_search_failes_when_all_servers_fail(client: Client, env: Env) -> None:
+    resp = client._search(env=env, typ="enterprise", query="fail", attr="ou")
+
+    assert resp.status_code == 500
+
+
+@pytest.mark.parametrize("env", ["test", "prod"])
+def test_search_does_not_fail_when_only_some_servers_fail(
+    client: Client, env: Env
+) -> None:
+    resp = client._search(env=env, typ="enterprise", query="buypassfail", attr="ou")
+
+    assert resp.status_code == 200
+    errors = resp.json()["errors"]
+    assert len(errors) == 1
+    assert errors[0] == "Kunne ikke hente alle sertfikater fra Buypass"

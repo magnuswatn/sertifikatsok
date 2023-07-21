@@ -20,3 +20,7 @@ class ConfigurationError(SertifikatSokError):
 
 class MalformedCertificateError(SertifikatSokError):
     pass
+
+
+class AllServersFailedError(SertifikatSokError):
+    pass

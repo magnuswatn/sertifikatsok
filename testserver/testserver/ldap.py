@@ -5,7 +5,10 @@ from typing import Any, Self
 
 from cryptography.hazmat.primitives.serialization import Encoding
 from ldaptor.inmemory import ReadOnlyInMemoryLDAPEntry  # type: ignore
-from ldaptor.protocols.ldap.ldaperrors import LDAPNoSuchAttribute  # type: ignore
+from ldaptor.protocols.ldap.ldaperrors import (  # type: ignore
+    LDAPNoSuchAttribute,
+    LDAPOperationsError,
+)
 from ldaptor.protocols.ldap.ldapserver import BaseLDAPServer, LDAPServer  # type: ignore
 from ldaptor.protocols.pureldap import (  # type: ignore
     LDAPAttributeDescription,
@@ -34,6 +37,8 @@ class SertifikatsokLDAPServer(LDAPServer):  # type: ignore
         )
         buypass_request = b"Buypass" in request.baseObject
 
+        self.check_for_magic_filter(request.filter, buypass_request)
+
         if buypass_request:
             # Buypass returns `no such attribute` for querys
             # that filters `certificateSerialNumber` on something
@@ -56,6 +61,20 @@ class SertifikatsokLDAPServer(LDAPServer):  # type: ignore
         return super().handle_LDAPSearchRequest(
             request, controls, _buypass_reply if buypass_request else reply
         )
+
+    def check_for_magic_filter(self, filter: Any, buypass_request: bool) -> None:
+        if (
+            isinstance(filter, LDAPAttributeValueAssertion)
+            and filter.attributeDesc.value.lower() == b"ou"
+            and (
+                filter.assertionValue.value.lower() == b"fail"
+                or (
+                    buypass_request
+                    and filter.assertionValue.value.lower() == b"buypassfail"
+                )
+            )
+        ):
+            raise LDAPOperationsError("You asked me to fail")
 
     def check_for_malformed_cert_sn(self, filter: Any) -> None:
         if isinstance(filter, LDAPFilterSet):
