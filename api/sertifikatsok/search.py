@@ -13,8 +13,8 @@ from ruldap3 import (
     LDAPSearchScope,
     Ruldap3Error,
     is_ldap_filter_valid,
+    ldap_escape,
 )
-from sertifikatsok.utils import escape_filter_exp
 
 from .constants import (
     EMAIL_REGEX,
@@ -37,7 +37,7 @@ from .enums import (
     SearchAttribute,
     SearchType,
 )
-from .errors import ClientError
+from .errors import AllServersFailedError, ClientError
 from .ldap import LDAP_SERVERS, LdapCertificateEntry, LdapFilter, LdapServer
 from .logging import performance_log
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
@@ -129,7 +129,7 @@ class LdapSearchParams:
                 ldap_query = LdapFilter(
                     f"(&{base_ldap_query}"
                     f"({SearchAttribute.OU.value}="
-                    f"*{escape_filter_exp(organization.orgnr)}*))"
+                    f"*{ldap_escape(organization.orgnr)}*))"
                 )
             else:
                 ldap_query = LdapFilter.create_from_params(
@@ -334,6 +334,7 @@ class CertificateSearch:
     errors: list[str] = field(factory=list)
     warnings: list[str] = field(factory=list)
     results: list[QualifiedCertificate] = field(factory=list)
+    failed_ldap_servers: list[LdapServer] = field(factory=list)
 
     @classmethod
     def create(
@@ -359,6 +360,7 @@ class CertificateSearch:
             )
         except (Ruldap3Error, asyncio.TimeoutError):
             logger.exception("Error during ldap query against '%s'", ldap_server)
+            self.failed_ldap_servers.append(ldap_server)
             if ldap_server.ca == CertificateAuthority.BUYPASS:
                 self.errors.append("ERR-001")
             elif ldap_server.ca == CertificateAuthority.COMMFIDES:
@@ -474,6 +476,9 @@ class CertificateSearch:
                 for ldap_server in self.ldap_params.ldap_servers
             ]
         )
+        if len(self.failed_ldap_servers) == len(self.ldap_params.ldap_servers):
+            raise AllServersFailedError()
+
         self.errors.extend(self.cert_validator.errors)
         self.warnings.extend(self.ldap_params.limitations)
         if len(self.results) == 0:

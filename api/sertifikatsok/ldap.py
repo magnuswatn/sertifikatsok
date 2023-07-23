@@ -4,8 +4,7 @@ from typing import Self
 
 from attr import frozen
 
-from ruldap3 import LdapEntry
-from sertifikatsok.utils import escape_filter_exp
+from ruldap3 import LdapEntry, ldap_escape
 
 from .enums import CertificateAuthority, CertType, Environment, SearchAttribute
 
@@ -99,7 +98,7 @@ class LdapFilter:
     @staticmethod
     def _create_ldap_filter(params: list[tuple[SearchAttribute, str]]) -> str:
         search_params = "".join(
-            [f"({param[0].value}={escape_filter_exp(param[1])})" for param in params]
+            [f"({param[0].value}={ldap_escape(param[1])})" for param in params]
         )
 
         if len(params) > 1:

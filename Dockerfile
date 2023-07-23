@@ -65,7 +65,7 @@ RUN set -x \
 COPY ruldap3 /opt/sertifikatsok/ruldap3
 
 RUN set -x \
-    && /opt/sertifikatsok/rust-venv/bin/maturin build -m /opt/sertifikatsok/ruldap3/Cargo.toml --manylinux off
+    && /opt/sertifikatsok/rust-venv/bin/maturin build --release -m /opt/sertifikatsok/ruldap3/Cargo.toml --manylinux off
 
 
 #

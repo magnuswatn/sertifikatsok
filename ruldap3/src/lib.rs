@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use ldap3::parse_filter;
 use ldap3::result::LdapError;
 use ldap3::{Ldap, LdapConnAsync, LdapConnSettings, Scope, SearchEntry};
 use pyo3::create_exception;
 use pyo3::exceptions::PyException;
+use std::borrow::Cow;
+
+use ldap3::{ldap_escape, parse_filter};
 use pyo3::prelude::*;
 use pyo3::types::PyType;
 
@@ -55,6 +57,12 @@ fn is_ldap_filter_valid(filter: &str) -> PyResult<bool> {
         return Ok(false);
     }
     return Ok(true);
+}
+
+#[pyfunction]
+#[pyo3(name = "ldap_escape")]
+fn ldap_escape_py(lit: &str) -> Cow<'_, str> {
+    return ldap_escape(lit);
 }
 
 #[derive(Debug)]
@@ -165,6 +173,7 @@ impl LdapConnection {
 #[pymodule]
 fn ruldap3(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(is_ldap_filter_valid, m)?)?;
+    m.add_function(wrap_pyfunction!(ldap_escape_py, m)?)?;
     m.add_class::<LdapEntry>()?;
     m.add_class::<LDAPSearchScope>()?;
     m.add_class::<LdapConnection>()?;

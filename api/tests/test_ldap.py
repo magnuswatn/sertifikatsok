@@ -26,7 +26,7 @@ def test_ldap_filter_one_param_escape() -> None:
         str(filter)
         == filter.get_for_ldap_server(NORMAL_CA)
         == filter.get_for_ldap_server(DOUBLE_TROUBLE_CA)
-        == r"(cn=Beste virksomheten \28\2A\29)"
+        == r"(cn=Beste virksomheten \28\2a\29)"
     )
 
 
@@ -53,7 +53,7 @@ def test_ldap_filter_several_params_escape() -> None:
         str(filter)
         == filter.get_for_ldap_server(NORMAL_CA)
         == filter.get_for_ldap_server(DOUBLE_TROUBLE_CA)
-        == r"(|(cn=\28)(ou=\2A)(o=\29))"
+        == r"(|(cn=\28)(ou=\2a)(o=\29))"
     )
 
 

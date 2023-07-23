@@ -34,7 +34,10 @@ alias ulib := update-lib
   pipenv run maturin develop -m ruldap3/Cargo.toml
 
 @build-lib:
-  pipenv run maturin build -m ruldap3/Cargo.toml
+  pipenv run maturin build --release -m ruldap3/Cargo.toml
+
+@install-optimized-lib: build-lib
+  pipenv run pip install --force-reinstall ./ruldap3/target/wheels/*
 
 # docker compose stuff
 
