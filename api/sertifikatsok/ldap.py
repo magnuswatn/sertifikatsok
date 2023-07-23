@@ -3,7 +3,9 @@ from collections.abc import Collection
 from typing import Self
 
 from attr import frozen
-from bonsai import LDAPEntry, escape_filter_exp
+from bonsai import LDAPEntry
+
+from ruldap3 import ldap_escape
 
 from .enums import CertificateAuthority, CertType, Environment, SearchAttribute
 
@@ -95,7 +97,7 @@ class LdapFilter:
     @staticmethod
     def _create_ldap_filter(params: list[tuple[SearchAttribute, str]]) -> str:
         search_params = "".join(
-            [f"({param[0].value}={escape_filter_exp(param[1])})" for param in params]
+            [f"({param[0].value}={ldap_escape(param[1])})" for param in params]
         )
 
         if len(params) > 1:

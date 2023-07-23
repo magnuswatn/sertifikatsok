@@ -7,10 +7,9 @@ from urllib.parse import unquote, urlparse
 
 import bonsai
 from attrs import field, frozen, mutable
-from bonsai import escape_filter_exp
 from bonsai.asyncio import AIOLDAPConnection
 
-from ruldap3 import is_ldap_filter_valid
+from ruldap3 import is_ldap_filter_valid, ldap_escape
 
 from .constants import (
     EMAIL_REGEX,
@@ -124,7 +123,7 @@ class LdapSearchParams:
                 ldap_query = LdapFilter(
                     f"(&{base_ldap_query}"
                     f"({SearchAttribute.OU.value}="
-                    f"*{escape_filter_exp(organization.orgnr)}*))"
+                    f"*{ldap_escape(organization.orgnr)}*))"
                 )
             else:
                 ldap_query = LdapFilter.create_from_params(
