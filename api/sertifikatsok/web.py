@@ -64,6 +64,11 @@ async def handle_exception(request: Request, exc: Exception) -> Response:
         ),
         status_code=500,
         media_type="application/json",
+        # Stuff caught by a general `Exception` handler
+        # bubbles all the way up to Uvicorn, which closes
+        # the connection after the response is sent. So
+        # add a matching Connection header.
+        headers={"Connection": "close"},
     )
 
 
