@@ -15,7 +15,3 @@ def test_known_cert_types_subject_matches_trusted_cert() -> None:
     ]
     for name, _ in KNOWN_CERT_TYPES:
         assert name in all_trusted_subjects
-
-
-def test_fail() -> None:
-    assert not True
