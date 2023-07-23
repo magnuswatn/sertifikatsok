@@ -2,7 +2,7 @@ from itertools import permutations
 
 import pytest
 
-from ruldap3 import LDAPSearchScope
+from ruldap3 import Scope
 from sertifikatsok.constants import MAX_SERIAL_NUMBER_COUNT
 from sertifikatsok.db import Database
 from sertifikatsok.enums import (
@@ -34,7 +34,7 @@ def database() -> Database:
     [
         (
             "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?usercertificate;binary?sub?(|(certificateSerialNumber=912052)(certificateSerialNumber=912051))",
-            LDAPSearchScope.SUB,
+            Scope.SUB,
             "ldap.buypass.no",
             "dc=Buypass,dc=no,CN=Buypass Class 3",
             CertificateAuthority.BUYPASS,
@@ -42,7 +42,7 @@ def database() -> Database:
         ),
         (
             "ldap://ldap.test.commfides.com/ou=Natural-Person-G3,dc=commfides,dc=com?usercertificate;binary?sub?(certificateSerialNumber=130F751161B26168)",
-            LDAPSearchScope.SUB,
+            Scope.SUB,
             "ldap.test.commfides.com",
             "ou=Natural-Person-G3,dc=commfides,dc=com",
             CertificateAuthority.COMMFIDES,
@@ -50,7 +50,7 @@ def database() -> Database:
         ),
         (
             "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203%20CA?usercertificate;binary?sub?sn=817920632",
-            LDAPSearchScope.SUB,
+            Scope.SUB,
             "ldap.buypass.no",
             "dc=Buypass,dc=no,CN=Buypass Class 3 CA",
             CertificateAuthority.BUYPASS,
@@ -58,7 +58,7 @@ def database() -> Database:
         ),
         (
             "ldap://ldap.test4.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203%20Test4%20CA%203?usercertificate;binary?sub?(|(certificateSerialNumber=6037264911774452840947791)(certificateSerialNumber=6037281003928955883830016)(certificateSerialNumber=2702531723605056595025380)(certificateSerialNumber=2702541841969098455178190))",
-            LDAPSearchScope.SUB,
+            Scope.SUB,
             "ldap.test4.buypass.no",
             "dc=Buypass,dc=no,CN=Buypass Class 3 Test4 CA 3",
             CertificateAuthority.BUYPASS,
@@ -66,7 +66,7 @@ def database() -> Database:
         ),
         (
             "ldap://ldap.commfides.com/ou=Enterprise,dc=commfides,dc=com?usercertificate;binary?sub?(|(certificateSerialNumber=4ccf299b219b43c24d5887ab626010d01ee3e609)(certificateSerialNumber=449371eda29b8802af8a3cb3639381c09d805e09)(certificateSerialNumber=298409dc176f1b9e6f07e9fed71dc44194785833))",
-            LDAPSearchScope.SUB,
+            Scope.SUB,
             "ldap.commfides.com",
             "ou=Enterprise,dc=commfides,dc=com",
             CertificateAuthority.COMMFIDES,
@@ -77,7 +77,7 @@ def database() -> Database:
 def test_should_auto_detect_url(
     database: Database,
     ldap_url: str,
-    expected_scope: LDAPSearchScope,
+    expected_scope: Scope,
     expected_hostname: str,
     expected_base: str,
     expected_ca: CertificateAuthority,
@@ -109,7 +109,7 @@ def test_should_auto_detect_url_and_warn_about_wrong_env(database: Database) -> 
     )
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
+    assert ldap_search_params.scope == Scope.SUB
     # mismatch between env and url
     assert "ERR-008" in ldap_search_params.limitations
     assert ldap_search_params.ldap_servers[0].hostname == "ldap.buypass.no"
@@ -202,7 +202,7 @@ def test_should_auto_detect_url_with_garbage_prefix(database: Database) -> None:
     )
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
+    assert ldap_search_params.scope == Scope.SUB
     assert len(ldap_search_params.ldap_servers) == 1
     assert ldap_search_params.ldap_servers[0].hostname == "ldap.buypass.no"
     assert (
@@ -473,7 +473,7 @@ def test_should_auto_detect_cert_serial(
     )
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
+    assert ldap_search_params.scope == Scope.SUB
     assert len(ldap_search_params.limitations) == 0
     assert all(
         CertType.PERSONAL in ldap_server.cert_types
@@ -553,7 +553,7 @@ def test_should_auto_detect_thumbprint(thumbprint: str, database: Database) -> N
     )
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
+    assert ldap_search_params.scope == Scope.SUB
     assert len(ldap_search_params.limitations) == 0
     assert len(ldap_search_params.ldap_servers) == 1
     assert str(ldap_search_params.ldap_query) == "(objectClass=*)"
@@ -589,7 +589,7 @@ def test_should_search_for_sn_when_thumbprint_yielded_no_match(
     )
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
+    assert ldap_search_params.scope == Scope.SUB
     assert len(ldap_search_params.ldap_servers) == 5
     assert len(ldap_search_params.limitations) == 0
     assert all(
@@ -624,7 +624,7 @@ def test_should_auto_detect_org_nr_not_in_db(database: Database, orgnr: str) -> 
     )
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
+    assert ldap_search_params.scope == Scope.SUB
     assert len(ldap_search_params.limitations) == 0
     assert all(
         CertType.ENTERPRISE in ldap_server.cert_types
@@ -659,7 +659,7 @@ def test_should_auto_detect_org_nr_child(database: Database, orgnr: str) -> None
     )
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
+    assert ldap_search_params.scope == Scope.SUB
     assert len(ldap_search_params.limitations) == 0
     assert all(
         CertType.ENTERPRISE in ldap_server.cert_types
@@ -698,7 +698,7 @@ def test_should_auto_detect_org_nr_main(database: Database, orgnr: str) -> None:
     )
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
+    assert ldap_search_params.scope == Scope.SUB
     assert len(ldap_search_params.limitations) == 0
     assert all(
         CertType.ENTERPRISE in ldap_server.cert_types
@@ -749,7 +749,7 @@ def test_should_auto_detect_org_nr_main_with_parent(
     )
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
+    assert ldap_search_params.scope == Scope.SUB
     assert len(ldap_search_params.limitations) == 0
     assert all(
         CertType.ENTERPRISE in ldap_server.cert_types
@@ -799,7 +799,7 @@ def test_should_auto_detect_personal_serial_number_commfides(
     )
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
+    assert ldap_search_params.scope == Scope.SUB
     assert all(
         CertType.PERSONAL in ldap_server.cert_types
         for ldap_server in ldap_search_params.ldap_servers
@@ -829,7 +829,7 @@ def test_should_auto_detect_personal_serial_number_buypass(
     )
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
+    assert ldap_search_params.scope == Scope.SUB
     assert all(
         CertType.PERSONAL in ldap_server.cert_types
         for ldap_server in ldap_search_params.ldap_servers
@@ -854,7 +854,7 @@ def test_should_auto_detect_email(database: Database) -> None:
     )
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
+    assert ldap_search_params.scope == Scope.SUB
     assert "ERR-006" in ldap_search_params.limitations
     assert all(
         CertType.PERSONAL in ldap_server.cert_types
@@ -876,7 +876,7 @@ def test_should_fallback_to_cn(database: Database) -> None:
     )
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
+    assert ldap_search_params.scope == Scope.SUB
     assert len(ldap_search_params.limitations) == 0
     assert all(
         CertType.PERSONAL in ldap_server.cert_types
@@ -898,7 +898,7 @@ def test_should_respect_attribute(database: Database) -> None:
     )
 
     ldap_search_params = LdapSearchParams.create(search_params, database)
-    assert ldap_search_params.scope == LDAPSearchScope.SUB
+    assert ldap_search_params.scope == Scope.SUB
     assert len(ldap_search_params.limitations) == 0
     assert all(
         CertType.ENTERPRISE in ldap_server.cert_types

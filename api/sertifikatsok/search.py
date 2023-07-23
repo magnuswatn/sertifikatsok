@@ -9,9 +9,9 @@ from attrs import field, frozen, mutable
 
 from ruldap3 import (
     LdapConnection,
-    LdapEntry,
-    LDAPSearchScope,
     Ruldap3Error,
+    Scope,
+    SearchEntry,
     is_ldap_filter_valid,
     ldap_escape,
 )
@@ -56,7 +56,7 @@ class SearchParams:
 @frozen
 class LdapSearchParams:
     ldap_query: LdapFilter
-    scope: LDAPSearchScope
+    scope: Scope
     ldap_servers: list[LdapServer]
     limitations: list[str]
     organization: Organization | None
@@ -67,7 +67,7 @@ class LdapSearchParams:
         cls, search_params: SearchParams, database: Database
     ) -> LdapSearchParams:
         if search_params.attr is not None:
-            scope = LDAPSearchScope.SUB
+            scope = Scope.SUB
             ldap_servers = [
                 ldap_server
                 for ldap_server in LDAP_SERVERS[search_params.env]
@@ -242,7 +242,7 @@ class LdapSearchParams:
 
         return cls(
             ldap_query,
-            LDAPSearchScope.SUB,
+            Scope.SUB,
             ldap_servers,
             limitations,
             organization,
@@ -301,12 +301,12 @@ class LdapSearchParams:
             )
 
         if raw_scope == "one":
-            scope = LDAPSearchScope.ONE
+            scope = Scope.ONE
         elif raw_scope == "sub":
-            scope = LDAPSearchScope.SUB
+            scope = Scope.SUB
         # rfc1959: If <scope> is omitted, a scope of "base" is assumed.
         elif raw_scope in {"base", ""}:
-            scope = LDAPSearchScope.BASE
+            scope = Scope.BASE
         else:
             raise ClientError("Unsupported scope in url")
 
@@ -382,8 +382,8 @@ class CertificateSearch:
         so this shouldn't be repeated too many times
         """
         count = 0
-        results: list[LdapEntry] = []
-        all_results: list[LdapEntry] = []
+        results: list[SearchEntry] = []
+        all_results: list[SearchEntry] = []
         search_filter = self.ldap_params.ldap_query.get_for_ldap_server(ldap_server)
         logger.debug("Starting: ldap search against: %s", ldap_server)
 
@@ -430,7 +430,7 @@ class CertificateSearch:
 
     @performance_log(id_param=2)
     async def _parse_ldap_results(
-        self, search_results: list[LdapEntry], ldap_server: LdapServer
+        self, search_results: list[SearchEntry], ldap_server: LdapServer
     ) -> list[QualifiedCertificate]:
         """Takes a ldap response and creates a list of QualifiedCertificateSet"""
         logger.debug("Start: parsing certificates from %s", ldap_server)

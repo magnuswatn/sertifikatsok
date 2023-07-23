@@ -35,17 +35,18 @@ impl From<PyLdapError> for PyErr {
 }
 
 #[pyclass]
-pub enum LDAPSearchScope {
+#[pyo3(name = "Scope")]
+pub enum PyScope {
     BASE,
     ONE,
     SUB,
 }
-impl From<&LDAPSearchScope> for Scope {
-    fn from(scope: &LDAPSearchScope) -> Self {
+impl From<&PyScope> for Scope {
+    fn from(scope: &PyScope) -> Self {
         match scope {
-            LDAPSearchScope::BASE => Scope::Base,
-            LDAPSearchScope::ONE => Scope::OneLevel,
-            LDAPSearchScope::SUB => Scope::Subtree,
+            PyScope::BASE => Scope::Base,
+            PyScope::ONE => Scope::OneLevel,
+            PyScope::SUB => Scope::Subtree,
         }
     }
 }
@@ -67,7 +68,8 @@ fn ldap_escape_py(lit: &str) -> Cow<'_, str> {
 
 #[derive(Debug)]
 #[pyclass]
-pub struct LdapEntry {
+#[pyo3(name = "SearchEntry")]
+pub struct PySearchEntry {
     #[pyo3(get)]
     pub dn: String,
     #[pyo3(get)]
@@ -75,9 +77,9 @@ pub struct LdapEntry {
     #[pyo3(get)]
     pub bin_attrs: HashMap<String, Vec<Vec<u8>>>,
 }
-impl From<SearchEntry> for LdapEntry {
+impl From<SearchEntry> for PySearchEntry {
     fn from(search_entry: SearchEntry) -> Self {
-        LdapEntry {
+        PySearchEntry {
             dn: search_entry.dn,
             attrs: search_entry.attrs,
             bin_attrs: search_entry.bin_attrs,
@@ -86,12 +88,13 @@ impl From<SearchEntry> for LdapEntry {
 }
 
 #[pyclass]
-struct LdapConnection {
+#[pyo3(name = "LdapConnection")]
+struct PyLdapConnection {
     ldap: Ldap,
 }
 
 #[pymethods]
-impl LdapConnection {
+impl PyLdapConnection {
     pub fn __aenter__(slf: Py<Self>, py: pyo3::Python<'_>) -> PyResult<&PyAny> {
         pyo3_asyncio::tokio::future_into_py(py, async {
             return Ok(slf);
@@ -119,7 +122,7 @@ impl LdapConnection {
         &self,
         py: pyo3::Python<'a>,
         base: String,
-        scope: &LDAPSearchScope,
+        scope: &PyScope,
         filtr: String,
         attrlist: Vec<String>,
         timeout_sec: u64,
@@ -137,10 +140,10 @@ impl LdapConnection {
                 .success()
                 .map_err(PyLdapError)?;
 
-            let mut vec: Vec<LdapEntry> = Vec::new();
+            let mut vec: Vec<PySearchEntry> = Vec::new();
 
             for entry in rs {
-                let py_search_entry = LdapEntry::from(SearchEntry::construct(entry));
+                let py_search_entry = PySearchEntry::from(SearchEntry::construct(entry));
                 vec.push(py_search_entry);
             }
 
@@ -165,7 +168,7 @@ impl LdapConnection {
 
             ldap3::drive!(conn);
 
-            return Ok(LdapConnection { ldap });
+            return Ok(PyLdapConnection { ldap });
         })
     }
 }
@@ -174,9 +177,9 @@ impl LdapConnection {
 fn ruldap3(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(is_ldap_filter_valid, m)?)?;
     m.add_function(wrap_pyfunction!(ldap_escape_py, m)?)?;
-    m.add_class::<LdapEntry>()?;
-    m.add_class::<LDAPSearchScope>()?;
-    m.add_class::<LdapConnection>()?;
+    m.add_class::<PySearchEntry>()?;
+    m.add_class::<PyScope>()?;
+    m.add_class::<PyLdapConnection>()?;
     m.add("Ruldap3Error", py.get_type::<Ruldap3Error>())?;
     m.add("InvalidFilterError", py.get_type::<InvalidFilterError>())?;
     m.add(

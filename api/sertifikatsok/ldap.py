@@ -4,7 +4,7 @@ from typing import Self
 
 from attr import frozen
 
-from ruldap3 import LdapEntry, ldap_escape
+from ruldap3 import SearchEntry, ldap_escape
 
 from .enums import CertificateAuthority, CertType, Environment, SearchAttribute
 
@@ -30,21 +30,21 @@ class LdapCertificateEntry:
     ldap_server: LdapServer
 
     @classmethod
-    def create(cls, ldap_entry: LdapEntry, ldap_server: LdapServer) -> Self | None:
-        raw_certs = ldap_entry.bin_attrs.get("userCertificate;binary")
+    def create(cls, search_entry: SearchEntry, ldap_server: LdapServer) -> Self | None:
+        raw_certs = search_entry.bin_attrs.get("userCertificate;binary")
         if raw_certs is None or len(raw_certs) < 1:
-            assert "userCertificate;binary" not in ldap_entry.attrs
+            assert "userCertificate;binary" not in search_entry.attrs
             return None
         [raw_cert] = raw_certs
 
-        cert_serials = ldap_entry.attrs.get("certificateSerialNumber")
+        cert_serials = search_entry.attrs.get("certificateSerialNumber")
         if cert_serials is not None and len(cert_serials) > 0:
             [cert_serial] = cert_serials
         else:
-            assert "certificateSerialNumber" not in ldap_entry.bin_attrs
+            assert "certificateSerialNumber" not in search_entry.bin_attrs
             cert_serial = None
 
-        return cls(str(ldap_entry.dn), bytes(raw_cert), cert_serial, ldap_server)
+        return cls(search_entry.dn, bytes(raw_cert), cert_serial, ldap_server)
 
     def cert_sha1sum(self) -> str:
         return hashlib.sha1(self.raw_cert).hexdigest()  # noqa: S324

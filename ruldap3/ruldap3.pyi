@@ -6,12 +6,12 @@ class Ruldap3Error(Exception): ...
 class InvalidFilterError(Ruldap3Error): ...
 class LdapSearchFailedError(Ruldap3Error): ...
 
-class LDAPSearchScope(Enum):
+class Scope(Enum):
     BASE = 1
     ONE = 2
     SUB = 3
 
-class LdapEntry:
+class SearchEntry:
     dn: str
     attrs: dict[str, list[str]]
     bin_attrs: dict[str, list[list[int]]]
@@ -30,10 +30,10 @@ class LdapConnection:
     async def search(
         self,
         base: str,
-        scope: LDAPSearchScope,
+        scope: Scope,
         filtr: str,
         attrlist: list[str],
         timeout_sec: int,
-    ) -> list[LdapEntry]: ...
+    ) -> list[SearchEntry]: ...
     @classmethod
     async def connect(cls, ldap_server: str, timeout_sec: int) -> Self: ...
