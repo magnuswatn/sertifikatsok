@@ -25,4 +25,4 @@ jobs:
       - name: Check with mypy
         run: docker compose exec test mypy .
       - name: Test with pytest
-        run: docker compose exec test pytest
+        run: docker compose exec test pytest || (docker compose logs sertifikatsok && return 1)
