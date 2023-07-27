@@ -32,9 +32,12 @@ class CrlResource(resource.Resource):
     def create(cls, cas: Iterable[CertificateAuthority]) -> Self:
         crls: dict[str, dict[str, bytes]] = defaultdict(dict)
         for ca in cas:
-            parsed_cdp = urlparse(ca.cdp)
-            assert parsed_cdp.hostname
-            crls[parsed_cdp.hostname][parsed_cdp.path] = ca.impl.get_crl()
+            crl = ca.impl.get_crl()
+            for cdp in ca.impl.cdp:
+                parsed_cdp = urlparse(cdp)
+                if parsed_cdp.scheme == "http":
+                    assert parsed_cdp.hostname
+                    crls[parsed_cdp.hostname][parsed_cdp.path] = crl
 
         return cls(dict(crls))
 

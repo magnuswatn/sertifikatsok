@@ -25,7 +25,6 @@ from cryptography.x509 import (
     CertificateRevocationListBuilder,
     CRLDistributionPoints,
     DistributionPoint,
-    DNSName,
     ExtendedKeyUsage,
     ExtensionNotFound,
     ExtensionType,
@@ -38,6 +37,7 @@ from cryptography.x509 import (
     RFC822Name,
     SubjectAlternativeName,
     SubjectKeyIdentifier,
+    UniformResourceIdentifier,
     random_serial_number,
 )
 from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
@@ -202,7 +202,7 @@ class CertIssuingImpl:
         self,
         cert: Certificate,
         private_key: RSAPrivateKey,
-        cdp: str,
+        cdp: list[str],
         seid_v: Literal[1, 2],
         env: Env,
     ) -> None:
@@ -228,14 +228,18 @@ class CertIssuingImpl:
                 critical=False,
             )
             .add_extension(
+                # I would argue that it should be two UniformResourceIdentifiers
+                # in one DistributionPoint here, since both uris point to the
+                # same CRL, but both CAs do it this way... ¯\_(ツ)_/¯
                 CRLDistributionPoints(
                     [
                         DistributionPoint(
-                            full_name=[DNSName(self.cdp)],
+                            full_name=[UniformResourceIdentifier(cdp)],
                             relative_name=None,
                             crl_issuer=None,
                             reasons=None,
                         )
+                        for cdp in self.cdp
                     ]
                 ),
                 critical=False,
@@ -378,7 +382,7 @@ class CommfidesCertIssuingImpl(CertIssuingImpl):
 
         # Cryptography's builders doesn't mutate
         # so it's fine to use the same builder for
-        # both here.
+        # all here.
         sign_cert = (
             builder.subject_name(Name(sign_subject_attrs))
             .add_extension(
@@ -566,7 +570,7 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
         self,
         cert: Certificate,
         private_key: RSAPrivateKey,
-        cdp: str,
+        cdp: list[str],
         seid_v: Literal[1, 2],
         env: Env,
     ) -> None:
@@ -746,7 +750,6 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
 
 @frozen
 class CertificateAuthority:
-    cdp: str
     impl: CertIssuingImpl
     ldap_name: str | None
 
@@ -772,7 +775,7 @@ class CertificateAuthority:
     @classmethod
     def create_from_cache(
         cls,
-        cdp: str,
+        cdp: list[str],
         cached_cert: Certificate,
         cached_key: RSAPrivateKey,
         seid_v: Literal[1, 2],
@@ -780,14 +783,12 @@ class CertificateAuthority:
         ldap_name: str | None,
         env: Env,
     ) -> Self:
-        return cls(
-            cdp, impl_class(cached_cert, cached_key, cdp, seid_v, env), ldap_name
-        )
+        return cls(impl_class(cached_cert, cached_key, cdp, seid_v, env), ldap_name)
 
     @classmethod
     def create_from_original(
         cls,
-        cdp: str,
+        cdp: list[str],
         org_cert: Certificate,
         seid_v: Literal[1, 2],
         impl_class: type[CertIssuingImpl],
@@ -819,6 +820,4 @@ class CertificateAuthority:
             private_key=signing_key,
             algorithm=SHA256(),
         )
-        return cls(
-            cdp, impl_class(certificate, private_key, cdp, seid_v, env), ldap_name
-        )
+        return cls(impl_class(certificate, private_key, cdp, seid_v, env), ldap_name)

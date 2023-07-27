@@ -54,6 +54,7 @@ services:
           - crl.test4.buypassca.com
           - ldap.test.commfides.com
           - crl1.test.commfides.com
+          - crl2.test.commfides.com
           - crl.test.commfides.com
   ldap_server_prod:
     build:
@@ -77,6 +78,7 @@ services:
           - crl.buypassca.com
           - ldap.commfides.com
           - crl1.commfides.com
+          - crl2.commfides.com
           - crl.commfides.com
 
 networks:
