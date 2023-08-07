@@ -56,7 +56,7 @@ def is_valid_market(env: str) -> TypeGuard[Literal["test", "prod"]]:
 
 def main() -> None:
     if os.getenv("RUNNING_IN_DOCKER"):
-        listen_host = "0.0.0.0"  # ruff: noqa: S104
+        listen_host = "0.0.0.0"  # noqa: S104
         ldap_port = 389
         http_port = 80
     else:
