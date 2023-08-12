@@ -74,7 +74,7 @@ class LdapSearchParams:
 
             return cls(ldap_query, scope, ldap_servers, [], None, SearchType.CUSTOM)
 
-        if "ldap://" in search_params.query:
+        if "ldap://" in search_params.query.lower():
             return cls._parse_ldap_url(search_params)
         else:
             return cls._guess_search_params(search_params, database)
@@ -249,15 +249,15 @@ class LdapSearchParams:
 
         parsed_url = urlparse(
             # strip garbage before the url
-            search_params.query[search_params.query.find("ldap://") :]
+            search_params.query[search_params.query.lower().find("ldap://") :]
         )
 
-        if parsed_url.scheme != "ldap":
+        if parsed_url.scheme.lower() != "ldap":
             # Should not happen
             raise ClientError("Unsupported scheme in ldap url")
 
         if parsed_url.hostname is None:
-            raise ClientError("Hostname missing in ldap url")
+            raise ClientError("Hostname is required in ldap url")
 
         allowed_ldap_servers_match = [
             (env, ldap_server)
@@ -267,13 +267,33 @@ class LdapSearchParams:
         ]
 
         if not allowed_ldap_servers_match:
-            raise ClientError("Unsupported hostname in ldap url")
+            allowed_ldap_servers = ",".join(
+                {
+                    ldap_server.hostname
+                    for ldap_servers in LDAP_SERVERS.values()
+                    for ldap_server in ldap_servers
+                }
+            )
+            raise ClientError(
+                "Disallowed hostname in ldap url. "
+                f"Only following are allowed: {allowed_ldap_servers}"
+            )
 
         pre_allowed_ldap_server_env = allowed_ldap_servers_match[0][0]
         pre_allowed_ldap_server = allowed_ldap_servers_match[0][1]
 
         if search_params.env != pre_allowed_ldap_server_env:
             limitations.append("ERR-008")
+
+        try:
+            url_port = parsed_url.port
+        except ValueError as e:
+            raise ClientError("Invalid port in ldap url") from e
+
+        if url_port is not None and url_port != 389:
+            raise ClientError(
+                "Unsupported port in ldap url. Only port 389 is supported."
+            )
 
         ldap_server = LdapServer(
             pre_allowed_ldap_server.hostname,
@@ -284,29 +304,53 @@ class LdapSearchParams:
         )
 
         parsed_query = parsed_url.query.split("?")
-        if len(parsed_query) != 3:
+        parsed_query.extend("" for _ in range(4 - len(parsed_query)))
+
+        if len(parsed_query) != 4:
             raise ClientError("Malformed query in ldap url")
 
-        attrlist, raw_scope, filtr = parsed_query
-        if attrlist != "usercertificate;binary":
+        raw_attrlist, raw_scope, raw_filtr, raw_extensions = parsed_query
+
+        # This is a lie, as we always request both `usercertificate;binary`
+        # and `certificateSerialNumber`, but the last one is mostly a
+        # implementation detail. It's the `usercertificate;binary` that is
+        # "the deal".
+        attrlist = [
+            unquote(raw_attr)
+            for raw_attr in raw_attrlist.lower().split(",")
+            if raw_attr
+        ]
+        if attrlist and not any(x in attrlist for x in ["usercertificate;binary", "*"]):
             raise ClientError(
-                "Unsupported attribute(s) in url. "
-                "Only 'usercertificate;binary' is supported."
+                "Invalid attribute(s) in ldap url: 'usercertificate;binary' is required"
             )
 
-        if raw_scope == "one":
-            scope = bonsai.LDAPSearchScope.ONE
-        elif raw_scope == "sub":
-            scope = bonsai.LDAPSearchScope.SUB
-        # rfc1959: If <scope> is omitted, a scope of "base" is assumed.
-        elif raw_scope in {"base", ""}:
-            scope = bonsai.LDAPSearchScope.BASE
-        else:
-            raise ClientError("Unsupported scope in url")
+        match raw_scope.lower():
+            case "one":
+                scope = bonsai.LDAPSearchScope.ONE
+            case "sub":
+                scope = bonsai.LDAPSearchScope.SUB
+            # rfc4516: If <scope> is omitted, a <scope> of "base" is assumed.
+            case "base" | "":
+                scope = bonsai.LDAPSearchScope.BASE
+            case _:
+                raise ClientError(
+                    "Invalid scope in url. Must be 'one', 'sub' or 'base'"
+                )
 
+        # rfc4516: If <filter> is omitted, a filter of "(objectClass=*)" is assumed.
+        filtr = unquote(raw_filtr) or "(objectClass=*)"
         if not is_ldap_filter_valid(filtr):
             logger.info("Rejecting ldap filter %s", filtr)
-            raise ClientError("Invalid filter in url")
+            raise ClientError("Invalid filter in ldap url")
+
+        # We don't care about the extensions, but if there's a critical one,
+        # we have to reject the url. From rfc4516:
+        #  If an extension is not implemented and is marked critical, the
+        #  implementation MUST NOT process the URL.
+        extlist = raw_extensions.split(",")
+        if any(ext.startswith("!") for ext in extlist):
+            raise ClientError("Unsupported critical extension in ldap url")
 
         return cls(
             LdapFilter(filtr),

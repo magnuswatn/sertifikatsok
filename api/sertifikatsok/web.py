@@ -47,7 +47,7 @@ async def handle_request_validation_error(request: Request, exc: Exception) -> R
 
 async def handle_client_error(request: Request, exc: Exception) -> Response:
     assert isinstance(exc, ClientError)
-    logger.debug("Returning client error", exc_info=True)
+    logger.info("Returning client error: %s", exc)
     return Response(
         content=json.dumps({"error": exc.args[0]}, ensure_ascii=False),
         status_code=400,

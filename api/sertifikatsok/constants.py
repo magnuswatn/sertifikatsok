@@ -1,4 +1,5 @@
 import re
+import string
 
 from cryptography.x509 import NameOID
 from cryptography.x509.oid import ObjectIdentifier
@@ -24,6 +25,25 @@ EMAIL_REGEX = re.compile(r"[^\s@]+@[\w\d]+(?:\.[\w\d]+)+")
 HEX_SERIAL_REGEX = re.compile(r"(?:[0-9a-fA-F][\s:]?){16,}")
 HEX_SERIALS_REGEX = re.compile(r"(?:[0-9a-fA-F]{16,}(?:[\s;,]+|$)){2,}")
 INT_SERIALS_REGEX = re.compile(r"(?:[0-9]{19,}[\s;,]*)+")
+
+RFC_3986_GEN_DELIMS = ":/?#[]@"
+RFC_3986_SUB_DELIMS = "!$&'()*+,;="
+RFC_3986_RESERVED_CHARS = RFC_3986_GEN_DELIMS + RFC_3986_SUB_DELIMS
+RFC_3986_UNRESERVED_CHARS = string.ascii_letters + string.digits + "-._~~"
+
+# RFC4516:
+#    An octet MUST be encoded using the percent-encoding mechanism
+#   described in section 2.1 of [RFC3986] in any of these situations:
+#      The octet is not in the reserved set defined in section 2.2 of
+#      [RFC3986] or in the unreserved set defined in section 2.3 of
+#      [RFC3986].
+#
+#      It is the single Reserved character '?' and occurs inside a <dn>,
+#      <filter>, or other element of an LDAP URL.
+#
+#      It is a comma character ',' that occurs inside an <exvalue>.
+ALLOWED_LDAP_URL_CHARS = "".join([char for char in RFC_3986_RESERVED_CHARS + RFC_3986_UNRESERVED_CHARS if char != "?"])
+
 
 ORGANIZATION_IDENTIFIER = ObjectIdentifier("2.5.4.97")
 
