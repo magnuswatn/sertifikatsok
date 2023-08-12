@@ -15,20 +15,38 @@ use pyo3::types::PyType;
 // (see https://github.com/PyO3/pyo3/issues/295.),
 // add some properties to the exceptions.
 create_exception!(ruldap3, Ruldap3Error, PyException);
-create_exception!(ruldap3, InvalidFilterError, Ruldap3Error);
-create_exception!(ruldap3, LdapSearchFailedError, Ruldap3Error);
+create_exception!(ruldap3, IoError, Ruldap3Error);
+create_exception!(ruldap3, OpSendError, Ruldap3Error);
+create_exception!(ruldap3, ResultRecvError, Ruldap3Error);
+create_exception!(ruldap3, IdScrubSendError, Ruldap3Error);
+create_exception!(ruldap3, MiscSendError, Ruldap3Error);
+create_exception!(ruldap3, TimeoutError, Ruldap3Error);
+create_exception!(ruldap3, FilterParsingError, Ruldap3Error);
+create_exception!(ruldap3, EndOfStreamError, Ruldap3Error);
+create_exception!(ruldap3, UrlParsingError, Ruldap3Error);
+create_exception!(ruldap3, LdapResultError, Ruldap3Error);
+create_exception!(ruldap3, DecodingUTF8Error, Ruldap3Error);
 
 struct PyLdapError(LdapError);
 impl From<PyLdapError> for PyErr {
     fn from(error: PyLdapError) -> Self {
         match error.0 {
-            // TODO: split out more as needed
-            LdapError::FilterParsing => InvalidFilterError::new_err(error.0.to_string()),
-
-            LdapError::LdapResult { result } => LdapSearchFailedError::new_err(format!(
+            // We map every error in `ldap3::result::LdapError` that seems likely that
+            // we'll ever stumble across (so no TLS etc.) to a corresponding Python exception.
+            LdapError::Io { source } => IoError::new_err(source.to_string()),
+            LdapError::OpSend { source } => OpSendError::new_err(source.to_string()),
+            LdapError::ResultRecv { source } => ResultRecvError::new_err(source.to_string()),
+            LdapError::IdScrubSend { source } => IdScrubSendError::new_err(source.to_string()),
+            LdapError::MiscSend { source } => MiscSendError::new_err(source.to_string()),
+            LdapError::Timeout { elapsed } => TimeoutError::new_err(elapsed.to_string()),
+            LdapError::FilterParsing => FilterParsingError::new_err(error.0.to_string()),
+            LdapError::EndOfStream => EndOfStreamError::new_err(error.0.to_string()),
+            LdapError::UrlParsing { source } => UrlParsingError::new_err(source.to_string()),
+            LdapError::LdapResult { result } => LdapResultError::new_err(format!(
                 "Received error from ldap server: {}",
                 result.to_string()
             )),
+            LdapError::DecodingUTF8 => DecodingUTF8Error::new_err(error.0.to_string()),
             _ => Ruldap3Error::new_err(error.0.to_string()),
         }
     }
@@ -180,11 +198,21 @@ fn ruldap3(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<PySearchEntry>()?;
     m.add_class::<PyScope>()?;
     m.add_class::<PyLdapConnection>()?;
+
+    // Exceptions
     m.add("Ruldap3Error", py.get_type::<Ruldap3Error>())?;
-    m.add("InvalidFilterError", py.get_type::<InvalidFilterError>())?;
-    m.add(
-        "LdapSearchFailedError",
-        py.get_type::<LdapSearchFailedError>(),
-    )?;
+
+    m.add("IoError", py.get_type::<IoError>())?;
+    m.add("OpSendError", py.get_type::<OpSendError>())?;
+    m.add("ResultRecvError", py.get_type::<ResultRecvError>())?;
+    m.add("IdScrubSendError", py.get_type::<IdScrubSendError>())?;
+    m.add("MiscSendError", py.get_type::<MiscSendError>())?;
+    m.add("TimeoutError", py.get_type::<TimeoutError>())?;
+    m.add("FilterParsingError", py.get_type::<FilterParsingError>())?;
+    m.add("EndOfStreamError", py.get_type::<EndOfStreamError>())?;
+    m.add("UrlParsingError", py.get_type::<UrlParsingError>())?;
+    m.add("LdapResultError", py.get_type::<LdapResultError>())?;
+    m.add("DecodingUTF8Error", py.get_type::<DecodingUTF8Error>())?;
+
     Ok(())
 }
