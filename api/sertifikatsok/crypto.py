@@ -317,7 +317,7 @@ class CertValidator:
         revocation_date = None
 
         issuer = self._cert_retriever.retrieve(cert.issuer)
-        if issuer is None:  # noqa: SIM114
+        if issuer is None:
             # TODO: Should this be UNKNOWN? We don't
             # trust the issuer, but others might...
             status = CertificateStatus.INVALID

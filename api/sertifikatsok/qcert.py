@@ -15,6 +15,7 @@ from cryptography.x509.oid import NameOID
 
 from .cert import MaybeInvalidCertificate
 from .constants import (
+    ALLOWED_LDAP_URL_CHARS,
     EXTENDED_KEY_USAGES,
     KEY_USAGES,
     KNOWN_CERT_TYPES,
@@ -392,7 +393,11 @@ class QualifiedCertificateSet:
         ldap_server = self.certs[0].ldap_cert_entry.ldap_server
         ldap_url = "ldap://{}/{}?usercertificate;binary?sub?{}".format(
             ldap_server.hostname,
-            urllib.parse.quote(ldap_server.base, safe="=,"),
-            ldap_filter,
+            urllib.parse.quote(ldap_server.base, safe=ALLOWED_LDAP_URL_CHARS),
+            # This is a RFC violation, as `|` is neither a reserved nor a unreserverd
+            # character according to RFC3629, so it should not appear in a ldap url.
+            # But it has "always been like this", and I don't dare to change it without
+            # knowing if NHN AR supports it.
+            urllib.parse.quote(str(ldap_filter), safe=ALLOWED_LDAP_URL_CHARS + "|"),
         )
         return ldap_url

@@ -299,3 +299,62 @@ class TestQualifiedCertificateSet:
         ]
         [qcert] = QualifiedCertificateSet.create_sets_from_certs(certs)
         assert qcert.ldap is None
+
+    def test_ldap_url_serialnumbers_need_escaping(self) -> None:
+        """
+        Serial numbers don't normally consist of funky chars, but we don't really have
+        any control over that, as it's just delivered to us via ldap. So we should handle
+        if they have some funky chars in them.
+        """
+        raw_cert = read_pem_file("tests/resources/cert_personal_seid2_krypt.pem")
+
+        cert = QualifiedCertificate(
+            MaybeInvalidCertificate.create(raw_cert),
+            LdapCertificateEntry(
+                "dn=true",
+                raw_cert,
+                "this is not a serial number?",
+                LdapServer(
+                    "ldap://ldap.watn.no",
+                    "ou=certs,dc=watn,dc=no",
+                    CertificateAuthority.BUYPASS,
+                    [],
+                ),
+            ),
+            CertificateStatus.EXPIRED,
+            None,
+        )
+
+        [qcert] = QualifiedCertificateSet.create_sets_from_certs([cert])
+        assert (
+            qcert.ldap
+            == "ldap://ldap://ldap.watn.no/ou=certs,dc=watn,dc=no?usercertificate;binary?sub?"
+            "(certificateSerialNumber=this%20is%20not%20a%20serial%20number%3F)"
+        )
+
+    def test_ldap_url_base_need_escaping(self) -> None:
+        raw_cert = read_pem_file("tests/resources/cert_personal_seid2_krypt.pem")
+
+        cert = QualifiedCertificate(
+            MaybeInvalidCertificate.create(raw_cert),
+            LdapCertificateEntry(
+                "dn=true",
+                raw_cert,
+                "1234",
+                LdapServer(
+                    "ldap://ldap.watn.no",
+                    "o=An Example\\2C Inc.,c=US",
+                    CertificateAuthority.BUYPASS,
+                    [],
+                ),
+            ),
+            CertificateStatus.EXPIRED,
+            None,
+        )
+
+        [qcert] = QualifiedCertificateSet.create_sets_from_certs([cert])
+        assert (
+            qcert.ldap
+            == "ldap://ldap://ldap.watn.no/o=An%20Example%5C2C%20Inc.,c=US?usercertificate;binary?sub?"
+            "(certificateSerialNumber=1234)"
+        )
