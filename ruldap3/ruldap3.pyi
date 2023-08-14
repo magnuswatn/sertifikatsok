@@ -23,7 +23,7 @@ class Scope(Enum):
 class SearchEntry:
     dn: str
     attrs: dict[str, list[str]]
-    bin_attrs: dict[str, list[list[int]]]
+    bin_attrs: dict[str, list[bytes]]
 
 def is_ldap_filter_valid(filtr: str) -> bool: ...
 def ldap_escape(lit: str) -> str: ...

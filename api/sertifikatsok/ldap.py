@@ -44,7 +44,7 @@ class LdapCertificateEntry:
             assert "certificateSerialNumber" not in search_entry.bin_attrs
             cert_serial = None
 
-        return cls(search_entry.dn, bytes(raw_cert), cert_serial, ldap_server)
+        return cls(search_entry.dn, raw_cert, cert_serial, ldap_server)
 
     def cert_sha1sum(self) -> str:
         return hashlib.sha1(self.raw_cert).hexdigest()  # noqa: S324

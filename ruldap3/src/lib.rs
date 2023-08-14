@@ -9,7 +9,7 @@ use std::borrow::Cow;
 
 use ldap3::{ldap_escape, parse_filter};
 use pyo3::prelude::*;
-use pyo3::types::PyType;
+use pyo3::types::{PyBytes, PyType};
 
 // TODO: When pyo3 gets better exception support
 // (see https://github.com/PyO3/pyo3/issues/295.),
@@ -93,16 +93,7 @@ pub struct PySearchEntry {
     #[pyo3(get)]
     pub attrs: HashMap<String, Vec<String>>,
     #[pyo3(get)]
-    pub bin_attrs: HashMap<String, Vec<Vec<u8>>>,
-}
-impl From<SearchEntry> for PySearchEntry {
-    fn from(search_entry: SearchEntry) -> Self {
-        PySearchEntry {
-            dn: search_entry.dn,
-            attrs: search_entry.attrs,
-            bin_attrs: search_entry.bin_attrs,
-        }
-    }
+    pub bin_attrs: HashMap<String, Vec<Py<PyBytes>>>,
 }
 
 #[pyclass]
@@ -158,14 +149,37 @@ impl PyLdapConnection {
                 .success()
                 .map_err(PyLdapError)?;
 
-            let mut vec: Vec<PySearchEntry> = Vec::new();
+            // The binary attributes are returned as `Vec<u8>` from ldap3,
+            // and that doesn't play very well with pyo3, as it gets
+            // mapped to `list[int]` and it's all very slow. So we grab the
+            // GIL and do the conversion ourselves.
+            // TODO: Should we convert all the types?
+            Python::with_gil(|py| {
+                let vec: Vec<PySearchEntry> = rs
+                    .into_iter()
+                    .map(|re| {
+                        let search_entry = SearchEntry::construct(re);
+                        PySearchEntry {
+                            dn: search_entry.dn,
+                            attrs: search_entry.attrs,
+                            bin_attrs: search_entry
+                                .bin_attrs
+                                .into_iter()
+                                .map(|(k, v)| {
+                                    (
+                                        k,
+                                        v.into_iter()
+                                            .map(|f| PyBytes::new(py, &f).into())
+                                            .collect(),
+                                    )
+                                })
+                                .collect(),
+                        }
+                    })
+                    .collect();
 
-            for entry in rs {
-                let py_search_entry = PySearchEntry::from(SearchEntry::construct(entry));
-                vec.push(py_search_entry);
-            }
-
-            return Ok(vec);
+                return Ok(vec);
+            })
         })
     }
 
