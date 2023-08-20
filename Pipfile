@@ -14,7 +14,6 @@ fastapi = "*"
 pytest = "*"
 mypy = "*"
 pytest-asyncio = "*"
-maturin = "*"
 ldaptor = "*"
 
 [requires]
