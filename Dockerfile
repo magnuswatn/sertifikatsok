@@ -33,20 +33,15 @@ RUN [ "find", "dist", "-type", "f", "-not", "-name", "*.woff2", \
 #
 FROM python:3.11.4-slim-bookworm@sha256:364ee1a9e029fb7b60102ae56ff52153ccc929ceab9aa387402fe738432d24cc as python-base
 
-# Requirements for bonsai.
-RUN set -x \
-    && apt-get update \
-    && apt-get install --no-install-recommends -y \
-    libldap2-dev libsasl2-dev
-
 #
 # Build base container
 #
 FROM python-base as build-base
 
 RUN set -x \
+    && apt-get update \
     && apt-get install --no-install-recommends -y \
-    gcc curl
+    gcc curl libc6-dev
 
 #
 # Python container for building the Rust lib

@@ -325,6 +325,18 @@ def test_search_bypass_buypass_size_limit(client: Client, env: Env) -> None:
 
     assert len(resp["certificate_sets"]) == 50
 
+    # There should be no duplicate certs
+    assert (
+        len(
+            {
+                cert["info"]["Avtrykk (SHA-1)"]
+                for cert_set in resp["certificate_sets"]
+                for cert in cert_set["certificates"]
+            }
+        )
+        == 100
+    )
+
 
 @pytest.mark.parametrize("env", ["test", "prod"])
 def test_search_failes_when_all_servers_fail(client: Client, env: Env) -> None:
