@@ -8,7 +8,7 @@ set positional-arguments
 @create-venv:
   pipenv sync --dev  --extra-pip-args '--no-binary 'bonsai''
 
-@mkvenv: clean-venv create-venv update-lib
+@mkvenv: clean-venv create-venv install-lib-build-deps update-lib
 
 @run-dev:
   cd ./api && DEV=true pipenv run python -m sertifikatsok --host 127.0.0.1 --port 7001 2>&1
@@ -30,6 +30,9 @@ set positional-arguments
 alias py := python
 @python:
   pipenv run python
+
+@install-lib-build-deps:
+  pipenv run pip install -r ruldap3/requirements.txt
 
 alias ulib := update-lib
 @update-lib:
