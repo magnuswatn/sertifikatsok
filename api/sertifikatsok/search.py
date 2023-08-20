@@ -452,6 +452,13 @@ class CertificateSearch:
                 if len(results) == 20 and retry:
                     certs_to_exclude = ""
                     for result in results:
+                        # TODO: This is not robust, as the dn can
+                        # contain escaped commas. Also, it can contain
+                        # chars that must be escaped in the filter.
+                        # Also, is it even guaranteed that the dn attr
+                        # exists as an attribute? But this is only used
+                        # with Buypass and their pssUniqueIdentifier, so
+                        # it works in practice.
                         dn = result.dn.split(",")[0]
                         certs_to_exclude += f"(!({dn}))"
                     search_filter = f"(&{search_filter}{certs_to_exclude})"
