@@ -64,8 +64,11 @@ alias ulib := update-lib
 
 # frontend stuff
 
-@wwwdev:
+@wwwdev-static:
   cd www && npm run dev || true
+
+@wwwdev-api:
+  cd www && VITE_PROXY=1 npm run dev || true
 
 @wwwbuild:
   cd www && npm run build

@@ -40,13 +40,20 @@ export default defineConfig(({ command, mode, ssrBuild }) => {
   } else {
     version = 'dev';
   }
+
+  let serverConfig = {};
+  if (process.env.VITE_PROXY) {
+    serverConfig.proxy = {
+      '/api': 'http://127.0.0.1:7001',
+    }
+  }
+
+  if (process.env.VITE_EXPOSE_0_0_0_0) {
+    serverConfig.host = "0.0.0.0"
+  }
+
   return {
     plugins: [svelte(), versionPlugin(version)],
-    server: {
-      // host: "0.0.0.0",
-      proxy: {
-        //   '/api': 'http://127.0.0.1:7001',
-      }
-    },
+    server: serverConfig,
   }
 })
