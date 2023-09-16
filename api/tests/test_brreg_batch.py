@@ -1,6 +1,7 @@
 import random
 from math import ceil
 from typing import Any, Literal
+from unittest import mock
 from uuid import uuid4
 
 import httpx
@@ -14,7 +15,6 @@ from sertifikatsok.brreg_batch import (
     INITIAL_UPDATE_ID,
     MAIN_SINGLE_URL,
     MAIN_UPDATES_URL,
-    MAX_UPDATE_FETCHES_PER_RUN,
     BrregBatchRun,
     run_batch,
 )
@@ -529,6 +529,8 @@ async def test_handles_several_pages(database: Database) -> None:
 
 
 async def test_doesnt_update_more_than_limit(database: Database) -> None:
+    max_update_fetches_per_run = 12
+
     main_orgs = [
         ChangedOrganization(
             str(org_nr),
@@ -540,7 +542,7 @@ async def test_doesnt_update_more_than_limit(database: Database) -> None:
             disappeared=False,
             change_type="Endring",
         )
-        for org_nr in range(989643214, 989643214 + (MAX_UPDATE_FETCHES_PER_RUN * 30))
+        for org_nr in range(989643214, 989643214 + (max_update_fetches_per_run * 30))
     ]
 
     child_orgs = [
@@ -554,7 +556,7 @@ async def test_doesnt_update_more_than_limit(database: Database) -> None:
             disappeared=False,
             change_type="Endring",
         )
-        for org_nr in range(969643214, 969643214 + (MAX_UPDATE_FETCHES_PER_RUN * 30))
+        for org_nr in range(969643214, 969643214 + (max_update_fetches_per_run * 30))
     ]
 
     main_update_list, max_main_update_id = generate_update_list(
@@ -571,7 +573,11 @@ async def test_doesnt_update_more_than_limit(database: Database) -> None:
         child_orgs,
     )
 
-    await run_batch(database, httpx_client)
+    with mock.patch(
+        "sertifikatsok.brreg_batch.MAX_UPDATE_FETCHES_PER_RUN",
+        max_update_fetches_per_run,
+    ):
+        await run_batch(database, httpx_client)
 
     batch_data = BrregBatchRun.from_batch_run(
         database.get_last_successful_batch_run(BATCH_NAME)
@@ -581,10 +587,10 @@ async def test_doesnt_update_more_than_limit(database: Database) -> None:
     # We expect the batch to read MAX_UPDATE_FETCHES_PER_RUN pages,
     # with 20 in each pages. So we need to find the expected update ids
     first_run_max_main_update_id = sorted(main_update_list.keys())[
-        : (MAX_UPDATE_FETCHES_PER_RUN * 20) :
+        : (max_update_fetches_per_run * 20) :
     ][-1]
     first_run_max_child_update_id = sorted(child_update_list.keys())[
-        : (MAX_UPDATE_FETCHES_PER_RUN * 20)
+        : (max_update_fetches_per_run * 20)
     ][-1]
 
     assert batch_data.main_updateid == first_run_max_main_update_id
@@ -592,13 +598,13 @@ async def test_doesnt_update_more_than_limit(database: Database) -> None:
 
     for org_list in [main_orgs, child_orgs]:
         # The first batch should be loaded
-        for x in range(MAX_UPDATE_FETCHES_PER_RUN * 20):
+        for x in range(max_update_fetches_per_run * 20):
             org = org_list[x]
             assert database.get_organization(org.orgnr) == org
 
         # the next batch should NOT be loaded
         for x in range(
-            MAX_UPDATE_FETCHES_PER_RUN * 20, MAX_UPDATE_FETCHES_PER_RUN * 30
+            max_update_fetches_per_run * 20, max_update_fetches_per_run * 30
         ):
             org = org_list[x]
             assert database.get_organization(org.orgnr) is None
