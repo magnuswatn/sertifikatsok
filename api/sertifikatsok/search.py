@@ -415,7 +415,7 @@ class CertificateSearch:
             logger.debug("End: query against %s", ldap_server)
 
     async def do_ldap_search(
-        self, ldap_server: LdapServer, retry: bool = False
+        self, ldap_server: LdapServer, *, retry: bool = False
     ) -> list[QualifiedCertificate]:
         """
         Searches the specified LDAP server after certificates

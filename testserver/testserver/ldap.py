@@ -37,7 +37,7 @@ class SertifikatsokLDAPServer(LDAPServer):  # type: ignore
         )
         buypass_request = b"Buypass" in request.baseObject
 
-        self.check_for_magic_filter(request.filter, buypass_request)
+        self.check_for_magic_filter(request.filter, is_buypass_request=buypass_request)
 
         if buypass_request:
             # Buypass returns `no such attribute` for querys
@@ -62,14 +62,14 @@ class SertifikatsokLDAPServer(LDAPServer):  # type: ignore
             request, controls, _buypass_reply if buypass_request else reply
         )
 
-    def check_for_magic_filter(self, filter: Any, buypass_request: bool) -> None:
+    def check_for_magic_filter(self, filter: Any, *, is_buypass_request: bool) -> None:
         if (
             isinstance(filter, LDAPAttributeValueAssertion)
             and filter.attributeDesc.value.lower() == b"ou"
             and (
                 filter.assertionValue.value.lower() == b"fail"
                 or (
-                    buypass_request
+                    is_buypass_request
                     and filter.assertionValue.value.lower() == b"buypassfail"
                 )
             )

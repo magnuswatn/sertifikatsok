@@ -93,7 +93,7 @@ class CertificateAuthority:
         return cls(name, cert, private_key)
 
     def generate_crl(
-        self, revoked_certs: list[x509.Certificate], expired: bool = False
+        self, revoked_certs: list[x509.Certificate], *, expired: bool = False
     ) -> x509.CertificateRevocationList:
         date_skew = datetime.timedelta(days=-120 if expired else 0)
 
@@ -124,7 +124,7 @@ class CertificateAuthority:
         )
 
     def generate_ee_cert(
-        self, name: str, expired: bool = False, crl_endpoint: str | None = None
+        self, name: str, *, expired: bool = False, crl_endpoint: str | None = None
     ) -> MaybeInvalidCertificate:
         date_skew = datetime.timedelta(days=-120 if expired else 0)
         if crl_endpoint is None:
@@ -178,7 +178,11 @@ class CertificateAuthority:
             )
         )
         return MaybeInvalidCertificate(
-            cert, False, cert.issuer, cert.subject, cert.extensions
+            cert,
+            invalid=False,
+            issuer=cert.issuer,
+            subject=cert.subject,
+            extensions=cert.extensions,
         )
 
 

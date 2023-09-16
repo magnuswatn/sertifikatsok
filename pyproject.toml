@@ -23,6 +23,7 @@ select = [
     "S",
     "SIM",
     "RUF",
+    "FBT",
 ]
 ignore = ["TRY003", "S101"]
 line-length = 100

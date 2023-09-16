@@ -212,7 +212,7 @@ class TestQualifiedCertificateSet:
         ],
     )
     def test_invalid_cert(
-        self, file_path: str, invalid_subject: bool, invalid_exts: bool
+        self, file_path: str, *, invalid_subject: bool, invalid_exts: bool
     ) -> None:
         raw_cert = read_pem_file(file_path)
         qcert = QualifiedCertificate(

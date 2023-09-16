@@ -13,6 +13,7 @@ def _check_if_org_exist_in_db(
     orgnr: str,
     navn: str,
     parent_unit: str | None,
+    *,
     is_child: bool,
 ) -> str | None:
     result = connection.execute(

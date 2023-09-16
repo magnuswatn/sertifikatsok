@@ -51,6 +51,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_key_usage(
+    *,
     digital_signature: bool = False,
     content_commitment: bool = False,
     key_encipherment: bool = False,
@@ -146,8 +147,9 @@ class LdapPublishedCertificate:
     def create_commfides(
         cls,
         certificate: Certificate,
-        enterprise_cert: bool,
         cert_role: LdapOU,
+        *,
+        enterprise_cert: bool,
     ) -> Self:
         ldap_attrs: dict[str, Sequence[str | bytes]] = {
             "userCertificate;binary": [certificate.public_bytes(Encoding.DER)],
@@ -305,6 +307,7 @@ class CommfidesCertIssuingImpl(CertIssuingImpl):
         key_size: int,
         valid_from: datetime,
         extra_extensions: list[ExtensionType],
+        *,
         enterprise_cert: bool,
     ) -> list[LdapPublishedCertificate]:
         valid_to = min(
@@ -487,13 +490,13 @@ class CommfidesCertIssuingImpl(CertIssuingImpl):
         )
 
         auth_ldap_cert = LdapPublishedCertificate.create_commfides(
-            auth_cert, enterprise_cert, LdapOU.AUTH
+            auth_cert, LdapOU.AUTH, enterprise_cert=enterprise_cert
         )
         sign_ldap_cert = LdapPublishedCertificate.create_commfides(
-            sign_cert, enterprise_cert, LdapOU.SIGN
+            sign_cert, LdapOU.SIGN, enterprise_cert=enterprise_cert
         )
         krypt_ldap_cert = LdapPublishedCertificate.create_commfides(
-            krypt_cert, enterprise_cert, LdapOU.CRYPT
+            krypt_cert, LdapOU.CRYPT, enterprise_cert=enterprise_cert
         )
         issued_certs = [auth_ldap_cert, sign_ldap_cert, krypt_ldap_cert]
         self.issued_certs.extend(issued_certs)
@@ -586,9 +589,10 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
         subject_attrs: list[NameAttribute],
         key_size: int,
         valid_from: datetime,
-        include_eku: bool,
         policy_oid: str,
         extra_extensions: list[ExtensionType] | None = None,
+        *,
+        include_eku: bool,
     ) -> list[LdapPublishedCertificate]:
         valid_to = min(
             valid_from + timedelta(days=365 * 3),
@@ -699,15 +703,13 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
         else:
             policy_oid = "2.16.578.1.26.1.3.1"
 
-        include_eku = self.seid_v == 1
-
         return self._issue_certs(
             subject_attrs,
             key_size,
             valid_from,
-            include_eku,
             policy_oid,
             extra_extensions,
+            include_eku=self.seid_v == 1,
         )
 
     def issue_enterprise_certs(
@@ -741,10 +743,12 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
         else:
             policy_oid = "2.16.578.1.26.1.3.2"
 
-        include_eku = self.seid_v == 1
-
         return self._issue_certs(
-            subject_attrs, key_size, valid_from, include_eku, policy_oid
+            subject_attrs,
+            key_size,
+            valid_from,
+            policy_oid,
+            include_eku=self.seid_v == 1,
         )
 
 

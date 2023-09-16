@@ -80,7 +80,7 @@ def _validate_individual_certs_is_searchable(
 
 @pytest.mark.parametrize("invalid", [False, True])
 @pytest.mark.parametrize("param", ["env", "type", "query", "attr"])
-def test_invalid_params(client: Client, param: str, invalid: bool) -> None:
+def test_invalid_params(*, client: Client, param: str, invalid: bool) -> None:
     if (invalid and param == "query") or (not invalid and param == "attr"):
         # `query` is a string, so can't have an invalid value,
         # and `attr` is optional, so can't be missing.

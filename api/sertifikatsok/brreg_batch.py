@@ -114,6 +114,7 @@ async def get_organizations_from_brreg(
     httpx_client: httpx.AsyncClient,
     url: httpx.URL,
     org_numbers: Iterable[str],
+    *,
     is_children: bool,
 ) -> list[Organization]:
     all_orgs = []
@@ -148,6 +149,7 @@ async def update_organizations(
     httpx_client: httpx.AsyncClient,
     database: Database,
     last_updateid: int,
+    *,
     children: bool,
 ) -> int:
     updates_url = CHILD_UPDATES_URL if children else MAIN_UPDATES_URL

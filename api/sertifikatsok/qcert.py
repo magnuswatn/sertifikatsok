@@ -111,7 +111,7 @@ class QualifiedCertificate:
             cert_roles.append(CertificateRoles.CRYPT)
         return cert_roles
 
-    def print_subject(self, full: bool = False) -> str:
+    def print_subject(self, *, full: bool = False) -> str:
         """
         Returns the subject of the cert as a string.
         If it's an Personal Commfides certificate the serialNumber
