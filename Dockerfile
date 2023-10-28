@@ -31,7 +31,7 @@ RUN [ "find", "dist", "-type", "f", "-not", "-name", "*.woff2", \
 #
 # Python base container
 #
-FROM python:3.11.5-slim-bookworm@sha256:c4992301d47a4f1d3e73c034494c080132f9a4090703babfcfa3317f7ba54461 as python-base
+FROM python:3.11.6-slim-bookworm@sha256:d36d3fb6c859768ec62ac36ddc7397b5331d8dc05bc8823b3cac24f6ade97483 as python-base
 
 #
 # Build base container
