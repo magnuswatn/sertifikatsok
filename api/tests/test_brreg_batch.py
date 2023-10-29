@@ -67,9 +67,7 @@ def generate_update_list(
             "organisasjonsnummer": changed_org.orgnr,
             "endringstype": changed_org.change_type,
             "_links": {
-                "underenhet"
-                if changed_org.is_child
-                else "enhet": {
+                "underenhet" if changed_org.is_child else "enhet": {
                     "href": "https://data.brreg.no/enhetsregisteret/api/"
                     + (
                         f"underenheter/{changed_org.orgnr}"
