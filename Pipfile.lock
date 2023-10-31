@@ -947,11 +947,12 @@
                 "tls"
             ],
             "hashes": [
-                "sha256:3c73360add17336a622c0d811c2a2ce29866b6e59b1125fd6509b17252098a24",
-                "sha256:b8bdba145de120ffb36c20e6e071cce984e89fba798611ed0704216fb7f884cd"
+                "sha256:4ae8bce12999a35f7fe6443e7f1893e6fe09588c8d2bed9c35cdce8ff2d5b444",
+                "sha256:987847a0790a2c597197613686e2784fd54167df3a55d0fb17c8412305d76ce5"
             ],
-            "markers": "python_full_version >= '3.7.1'",
-            "version": "==23.8.0"
+            "index": "pypi",
+            "markers": "python_full_version >= '3.8.0'",
+            "version": "==23.10.0"
         },
         "typing-extensions": {
             "hashes": [
