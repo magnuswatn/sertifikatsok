@@ -128,7 +128,11 @@ class Database:
                     :environment)
             """,
             [
-                (ldap_server.hostname, ldap_server.ca.value, environment.value)
+                {
+                    "ldap_server": ldap_server.hostname,
+                    "ca": ldap_server.ca.value,
+                    "environment": environment.value,
+                }
                 for environment, ldap_servers in LDAP_SERVERS.items()
                 for ldap_server in ldap_servers
             ],
@@ -146,7 +150,7 @@ class Database:
             """
             SELECT id
               FROM ldap_server
-             WHERE ldap_server = :ldap_server
+             WHERE ldap_server = ?
             """,
             (ldap_server,),
         ).fetchone()
