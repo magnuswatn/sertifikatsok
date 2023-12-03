@@ -1043,6 +1043,30 @@ def test_should_auto_detect_email(database: Database) -> None:
     assert ldap_search_params.search_type == SearchType.EMAIL
 
 
+def test_should_handle_rfc4514_looking_string(database: Database) -> None:
+    search_params = SearchParams(
+        Environment.TEST,
+        CertType.PERSONAL,
+        "givenName=Silje Fos,surname=Port",
+        None,
+    )
+
+    ldap_search_params = LdapSearchParams.create(search_params, database)
+    assert ldap_search_params.scope == Scope.SUB
+    assert not ldap_search_params.limitations
+    assert all(
+        CertType.PERSONAL in ldap_server.cert_types
+        for ldap_server in ldap_search_params.ldap_servers
+    )
+    assert {CertificateAuthority.BUYPASS, CertificateAuthority.COMMFIDES}.issubset(
+        {ldap_server.ca for ldap_server in ldap_search_params.ldap_servers}
+    )
+    assert (
+        str(ldap_search_params.ldap_query) == "(&(givenName=Silje Fos)(surname=Port))"
+    )
+    assert ldap_search_params.search_type == SearchType.DISTINGUISHED_NAME
+
+
 def test_should_fallback_to_cn(database: Database) -> None:
     search_params = SearchParams(
         Environment.PROD,

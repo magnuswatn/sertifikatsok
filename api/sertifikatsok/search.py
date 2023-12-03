@@ -15,6 +15,7 @@ from ruldap3 import (
     is_ldap_filter_valid,
     ldap_escape,
 )
+from sertifikatsok.rfc4514 import try_parse_as_lax_rfc4514_string
 
 from .constants import (
     EMAIL_REGEX,
@@ -234,6 +235,10 @@ class LdapSearchParams:
                     search_type = SearchType.THUMBPRINT_OR_CERT_SERIAL
             else:
                 search_type = SearchType.CERT_SERIAL
+
+        elif search_attrs := try_parse_as_lax_rfc4514_string(query):
+            search_type = SearchType.DISTINGUISHED_NAME
+            ldap_query = LdapFilter.create_query_of_type_and_from_params(search_attrs)
 
         # Fallback to the Common Name field.
         else:

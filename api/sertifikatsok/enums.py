@@ -48,6 +48,8 @@ class SearchAttribute(Enum):
     SN = "serialNumber"
     CSN = "certificateSerialNumber"
     ORGID = "organizationIdentifier"
+    GIVEN_NAME = "givenName"
+    SURNAME = "surname"
 
 
 class CertificateAuthority(Enum):
@@ -71,6 +73,7 @@ class SearchType(Enum):
     LDAP_URL = "ldap_url"
     FALLBACK = "fallback"
     THUMBPRINT_OR_CERT_SERIAL = "thumbprint_or_cert_serial"
+    DISTINGUISHED_NAME = "distinguished_name"
 
 
 class BatchResult(Enum):

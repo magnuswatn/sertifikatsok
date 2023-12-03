@@ -270,6 +270,8 @@ def _get_norwegian_search_type(search_type: SearchType) -> str:
             return "Sertifikatserienummer"
         case SearchType.CUSTOM:
             return "Egendefinert attributt"
+        case SearchType.DISTINGUISHED_NAME:
+            return "Emnefelt (distinguished name)"
         case SearchType.LDAP_URL:
             return "Ldap-url"
         case SearchType.FALLBACK:

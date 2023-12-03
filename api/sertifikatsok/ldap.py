@@ -1,6 +1,6 @@
 import hashlib
 from collections.abc import Collection
-from typing import Self
+from typing import Literal, Self
 
 from attr import frozen
 
@@ -79,6 +79,12 @@ class LdapFilter:
         return cls(cls._create_ldap_filter(params))
 
     @classmethod
+    def create_query_of_type_and_from_params(
+        cls, params: list[tuple[SearchAttribute, str]]
+    ) -> Self:
+        return cls(cls._create_ldap_filter(params, join_char="&"))
+
+    @classmethod
     def create_for_cert_serials(cls, serials: Collection[int]) -> Self:
         filtr = cls._create_ldap_filter(
             [(SearchAttribute.CSN, str(serial)) for serial in serials]
@@ -96,13 +102,15 @@ class LdapFilter:
         return cls(filtr, double_csn_filtr)
 
     @staticmethod
-    def _create_ldap_filter(params: list[tuple[SearchAttribute, str]]) -> str:
+    def _create_ldap_filter(
+        params: list[tuple[SearchAttribute, str]], *, join_char: Literal["&", "|"] = "|"
+    ) -> str:
         search_params = "".join(
             [f"({param[0].value}={ldap_escape(param[1])})" for param in params]
         )
 
         if len(params) > 1:
-            return f"(|{search_params})"
+            return f"({join_char}{search_params})"
 
         return search_params
 

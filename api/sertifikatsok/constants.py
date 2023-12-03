@@ -4,7 +4,7 @@ import string
 from cryptography.x509 import NameOID
 from cryptography.x509.oid import ObjectIdentifier
 
-from .enums import SEID, CertType
+from .enums import SEID, CertType, SearchAttribute
 
 LDAP_CONN_TIMEOUT = 2
 LDAP_TIMEOUT = 7
@@ -61,6 +61,40 @@ SUBJECT_FIELDS = {
     NameOID.ORGANIZATIONAL_UNIT_NAME: "OU",
     NameOID.EMAIL_ADDRESS: "email",
     ORGANIZATION_IDENTIFIER: "organizationIdentifier",
+}
+
+# This is the reverse of the one above, only with
+# capital letters, plus nogo attåt (some added variants)
+STR_TO_SUBJECT_FIELDS = {
+    # From rfc4514
+    "CN": NameOID.COMMON_NAME,
+    "L": NameOID.LOCALITY_NAME,
+    "ST": NameOID.STATE_OR_PROVINCE_NAME,
+    "O": NameOID.ORGANIZATION_NAME,
+    "OU": NameOID.ORGANIZATIONAL_UNIT_NAME,
+    "C": NameOID.COUNTRY_NAME,
+    "STREET": NameOID.STREET_ADDRESS,
+    "DC": NameOID.DOMAIN_COMPONENT,
+    "UID": NameOID.USER_ID,
+    # Custom
+    "SERIALNUMBER": NameOID.SERIAL_NUMBER,
+    "SN": NameOID.SURNAME,
+    "SURNAME": NameOID.SURNAME,
+    "GN": NameOID.GIVEN_NAME,
+    "GIVENNAME": NameOID.GIVEN_NAME,
+    "EMAIL": NameOID.EMAIL_ADDRESS,
+    "ORGANIZATIONIDENTIFIER": ORGANIZATION_IDENTIFIER,
+}
+
+SUBJECT_FIELDS_TO_SEARCH_ATTRS = {
+    NameOID.COMMON_NAME: SearchAttribute.CN,
+    NameOID.EMAIL_ADDRESS: SearchAttribute.MAIL,
+    NameOID.ORGANIZATIONAL_UNIT_NAME: SearchAttribute.OU,
+    NameOID.ORGANIZATION_NAME: SearchAttribute.O,
+    NameOID.SERIAL_NUMBER: SearchAttribute.SN,
+    NameOID.SURNAME: SearchAttribute.SURNAME,
+    NameOID.GIVEN_NAME: SearchAttribute.GIVEN_NAME,
+    ORGANIZATION_IDENTIFIER: SearchAttribute.ORGID,
 }
 
 KEY_USAGES: list[tuple[str, str]] = [
