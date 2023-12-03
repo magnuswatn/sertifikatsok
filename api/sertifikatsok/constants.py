@@ -6,11 +6,6 @@ from cryptography.x509.oid import ObjectIdentifier
 
 from .enums import SEID, CertType
 
-# turn off black and flake8, so that we can have loooong lines
-# fmt: off
-# flake8: noqa
-
-
 LDAP_CONN_TIMEOUT = 2
 LDAP_TIMEOUT = 7
 LDAP_RETRIES = 5
@@ -43,7 +38,13 @@ RFC_3986_UNRESERVED_CHARS = string.ascii_letters + string.digits + "-._~~"
 #      <filter>, or other element of an LDAP URL.
 #
 #      It is a comma character ',' that occurs inside an <exvalue>.
-ALLOWED_LDAP_URL_CHARS = "".join([char for char in RFC_3986_RESERVED_CHARS + RFC_3986_UNRESERVED_CHARS if char != "?"])
+ALLOWED_LDAP_URL_CHARS = "".join(
+    [
+        char
+        for char in RFC_3986_RESERVED_CHARS + RFC_3986_UNRESERVED_CHARS
+        if char != "?"
+    ]
+)
 
 
 ORGANIZATION_IDENTIFIER = ObjectIdentifier("2.5.4.97")
@@ -93,6 +94,8 @@ EXTENDED_KEY_USAGES = {
 #
 # The value is a tuple with the type of certificate,
 # and a string with an human friendly description
+
+# fmt: off
 KNOWN_CERT_TYPES: dict[tuple[str, str], tuple[CertType, str, SEID]] = {
     ("CN=Buypass Class 3 Test4 CA 3,O=Buypass AS-983163327,C=NO", "2.16.578.1.26.1.0.3.2"):
     (CertType.ENTERPRISE, "Buypass TEST virksomhetssertifikat (softsertifikat)", SEID.SEID1),
