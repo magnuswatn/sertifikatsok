@@ -11,5 +11,5 @@ crate-type = ["cdylib"]
 [dependencies]
 pyo3 = { version = "0.20.0", features = ["extension-module"] }
 pyo3-asyncio = { version = "0.20.0", features = ["tokio-runtime"] }
-tokio = "1.34.0"
+tokio = "1.35.0"
 ldap3 = { version = "0.11.3", default_features = false }
