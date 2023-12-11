@@ -110,7 +110,7 @@ def performance_log(
     id_param: int | None = None,
 ) -> Callable[[Callable[P, Awaitable[TC]]], Callable[P, Awaitable[TC]]]:
     def config_decorator(
-        func: Callable[P, Awaitable[TC]]
+        func: Callable[P, Awaitable[TC]],
     ) -> Callable[P, Awaitable[TC]]:
         @wraps(func)
         async def wrapper(*args: P.args, **kwargs: P.kwargs) -> TC:
