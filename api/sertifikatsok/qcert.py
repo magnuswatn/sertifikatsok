@@ -19,7 +19,6 @@ from .constants import (
     EXTENDED_KEY_USAGES,
     KEY_USAGES,
     KNOWN_CERT_TYPES,
-    ORGANIZATION_IDENTIFIER,
     SUBJECT_FIELDS,
     UNDERENHET_REGEX,
 )
@@ -168,7 +167,7 @@ class QualifiedCertificate:
             NameOID.SERIAL_NUMBER
         )
         organization_identifier_attr = self.cert.subject.get_attributes_for_oid(
-            ORGANIZATION_IDENTIFIER
+            NameOID.ORGANIZATION_IDENTIFIER
         )
 
         if organization_identifier_attr:

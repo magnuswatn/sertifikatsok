@@ -44,9 +44,6 @@ from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 
 from testserver import Enterprise, Env, LdapOU, Person
 
-ORGANIZATION_IDENTIFIER = ObjectIdentifier("2.5.4.97")
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -120,7 +117,7 @@ class LdapPublishedCertificate:
             (NameOID.GIVEN_NAME, "givenname"),
             (NameOID.SURNAME, "surname"),
             (NameOID.SERIAL_NUMBER, "serialNumber"),
-            (ORGANIZATION_IDENTIFIER, "organizationidentifier"),
+            (NameOID.ORGANIZATION_IDENTIFIER, "organizationidentifier"),
             (NameOID.ORGANIZATION_NAME, "o"),
         ]
         for name_oid, ldap_attr in subject_attrs:
@@ -551,7 +548,9 @@ class CommfidesCertIssuingImpl(CertIssuingImpl):
         else:
             subject_attrs = [
                 NameAttribute(NameOID.SERIAL_NUMBER, enterprise.org_nr),
-                NameAttribute(ORGANIZATION_IDENTIFIER, f"NTRNO-{enterprise.org_nr}"),
+                NameAttribute(
+                    NameOID.ORGANIZATION_IDENTIFIER, f"NTRNO-{enterprise.org_nr}"
+                ),
                 NameAttribute(NameOID.COMMON_NAME, common_name or enterprise.name),
                 NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, ou or enterprise.name),
                 NameAttribute(NameOID.ORGANIZATION_NAME, enterprise.name),
@@ -730,7 +729,9 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
             key_size = 2048
         else:
             subject_attrs = [
-                NameAttribute(ORGANIZATION_IDENTIFIER, f"NTRNO-{enterprise.org_nr}"),
+                NameAttribute(
+                    NameOID.ORGANIZATION_IDENTIFIER, f"NTRNO-{enterprise.org_nr}"
+                ),
                 NameAttribute(NameOID.COMMON_NAME, common_name or enterprise.name),
                 NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, ou or enterprise.name),
                 NameAttribute(NameOID.ORGANIZATION_NAME, enterprise.name),

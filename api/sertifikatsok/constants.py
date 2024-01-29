@@ -2,7 +2,6 @@ import re
 import string
 
 from cryptography.x509 import NameOID
-from cryptography.x509.oid import ObjectIdentifier
 
 from .enums import SEID, CertType, SearchAttribute
 
@@ -47,8 +46,6 @@ ALLOWED_LDAP_URL_CHARS = "".join(
 )
 
 
-ORGANIZATION_IDENTIFIER = ObjectIdentifier("2.5.4.97")
-
 SUBJECT_FIELDS = {
     NameOID.COMMON_NAME: "CN",
     NameOID.SERIAL_NUMBER: "serialNumber",
@@ -60,7 +57,7 @@ SUBJECT_FIELDS = {
     NameOID.GIVEN_NAME: "GN",
     NameOID.ORGANIZATIONAL_UNIT_NAME: "OU",
     NameOID.EMAIL_ADDRESS: "email",
-    ORGANIZATION_IDENTIFIER: "organizationIdentifier",
+    NameOID.ORGANIZATION_IDENTIFIER: "organizationIdentifier",
 }
 
 # This is the reverse of the one above, only with
@@ -83,7 +80,7 @@ STR_TO_SUBJECT_FIELDS = {
     "GN": NameOID.GIVEN_NAME,
     "GIVENNAME": NameOID.GIVEN_NAME,
     "EMAIL": NameOID.EMAIL_ADDRESS,
-    "ORGANIZATIONIDENTIFIER": ORGANIZATION_IDENTIFIER,
+    "ORGANIZATIONIDENTIFIER": NameOID.ORGANIZATION_IDENTIFIER,
 }
 
 SUBJECT_FIELDS_TO_SEARCH_ATTRS = {
@@ -94,7 +91,7 @@ SUBJECT_FIELDS_TO_SEARCH_ATTRS = {
     NameOID.SERIAL_NUMBER: SearchAttribute.SN,
     NameOID.SURNAME: SearchAttribute.SURNAME,
     NameOID.GIVEN_NAME: SearchAttribute.GIVEN_NAME,
-    ORGANIZATION_IDENTIFIER: SearchAttribute.ORGID,
+    NameOID.ORGANIZATION_IDENTIFIER: SearchAttribute.ORGID,
 }
 
 KEY_USAGES: list[tuple[str, str]] = [
