@@ -4,7 +4,7 @@ import asyncio
 import logging
 import urllib.parse
 from collections import defaultdict
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import ClassVar, Protocol, cast
 
@@ -15,6 +15,8 @@ from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.hashes import HashAlgorithm
 from httpx import AsyncClient, HTTPError
+
+from sertifikatsok.utils import datetime_now_utc
 
 from .cert import MaybeInvalidCertificate
 from .enums import CertificateStatus, Environment
@@ -189,16 +191,16 @@ class AppCrlRetriever:
     ) -> None:
         """Validates a crl against an issuer certificate"""
 
-        if crl.next_update is None:
+        if crl.next_update_utc is None:
             # rfc5280: Conforming CRL issuers MUST
             # include the nextUpdate field in all CRLs.
             raise CouldNotGetValidCRLError("CRL is missing next update field")
 
-        now = datetime.utcnow()  # noqa: DTZ003
-        if not (crl.next_update > now and crl.last_update < now):
+        now = datetime_now_utc()
+        if not (crl.next_update_utc > now and crl.last_update_utc < now):
             raise CouldNotGetValidCRLError(
                 f"CRL failed date validation. "
-                f"Last update: '{crl.last_update}' Next Update: '{crl.next_update}'"
+                f"Last update: '{crl.last_update_utc}' Next Update: '{crl.next_update_utc}'"
             )
 
         if not crl.issuer == issuer.subject:
@@ -340,7 +342,7 @@ class CertValidator:
                 )
                 if revoked_cert is not None:
                     status = CertificateStatus.REVOKED
-                    revocation_date = revoked_cert.revocation_date.replace(tzinfo=UTC)
+                    revocation_date = revoked_cert.revocation_date_utc
                 else:
                     status = CertificateStatus.OK
         return status, revocation_date
@@ -382,8 +384,8 @@ class CertValidator:
     @staticmethod
     def _check_date_on_cert(cert: x509.Certificate) -> bool:
         """Returns whether the certificate is valid wrt. the dates"""
-        now = datetime.utcnow()  # noqa: DTZ003
-        return cert.not_valid_after > now and cert.not_valid_before < now
+        now = datetime_now_utc()
+        return cert.not_valid_after_utc > now and cert.not_valid_before_utc < now
 
     @staticmethod
     def _validate_cert_against_issuer(

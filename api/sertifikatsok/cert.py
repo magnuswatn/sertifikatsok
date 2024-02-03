@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import datetime
 
 from attr import frozen
 from cryptography.x509 import (
@@ -56,11 +56,11 @@ class MaybeInvalidCertificate:
 
     @property
     def not_valid_after(self) -> datetime:
-        return self.cert.not_valid_after.replace(tzinfo=UTC)
+        return self.cert.not_valid_after_utc
 
     @property
     def not_valid_before(self) -> datetime:
-        return self.cert.not_valid_before.replace(tzinfo=UTC)
+        return self.cert.not_valid_before_utc
 
     @property
     def key_usage(self) -> KeyUsage | None:
