@@ -407,7 +407,7 @@ class CertificateSearch:
                     retry=ldap_server.ca == CertificateAuthority.BUYPASS,
                 )
             )
-        except (Ruldap3Error, asyncio.TimeoutError):
+        except (Ruldap3Error, TimeoutError):
             logger.exception("Error during ldap query against '%s'", ldap_server)
             self.failed_ldap_servers.append(ldap_server)
             if ldap_server.ca == CertificateAuthority.BUYPASS:

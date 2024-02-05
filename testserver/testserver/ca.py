@@ -800,7 +800,8 @@ class CertificateAuthority:
         ldap_name: str | None,
         env: Env,
     ) -> Self:
-        assert isinstance(org_cert_pubkey := org_cert.public_key(), RSAPublicKey)
+        org_cert_pubkey = org_cert.public_key()
+        assert isinstance(org_cert_pubkey, RSAPublicKey)
         private_key = generate_private_key(65537, org_cert_pubkey.key_size)
 
         builder = (
