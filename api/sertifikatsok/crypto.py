@@ -48,7 +48,9 @@ class RequestCrlRetrieverProto(Protocol):
     so objects should not be long-lived.
     """
 
-    errors: list[str]
+    @property
+    def errors(self) -> list[str]:
+        ...
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
