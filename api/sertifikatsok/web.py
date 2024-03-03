@@ -167,7 +167,6 @@ async def api_endpoint(
 def run() -> None:
     parser = argparse.ArgumentParser(description="Sertifikatsok API")
     parser.add_argument("--host")
-    parser.add_argument("--path")
     parser.add_argument("--port")
     parser.add_argument("--log-level")
     parser.add_argument("--log-files")
