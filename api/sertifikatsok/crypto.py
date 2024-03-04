@@ -27,8 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 class CrlDownloaderProto(Protocol):
-    async def download_crl(self, url: str) -> bytes:
-        ...
+    async def download_crl(self, url: str) -> bytes: ...
 
 
 class AppCrlRetrieverProto(Protocol):
@@ -38,8 +37,7 @@ class AppCrlRetrieverProto(Protocol):
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
-    ) -> x509.CertificateRevocationList:
-        ...
+    ) -> x509.CertificateRevocationList: ...
 
 
 class RequestCrlRetrieverProto(Protocol):
@@ -49,13 +47,11 @@ class RequestCrlRetrieverProto(Protocol):
     """
 
     @property
-    def errors(self) -> list[str]:
-        ...
+    def errors(self) -> list[str]: ...
 
     async def retrieve(
         self, url: str, issuer: x509.Certificate
-    ) -> x509.CertificateRevocationList | None:
-        ...
+    ) -> x509.CertificateRevocationList | None: ...
 
 
 class CrlDownloader:
