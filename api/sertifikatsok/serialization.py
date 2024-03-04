@@ -1,4 +1,5 @@
 """Serialization for the different sertifikatsok classes"""
+
 from __future__ import annotations
 
 import base64

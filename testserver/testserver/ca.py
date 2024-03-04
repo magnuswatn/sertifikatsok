@@ -354,9 +354,9 @@ class CommfidesCertIssuingImpl(CertIssuingImpl):
             sign_poid = krypt_pod = auth_poid = base_poid
 
         if enterprise_cert:
-            sign_subject_attrs = (
-                krypt_subject_attrs
-            ) = auth_subject_attrs = subject_attrs
+            sign_subject_attrs = krypt_subject_attrs = auth_subject_attrs = (
+                subject_attrs
+            )
         else:
             if self.seid_v == 1:
                 # Commfides uses different personal serials for each

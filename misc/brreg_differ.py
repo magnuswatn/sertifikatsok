@@ -1,6 +1,7 @@
 """
 Script to check that every active organization from brreg is in the local db.
 """
+
 import gzip
 import json
 import sqlite3

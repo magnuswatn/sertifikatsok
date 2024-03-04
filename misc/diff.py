@@ -2,6 +2,7 @@
 """
 Quick script to compare results from old and new API.
 """
+
 import json
 import subprocess
 from pathlib import Path
