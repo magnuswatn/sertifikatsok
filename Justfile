@@ -34,6 +34,18 @@ alias py := python
   uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes
   uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes
 
+@upgrade:
+  uv pip compile requirements/main.in -o requirements/main.txt --generate-hashes --upgrade
+  uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes --upgrade
+  uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes --upgrade
+
+
+@upgrade-pkg *args='':
+  uv pip compile requirements/main.in -o requirements/main.txt --generate-hashes --upgrade-package "$@"
+  uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes --upgrade-package "$@"
+  uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes --upgrade-package "$@"
+
+
 @install-dev-deps:
   uv pip sync requirements/main.txt requirements/dev.txt requirements/ruldap3.txt
 
