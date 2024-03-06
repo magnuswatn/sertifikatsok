@@ -1,24 +1,25 @@
 set positional-arguments
 
 @clean-venv:
-  pipenv --rm || true
+  rm -Rf .venv || true
 
+# --seed because we need pip for maturin
 @create-venv:
-  pipenv sync --dev
+  uv venv -p python3.11 --seed
 
-@mkvenv: clean-venv create-venv install-lib-build-deps update-lib
+@mkvenv: clean-venv create-venv install-dev-deps install-lib-build-deps update-lib
 
 @run-dev:
-  cd ./api && DEV=true pipenv run python -m sertifikatsok --host 127.0.0.1 --port 7001 2>&1
+  source ./.venv/bin/activate && cd ./api && DEV=true python -m sertifikatsok --host 127.0.0.1 --port 7001 2>&1
 
 @run-testserver:
-  cd ./testserver && pipenv run python -m testserver
+  source ./.venv/bin/activate && cd ./testserver && python -m testserver
 
 @tests *args='':
-  cd ./api && pipenv run pytest -m "not apitest" "$@"
+  source ./.venv/bin/activate && cd ./api && pytest -m "not apitest" "$@"
 
 @mypy:
-  cd ./api && pipenv run mypy --version && pipenv run mypy .
+  source ./.venv/bin/activate && cd ./api && mypy --version && mypy .
 
 @pre-commit:
   pre-commit run --all-files
@@ -27,20 +28,28 @@ set positional-arguments
 
 alias py := python
 @python:
-  pipenv run python
+  source ./.venv/bin/activate && python
+
+@lock:
+  uv pip compile requirements/main.in -o requirements/main.txt --generate-hashes
+  uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes
+
+@install-dev-deps:
+  uv pip install -r requirements/main.txt
+  uv pip install -r requirements/dev.txt
 
 @install-lib-build-deps:
-  pipenv run pip install -r ruldap3/requirements.txt
+  uv pip install -r requirements/ruldap3.txt
 
 alias ulib := update-lib
 @update-lib:
-  pipenv run maturin develop -m ruldap3/Cargo.toml
+  ./.venv/bin/maturin develop -m ruldap3/Cargo.toml
 
 @build-lib:
-  pipenv run maturin build --release -m ruldap3/Cargo.toml
+  source ./.venv/bin/activate && maturin build --release -m ruldap3/Cargo.toml
 
 @install-optimized-lib: build-lib
-  pipenv run pip install --force-reinstall ./ruldap3/target/wheels/*
+  source ./.venv/bin/activate && pip install --force-reinstall ./ruldap3/target/wheels/*
 
 # docker compose stuff
 

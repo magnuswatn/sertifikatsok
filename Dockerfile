@@ -57,7 +57,7 @@ ENV PATH="/root/.cargo/bin/:${PATH}"
 RUN set -x && python3 -m venv /opt/sertifikatsok/rust-venv
 RUN set -x && /opt/sertifikatsok/rust-venv/bin/pip --no-cache-dir --disable-pip-version-check install --upgrade pip
 
-COPY ruldap3/requirements.txt /tmp/ruldap-requirements.txt
+COPY requirements/ruldap3.txt /tmp/ruldap-requirements.txt
 
 RUN set -x \
     && /opt/sertifikatsok/rust-venv/bin/pip install --require-hashes -r /tmp/ruldap-requirements.txt
@@ -73,32 +73,27 @@ RUN set -x \
 #
 FROM build-base as build
 
-# Create venv for pipenv
-RUN set -x && python3 -m venv /tmp/pipenv-venv
-RUN set -x \
-    && /tmp/pipenv-venv/bin/pip --no-cache-dir --disable-pip-version-check install --upgrade pip \
-    && /tmp/pipenv-venv/bin/pip --no-cache-dir --disable-pip-version-check install --upgrade pipenv
-
 # Create venv for the app
 RUN set -x && python3 -m venv /opt/sertifikatsok/venv
 RUN set -x && /opt/sertifikatsok/venv/bin/pip --no-cache-dir --disable-pip-version-check install --upgrade pip
 ENV PATH="/opt/sertifikatsok/venv/bin:${PATH}"
 
-COPY Pipfile /tmp/Pipfile
-COPY Pipfile.lock /tmp/Pipfile.lock
+COPY requirements/main.txt /tmp/requirements.txt
 
 RUN set -x \
     && cd /tmp \
-    && VIRTUAL_ENV=/opt/sertifikatsok/venv /tmp/pipenv-venv/bin/pipenv sync
+    && /opt/sertifikatsok/venv/bin/pip install --require-hashes -r /tmp/requirements.txt
 
 #
 # Python container for testing
 #
 FROM build as test
 
+COPY requirements/dev.txt /tmp/requirements.dev.txt
+
 RUN set -x \
     && cd /tmp \
-    && VIRTUAL_ENV=/opt/sertifikatsok/venv /tmp/pipenv-venv/bin/pipenv sync --dev
+    && /opt/sertifikatsok/venv/bin/pip install --require-hashes -r /tmp/requirements.dev.txt
 
 COPY --from=rust-build /opt/sertifikatsok/ruldap3/target/wheels /opt/sertifikatsok/ruldap3/target/wheels
 
