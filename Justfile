@@ -3,11 +3,10 @@ set positional-arguments
 @clean-venv:
   rm -Rf .venv || true
 
-# --seed because we need pip for maturin
 @create-venv:
-  uv venv -p python3.11 --seed
+  uv venv -p python3.11
 
-@mkvenv: clean-venv create-venv install-dev-deps install-lib-build-deps update-lib
+@mkvenv: clean-venv create-venv install-dev-deps update-lib
 
 @run-dev:
   source ./.venv/bin/activate && cd ./api && DEV=true python -m sertifikatsok --host 127.0.0.1 --port 7001 2>&1
@@ -33,17 +32,14 @@ alias py := python
 @lock:
   uv pip compile requirements/main.in -o requirements/main.txt --generate-hashes
   uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes
+  uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes
 
 @install-dev-deps:
-  uv pip install -r requirements/main.txt
-  uv pip install -r requirements/dev.txt
-
-@install-lib-build-deps:
-  uv pip install -r requirements/ruldap3.txt
+  uv pip sync requirements/main.txt requirements/dev.txt requirements/ruldap3.txt
 
 alias ulib := update-lib
 @update-lib:
-  ./.venv/bin/maturin develop -m ruldap3/Cargo.toml
+  source ./.venv/bin/activate && maturin develop -m ruldap3/Cargo.toml
 
 @build-lib:
   source ./.venv/bin/activate && maturin build --release -m ruldap3/Cargo.toml

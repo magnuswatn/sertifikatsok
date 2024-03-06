@@ -1,3 +1,5 @@
+-c main.txt
+-c ruldap3.txt
 pytest
 mypy
 pytest-asyncio
