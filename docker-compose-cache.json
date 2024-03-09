@@ -1,0 +1,12 @@
+{
+    "target": {
+        "test": {
+            "cache-from": [
+                "type=gha,scope=test,mode=max"
+            ],
+            "cache-to": [
+                "type=gha"
+            ]
+        }
+    }
+}
