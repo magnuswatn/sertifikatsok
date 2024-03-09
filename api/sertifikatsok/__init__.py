@@ -7,3 +7,6 @@ def is_dev() -> bool:
 
 def get_version() -> str:
     return os.getenv("SERTIFIKATSOK_VERSION", "dev")
+
+
+# python only change
