@@ -18,10 +18,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Build docker builder
-        run: docker buildx create --name container --driver=docker-container container
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
       - name: Build docker stack
-        run: docker buildx bake --file docker-compose.yaml --file docker-compose-cache.json --builder=  container
+        run: docker compose build
       - name: Start docker stack
         run: docker compose up -d
       - name: Check with mypy
