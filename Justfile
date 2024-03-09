@@ -6,7 +6,10 @@ set positional-arguments
 @create-venv:
   uv venv -p python3.11
 
-@mkvenv: clean-venv create-venv install-dev-deps update-lib
+@sync:
+  uv pip sync requirements/main.txt requirements/dev.txt requirements/ruldap3.txt
+
+@mkvenv: clean-venv create-venv sync update-lib
 
 @run-dev:
   source ./.venv/bin/activate && cd ./api && DEV=true python -m sertifikatsok --host 127.0.0.1 --port 7001 2>&1
@@ -29,7 +32,7 @@ alias py := python
 @python:
   source ./.venv/bin/activate && python
 
-@lock:
+@compile:
   uv pip compile requirements/main.in -o requirements/main.txt --generate-hashes
   uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes
   uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes
@@ -39,15 +42,10 @@ alias py := python
   uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes --upgrade
   uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes --upgrade
 
-
 @upgrade-pkg *args='':
   uv pip compile requirements/main.in -o requirements/main.txt --generate-hashes --upgrade-package "$@"
   uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes --upgrade-package "$@"
   uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes --upgrade-package "$@"
-
-
-@install-dev-deps:
-  uv pip sync requirements/main.txt requirements/dev.txt requirements/ruldap3.txt
 
 alias ulib := update-lib
 @update-lib:
