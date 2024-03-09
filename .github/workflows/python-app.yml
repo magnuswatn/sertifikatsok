@@ -26,8 +26,12 @@ jobs:
           push: false
           load: true
           set: |
-            *.cache-from=type=gha
-            *.cache-to=type=gha,mode=max
+            test.cache-from=type=gha,scope=test
+            test.cache-to=type=gha,scope=test,mode=max
+            sertifikatsok.cache-from=type=gha,scope=sertifikatsok
+            sertifikatsok.cache-to=type=gha,scope=sertifikatsok,mode=max
+            ldap_server_test.cache-from=type=gha,scope=ldap_server_test
+            ldap_server_test.cache-to=type=gha,scope=ldap_server_test,mode=max
       - name: Start docker stack
         run: docker compose up -d
       - name: Check with mypy
