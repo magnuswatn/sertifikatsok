@@ -24,6 +24,7 @@ jobs:
         uses: docker/bake-action@v4
         with:
           push: false
+          load: true
           set: |
             *.cache-from=type=gha
             *.cache-to=type=gha,mode=max
