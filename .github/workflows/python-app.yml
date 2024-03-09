@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Build docker stack
-        run: docker buildx bake --file docker-compose.yaml --file docker-compose-cache.json
+        run: docker buildx bake --file docker-compose.yaml --file docker-compose-cache.json --builder docker-container
       - name: Start docker stack
         run: docker compose up -d
       - name: Check with mypy
