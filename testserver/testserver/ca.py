@@ -309,7 +309,7 @@ class CommfidesCertIssuingImpl(CertIssuingImpl):
     ) -> list[LdapPublishedCertificate]:
         valid_to = min(
             valid_from + timedelta(days=365 * 3),
-            self.cert.not_valid_after.replace(tzinfo=UTC),
+            self.cert.not_valid_after_utc,
         )
 
         if valid_from > valid_to:
@@ -595,7 +595,7 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
     ) -> list[LdapPublishedCertificate]:
         valid_to = min(
             valid_from + timedelta(days=365 * 3),
-            self.cert.not_valid_after.replace(tzinfo=UTC),
+            self.cert.not_valid_after_utc,
         )
 
         # TODO: fix this
