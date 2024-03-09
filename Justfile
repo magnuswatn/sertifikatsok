@@ -6,10 +6,12 @@ set positional-arguments
 @create-venv:
   uv venv -p python3.11
 
-@sync:
+@pip-sync:
   uv pip sync requirements/main.txt requirements/dev.txt requirements/ruldap3.txt
 
-@mkvenv: clean-venv create-venv sync update-lib
+@sync: pip-sync update-lib
+
+@mkvenv: clean-venv create-venv sync
 
 @run-dev:
   source ./.venv/bin/activate && cd ./api && DEV=true python -m sertifikatsok --host 127.0.0.1 --port 7001 2>&1
@@ -33,19 +35,19 @@ alias py := python
   source ./.venv/bin/activate && python
 
 @compile:
-  uv pip compile requirements/main.in -o requirements/main.txt --generate-hashes
-  uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes
-  uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes
+  uv pip compile requirements/main.in -o requirements/main.txt --generate-hashes --no-header
+  uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes --no-header
+  uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes --no-header
 
 @upgrade:
-  uv pip compile requirements/main.in -o requirements/main.txt --generate-hashes --upgrade
-  uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes --upgrade
-  uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes --upgrade
+  uv pip compile requirements/main.in -o requirements/main.txt --generate-hashes --upgrade --no-header
+  uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes --upgrade --no-header
+  uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes --upgrade --no-header
 
 @upgrade-pkg *args='':
-  uv pip compile requirements/main.in -o requirements/main.txt --generate-hashes --upgrade-package "$@"
-  uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes --upgrade-package "$@"
-  uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes --upgrade-package "$@"
+  uv pip compile requirements/main.in -o requirements/main.txt --generate-hashes --no-header --upgrade-package "$@"
+  uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes --no-header --upgrade-package "$@"
+  uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes --no-header --upgrade-package "$@"
 
 alias ulib := update-lib
 @update-lib:
