@@ -149,12 +149,10 @@ class LdapSearchParams:
             if query.startswith("UN:NO-"):
                 query = query[6:]
 
-            ldap_query = LdapFilter.create_from_params(
-                [
-                    (SearchAttribute.SN, query),
-                    (SearchAttribute.SN, f"UN:NO-{query}"),
-                ]
-            )
+            ldap_query_params = [
+                (SearchAttribute.SN, query),
+                (SearchAttribute.SN, f"UN:NO-{query}"),
+            ]
 
             # The different CAs have their own ranges of personal serial numbers,
             # so we can query only the relevant CA.
@@ -166,12 +164,19 @@ class LdapSearchParams:
                     for ldap_server in ldap_servers
                     if ldap_server.ca == CertificateAuthority.BUYPASS
                 ]
+                # Buypass had a bug in 2024 where they issued
+                # certs with only their internal ID in the serialNumber,
+                # so let's search for those certs as well.
+                ldap_query_params.append((SearchAttribute.SN, query.split("-")[-1]))
+
             elif ca_id.startswith("45"):
                 ldap_servers = [
                     ldap_server
                     for ldap_server in ldap_servers
                     if ldap_server.ca == CertificateAuthority.COMMFIDES
                 ]
+
+            ldap_query = LdapFilter.create_from_params(ldap_query_params)
 
         # If the query looks like an email address, we search for it in the
         # MAIL attribute.

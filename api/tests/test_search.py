@@ -1016,7 +1016,7 @@ def test_should_auto_detect_personal_serial_number_buypass(
     )
     assert (
         str(ldap_search_params.ldap_query) == "(|(serialNumber=9578-4050-127091783)"
-        "(serialNumber=UN:NO-9578-4050-127091783))"
+        "(serialNumber=UN:NO-9578-4050-127091783)(serialNumber=127091783))"
     )
     assert ldap_search_params.search_type == SearchType.PERSONAL_SERIAL
 
