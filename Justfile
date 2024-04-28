@@ -7,7 +7,7 @@ set positional-arguments
   uv venv -p python3.11
 
 @pip-sync:
-  uv pip sync requirements/main.txt requirements/dev.txt requirements/ruldap3.txt
+  uv pip sync --require-hashes requirements/main.txt requirements/dev.txt requirements/ruldap3.txt
 
 @sync: pip-sync update-lib
 
