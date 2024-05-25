@@ -35,19 +35,19 @@ alias py := python
   source ./.venv/bin/activate && python
 
 @compile:
-  uv pip compile requirements/main.in -o requirements/main.txt --generate-hashes --no-header --no-strip-extras
-  uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes --no-header --no-strip-extras
-  uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes --no-header --no-strip-extras
+  cd requirements && uv pip compile main.in -o main.txt --generate-hashes --no-header --no-strip-extras
+  cd requirements && uv pip compile dev.in -o dev.txt --generate-hashes --no-header --no-strip-extras
+  cd requirements && uv pip compile ruldap3.in -o ruldap3.txt --generate-hashes --no-header --no-strip-extras
 
 @upgrade:
-  uv pip compile requirements/main.in -o requirements/main.txt --generate-hashes --upgrade --no-header --no-strip-extras
-  uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes --upgrade --no-header --no-strip-extras
-  uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes --upgrade --no-header --no-strip-extras
+  cd requirements && uv pip compile main.in -o main.txt --generate-hashes --upgrade --no-header --no-strip-extras
+  cd requirements && uv pip compile dev.in -o dev.txt --generate-hashes --upgrade --no-header --no-strip-extras
+  cd requirements && uv pip compile ruldap3.in -o ruldap3.txt --generate-hashes --upgrade --no-header --no-strip-extras
 
 @upgrade-pkg *args='':
-  uv pip compile requirements/main.in -o requirements/main.txt --generate-hashes --no-header --upgrade-package --no-strip-extras "$@"
-  uv pip compile requirements/dev.in -o requirements/dev.txt --generate-hashes --no-header --upgrade-package --no-strip-extras "$@"
-  uv pip compile requirements/ruldap3.in -o requirements/ruldap3.txt --generate-hashes --no-header --upgrade-package --no-strip-extras "$@"
+  cd requirements && uv pip compile main.in -o main.txt --generate-hashes --no-header --upgrade-package --no-strip-extras "$@"
+  cd requirements && uv pip compile dev.in -o dev.txt --generate-hashes --no-header --upgrade-package --no-strip-extras "$@"
+  cd requirements && uv pip compile ruldap3.in -o ruldap3.txt --generate-hashes --no-header --upgrade-package --no-strip-extras "$@"
 
 alias ulib := update-lib
 @update-lib:
