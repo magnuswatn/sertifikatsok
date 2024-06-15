@@ -104,7 +104,7 @@ struct PyLdapConnection {
 
 #[pymethods]
 impl PyLdapConnection {
-    pub fn __aenter__(slf: Py<Self>, py: pyo3::Python<'_>) -> PyResult<&PyAny> {
+    pub fn __aenter__(slf: Py<Self>, py: pyo3::Python<'_>) -> PyResult<Bound<PyAny>> {
         pyo3_asyncio::tokio::future_into_py(py, async {
             return Ok(slf);
         })
@@ -113,10 +113,10 @@ impl PyLdapConnection {
     pub fn __aexit__<'a>(
         &self,
         py: pyo3::Python<'a>,
-        _exc_type: &pyo3::PyAny,
-        _exc_value: &pyo3::PyAny,
-        _exc_tb: &pyo3::PyAny,
-    ) -> PyResult<&'a PyAny> {
+        _exc_type: Bound<PyAny>,
+        _exc_value: Bound<PyAny>,
+        _exc_tb: Bound<PyAny>,
+    ) -> PyResult<Bound<PyAny, 'a>> {
         let mut ldap = self.ldap.clone();
 
         pyo3_asyncio::tokio::future_into_py(py, async move {
@@ -135,7 +135,7 @@ impl PyLdapConnection {
         filtr: String,
         attrlist: Vec<String>,
         timeout_sec: u64,
-    ) -> PyResult<&'a PyAny> {
+    ) -> PyResult<Bound<PyAny, 'a>> {
         let mut ldap = self.ldap.clone();
 
         let rust_scope = Scope::from(scope);
@@ -169,7 +169,7 @@ impl PyLdapConnection {
                                     (
                                         k,
                                         v.into_iter()
-                                            .map(|f| PyBytes::new(py, &f).into())
+                                            .map(|f| PyBytes::new_bound(py, &f).into())
                                             .collect(),
                                     )
                                 })
@@ -185,11 +185,11 @@ impl PyLdapConnection {
 
     #[classmethod]
     fn connect<'a>(
-        _cls: &PyType,
+        _cls: Bound<PyType>,
         py: Python<'a>,
         ldap_server: String,
         timeout_sec: u64,
-    ) -> PyResult<&'a PyAny> {
+    ) -> PyResult<Bound<PyAny, 'a>> {
         pyo3_asyncio::tokio::future_into_py(py, async move {
             let settings: LdapConnSettings =
                 LdapConnSettings::new().set_conn_timeout(Duration::new(timeout_sec, 0));
@@ -206,7 +206,7 @@ impl PyLdapConnection {
 }
 
 #[pymodule]
-fn ruldap3(py: Python, m: &PyModule) -> PyResult<()> {
+fn ruldap3(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(is_ldap_filter_valid, m)?)?;
     m.add_function(wrap_pyfunction!(ldap_escape_py, m)?)?;
     m.add_class::<PySearchEntry>()?;
@@ -214,19 +214,25 @@ fn ruldap3(py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyLdapConnection>()?;
 
     // Exceptions
-    m.add("Ruldap3Error", py.get_type::<Ruldap3Error>())?;
+    m.add("Ruldap3Error", py.get_type_bound::<Ruldap3Error>())?;
 
-    m.add("IoError", py.get_type::<IoError>())?;
-    m.add("OpSendError", py.get_type::<OpSendError>())?;
-    m.add("ResultRecvError", py.get_type::<ResultRecvError>())?;
-    m.add("IdScrubSendError", py.get_type::<IdScrubSendError>())?;
-    m.add("MiscSendError", py.get_type::<MiscSendError>())?;
-    m.add("TimeoutError", py.get_type::<TimeoutError>())?;
-    m.add("FilterParsingError", py.get_type::<FilterParsingError>())?;
-    m.add("EndOfStreamError", py.get_type::<EndOfStreamError>())?;
-    m.add("UrlParsingError", py.get_type::<UrlParsingError>())?;
-    m.add("LdapResultError", py.get_type::<LdapResultError>())?;
-    m.add("DecodingUTF8Error", py.get_type::<DecodingUTF8Error>())?;
+    m.add("IoError", py.get_type_bound::<IoError>())?;
+    m.add("OpSendError", py.get_type_bound::<OpSendError>())?;
+    m.add("ResultRecvError", py.get_type_bound::<ResultRecvError>())?;
+    m.add("IdScrubSendError", py.get_type_bound::<IdScrubSendError>())?;
+    m.add("MiscSendError", py.get_type_bound::<MiscSendError>())?;
+    m.add("TimeoutError", py.get_type_bound::<TimeoutError>())?;
+    m.add(
+        "FilterParsingError",
+        py.get_type_bound::<FilterParsingError>(),
+    )?;
+    m.add("EndOfStreamError", py.get_type_bound::<EndOfStreamError>())?;
+    m.add("UrlParsingError", py.get_type_bound::<UrlParsingError>())?;
+    m.add("LdapResultError", py.get_type_bound::<LdapResultError>())?;
+    m.add(
+        "DecodingUTF8Error",
+        py.get_type_bound::<DecodingUTF8Error>(),
+    )?;
 
     Ok(())
 }

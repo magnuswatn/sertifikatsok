@@ -9,7 +9,9 @@ name = "ruldap3"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.20.3", features = ["extension-module"] }
-pyo3-asyncio = { version = "0.20.0", features = ["tokio-runtime"] }
+pyo3 = { version = "0.21.2", features = ["extension-module"] }
+pyo3-asyncio = { package = "pyo3-asyncio-0-21", version = "0.21.0", features = [
+    "tokio-runtime",
+] }
 tokio = "1.38.0"
 ldap3 = { version = "0.11.4", default_features = false }
