@@ -37,7 +37,9 @@ class SertifikatsokLDAPServer(LDAPServer):  # type: ignore
         )
         buypass_request = b"Buypass" in request.baseObject
 
-        self.check_for_magic_filter(request.filter, is_buypass_request=buypass_request)
+        self.check_for_magic_filter(
+            request.filter, request.baseObject, is_buypass_request=buypass_request
+        )
 
         if buypass_request:
             # Buypass returns `no such attribute` for querys
@@ -62,39 +64,41 @@ class SertifikatsokLDAPServer(LDAPServer):  # type: ignore
             request, controls, _buypass_reply if buypass_request else reply
         )
 
-    def check_for_magic_filter(self, filter: Any, *, is_buypass_request: bool) -> None:
+    def check_for_magic_filter(
+        self, filter: Any, base_object: bytes, *, is_buypass_request: bool
+    ) -> None:
         if isinstance(filter, LDAPFilterSet):
             for attr in filter:
-                self.check_for_magic_filter(attr, is_buypass_request=is_buypass_request)
+                self.check_for_magic_filter(
+                    attr, base_object, is_buypass_request=is_buypass_request
+                )
             return
 
         if isinstance(filter, LDAPFilter):
             self.check_for_magic_filter(
-                filter.value, is_buypass_request=is_buypass_request
+                filter.value, base_object, is_buypass_request=is_buypass_request
             )
             return
 
-        if isinstance(filter, LDAPAttributeValueAssertion) and (
-            (
-                filter.attributeDesc.value.lower() == b"ou"
-                and (
-                    filter.assertionValue.value.lower() == b"fail"
-                    or (
-                        is_buypass_request
-                        and filter.assertionValue.value.lower() == b"buypassfail"
-                    )
-                )
-            )
-            or (
-                filter.attributeDesc.value.lower() == b"serialnumber"
-                and (
-                    not is_buypass_request
-                    and filter.assertionValue.value.lower()
-                    in (b"9578-4506-fail", b"un:no-9578-4506-fail")
-                )
-            )
-        ):
-            raise LDAPOperationsError("You asked me to fail")
+        if not isinstance(filter, LDAPAttributeValueAssertion):
+            return
+
+        attribute_desc = filter.attributeDesc.value.lower().decode()
+        assertion_value = filter.assertionValue.value.lower().decode()
+
+        if attribute_desc == "ou" and assertion_value == "fail":
+            raise LDAPOperationsError("You asked me to fail (general fail)")
+
+        if is_buypass_request:
+            suffix = base_object[-4:].lower().decode()
+
+            if assertion_value in ("buypassfail", f"buypassfail-{suffix}"):
+                raise LDAPOperationsError("You asked me to fail (buypassfail)")
+        else:
+            if attribute_desc == "serialnumber" and (
+                assertion_value in ("9578-4506-fail", "un:no-9578-4506-fail")
+            ):
+                raise LDAPOperationsError("You asked me to fail (commfidesfail)")
 
     def check_for_malformed_cert_sn(self, filter: Any) -> None:
         if isinstance(filter, LDAPFilterSet):

@@ -358,13 +358,18 @@ def test_search_failes_when_all_queries_against_one_server_fail(
     )
 
 
+@pytest.mark.parametrize("query", ["buypassfail", "buypassfail-CA 1"])
 @pytest.mark.parametrize("env", ["test", "prod"])
 def test_search_does_not_fail_when_only_some_servers_fail(
-    client: Client, env: Env
+    client: Client, env: str, query: str
 ) -> None:
-    resp = client._search(env=env, typ="enterprise", query="buypassfail", attr="ou")
+    resp = client._search(env=env, typ="enterprise", query=query, attr="ou")
 
     assert resp.status_code == 200
     errors = resp.json()["errors"]
     assert len(errors) == 1
-    assert errors[0] == "Kunne ikke hente alle sertfikater fra Buypass"
+    assert errors[0] == (
+        "Kunne ikke hente sertfikater fra Buypass"
+        if query == "buypassfail"
+        else "Kunne ikke hente alle sertfikater fra Buypass"
+    )

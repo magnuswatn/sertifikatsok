@@ -395,7 +395,7 @@ class CertificateSearch:
     cert_validator: CertValidator
     database: Database
     filtered_results: bool = field(default=False)
-    errors: list[str] = field(factory=list)
+    errors: set[str] = field(factory=set)
     warnings: list[str] = field(factory=list)
     results: list[QualifiedCertificate] = field(factory=list)
     failed_ldap_servers: list[LdapServer] = field(factory=list)
@@ -426,9 +426,9 @@ class CertificateSearch:
             logger.exception("Error during ldap query against '%s'", ldap_server)
             self.failed_ldap_servers.append(ldap_server)
             if ldap_server.ca == CertificateAuthority.BUYPASS:
-                self.errors.append("ERR-001")
+                self.errors.add("ERR-001")
             elif ldap_server.ca == CertificateAuthority.COMMFIDES:
-                self.errors.append("ERR-002")
+                self.errors.add("ERR-002")
             else:
                 raise RuntimeError(f"Unexpeced ca: {ldap_server.ca}") from None
         else:
@@ -526,7 +526,7 @@ class CertificateSearch:
             except ValueError:
                 # https://github.com/magnuswatn/sertifikatsok/issues/22
                 logging.exception("ValueError while decoding certificate")
-                self.errors.append("ERR-005")
+                self.errors.add("ERR-005")
                 continue
 
             if qualified_cert.type in {
@@ -541,6 +541,9 @@ class CertificateSearch:
         return qualified_certs
 
     async def get_response(self) -> CertificateSearchResponse:
+        # TODO: change this to handle the exceptions here instead of
+        # at each task, so that we can log one exception group with them
+        # all
         await asyncio.gather(
             *[
                 self.query_ca(ldap_server)
@@ -556,7 +559,26 @@ class CertificateSearch:
 
             raise AllServersFailedError()
 
-        self.errors.extend(self.cert_validator.errors)
+        if self.errors:
+            for ca in CertificateAuthority:
+                if all(
+                    ldap_server in self.failed_ldap_servers
+                    for ldap_server in self.ldap_params.ldap_servers
+                    if ldap_server.ca == ca
+                ):
+                    # We failed against all LDAP server for this CA,
+                    # change the error message slightly.
+                    if ca == CertificateAuthority.BUYPASS and "ERR-001" in self.errors:
+                        self.errors.remove("ERR-001")
+                        self.errors.add("ERR-001a")
+                    elif (
+                        ca == CertificateAuthority.COMMFIDES
+                        and "ERR-002" in self.errors
+                    ):
+                        self.errors.remove("ERR-002")
+                        self.errors.add("ERR-002a")
+
+        self.errors.update(self.cert_validator.errors)
         self.warnings.extend(self.ldap_params.limitations)
         if len(self.results) == 0:
             if self.filtered_results:
@@ -572,7 +594,7 @@ class CertificateSearchResponse:
     search: CertificateSearch
     cert_sets: list[QualifiedCertificateSet]
     warnings: list[str]
-    errors: list[str]
+    errors: set[str]
 
     @classmethod
     def create(cls, search: CertificateSearch) -> CertificateSearchResponse:

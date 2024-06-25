@@ -123,7 +123,7 @@ def certificate_search(val: CertificateSearchResponse) -> dict[str, Any]:
     result: dict[str, Any] = {}
 
     errors = set()
-    for error in val.errors + val.warnings:
+    for error in val.errors.union(val.warnings):
         errors.add(_get_norwegian_error_message(error))
 
     result["errors"] = list(errors)
@@ -214,8 +214,12 @@ def _get_norwegian_display_name(cert: QualifiedCertificate) -> tuple[str, str]:
 def _get_norwegian_error_message(error_code: str) -> str:
     if error_code == "ERR-001":
         return "Kunne ikke hente alle sertfikater fra Buypass"
+    if error_code == "ERR-001a":
+        return "Kunne ikke hente sertfikater fra Buypass"
     if error_code == "ERR-002":
         return "Kunne ikke hente alle sertfikater fra Commfides"
+    if error_code == "ERR-002a":
+        return "Kunne ikke hente sertfikater fra Commfides"
     if error_code == "ERR-003":
         return (
             "Kunne ikke hente ned alle CRL-er, "
