@@ -38,12 +38,22 @@ from .enums import (
     SearchAttribute,
     SearchType,
 )
-from .errors import AllServersFailedError, ClientError
+from .errors import (
+    AllServersFailedError,
+    ClientError,
+    SertifikatSokError,
+)
 from .ldap import LDAP_SERVERS, LdapCertificateEntry, LdapFilter, LdapServer
 from .logging import performance_log
 from .qcert import QualifiedCertificate, QualifiedCertificateSet
 
 logger = logging.getLogger(__name__)
+
+
+class CouldNotContactCaError(SertifikatSokError):
+    def __init__(self, ca: CertificateAuthority):
+        super().__init__(f"Could not contact CA {ca}")
+        self.ca = ca
 
 
 @frozen
@@ -538,6 +548,12 @@ class CertificateSearch:
             ]
         )
         if len(self.failed_ldap_servers) == len(self.ldap_params.ldap_servers):
+            if all(
+                server.hostname == self.failed_ldap_servers[0].hostname
+                for server in self.failed_ldap_servers
+            ):
+                raise CouldNotContactCaError(self.failed_ldap_servers[0].ca)
+
             raise AllServersFailedError()
 
         self.errors.extend(self.cert_validator.errors)

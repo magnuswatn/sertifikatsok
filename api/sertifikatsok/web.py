@@ -23,7 +23,7 @@ from .db import Database
 from .enums import Environment, RequestCertType, SearchAttribute
 from .errors import ClientError
 from .logging import audit_logger, correlation_context, get_log_config, performance_log
-from .search import CertificateSearch, SearchParams
+from .search import CertificateSearch, CouldNotContactCaError, SearchParams
 from .serialization import sertifikatsok_serialization
 
 logger = logging.getLogger(__name__)
@@ -51,6 +51,23 @@ async def handle_client_error(request: Request, exc: Exception) -> Response:
     return Response(
         content=json.dumps({"error": exc.args[0]}, ensure_ascii=False),
         status_code=400,
+        media_type="application/json",
+    )
+
+
+async def handle_could_not_contact_ca_error(
+    request: Request, exc: Exception
+) -> Response:
+    logger.exception("Could not contact CA")
+    assert isinstance(exc, CouldNotContactCaError)
+    return Response(
+        content=json.dumps(
+            {
+                "error": f"Klarte ikke kontakte {exc.ca.value.title()}. Vennligst prøv igjen."
+            },
+            ensure_ascii=False,
+        ),
+        status_code=503,
         media_type="application/json",
     )
 
@@ -116,6 +133,7 @@ app = FastAPI(
     exception_handlers={
         ClientError: handle_client_error,
         RequestValidationError: handle_request_validation_error,
+        CouldNotContactCaError: handle_could_not_contact_ca_error,
         Exception: handle_exception,
     },
 )

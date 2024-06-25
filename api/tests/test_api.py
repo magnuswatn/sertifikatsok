@@ -339,10 +339,23 @@ def test_search_bypass_buypass_size_limit(client: Client, env: Env) -> None:
 
 
 @pytest.mark.parametrize("env", ["test", "prod"])
-def test_search_failes_when_all_servers_fail(client: Client, env: Env) -> None:
+def test_search_failes_when_all_servers_fail(client: Client, env: str) -> None:
     resp = client._search(env=env, typ="enterprise", query="fail", attr="ou")
 
     assert resp.status_code == 500
+    assert resp.json()["error"] == "En ukjent feil oppstod. Vennligst prøv igjen."
+
+
+@pytest.mark.parametrize("env", ["test", "prod"])
+def test_search_failes_when_all_queries_against_one_server_fail(
+    client: Client, env: str
+) -> None:
+    resp = client._search(env=env, typ="personal", query="9578-4506-FAIL")
+
+    assert resp.status_code == 503
+    assert (
+        resp.json()["error"] == "Klarte ikke kontakte Commfides. Vennligst prøv igjen."
+    )
 
 
 @pytest.mark.parametrize("env", ["test", "prod"])

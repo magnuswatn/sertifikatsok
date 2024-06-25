@@ -63,14 +63,34 @@ class SertifikatsokLDAPServer(LDAPServer):  # type: ignore
         )
 
     def check_for_magic_filter(self, filter: Any, *, is_buypass_request: bool) -> None:
-        if (
-            isinstance(filter, LDAPAttributeValueAssertion)
-            and filter.attributeDesc.value.lower() == b"ou"
-            and (
-                filter.assertionValue.value.lower() == b"fail"
-                or (
-                    is_buypass_request
-                    and filter.assertionValue.value.lower() == b"buypassfail"
+        if isinstance(filter, LDAPFilterSet):
+            for attr in filter:
+                self.check_for_magic_filter(attr, is_buypass_request=is_buypass_request)
+            return
+
+        if isinstance(filter, LDAPFilter):
+            self.check_for_magic_filter(
+                filter.value, is_buypass_request=is_buypass_request
+            )
+            return
+
+        if isinstance(filter, LDAPAttributeValueAssertion) and (
+            (
+                filter.attributeDesc.value.lower() == b"ou"
+                and (
+                    filter.assertionValue.value.lower() == b"fail"
+                    or (
+                        is_buypass_request
+                        and filter.assertionValue.value.lower() == b"buypassfail"
+                    )
+                )
+            )
+            or (
+                filter.attributeDesc.value.lower() == b"serialnumber"
+                and (
+                    not is_buypass_request
+                    and filter.assertionValue.value.lower()
+                    in (b"9578-4506-fail", b"un:no-9578-4506-fail")
                 )
             )
         ):
