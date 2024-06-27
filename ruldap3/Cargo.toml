@@ -14,4 +14,4 @@ pyo3-asyncio = { package = "pyo3-asyncio-0-21", version = "0.21.0", features = [
     "tokio-runtime",
 ] }
 tokio = "1.38.0"
-ldap3 = { version = "0.11.4", default_features = false }
+ldap3 = { version = "0.11.5", default_features = false }
