@@ -2,6 +2,8 @@
     import { createEventDispatcher, onMount } from "svelte";
     import DownloadCertButton from "./buttons/DownloadCertButton.svelte";
     import PemButton from "./buttons/PemButton.svelte";
+    import StringModal from "./modals/StringModal.svelte";
+    import { getPemFromBase64 } from "./utils";
 
     const dispatch = createEventDispatcher();
     export let cert;
@@ -41,7 +43,7 @@
 <svelte:window on:keydown={handleKeyDown} />
 
 <div class="modal cert-modal" bind:this={modal}>
-    <div class="modal-content ">
+    <div class="modal-content">
         <div class="right">
             <a
                 href="#!"
@@ -116,15 +118,17 @@
         </table>
         <br />
         <div class="modal-footer">
-            <PemButton
-                base64cert={cert.certificate}
-                on:open={() => (pemShown = true)}
-                on:close={() => (pemShown = false)}
-            />
+            <PemButton on:open={() => (pemShown = true)} />
             <DownloadCertButton base64cert={cert.certificate} {thumbprint} />
         </div>
     </div>
 </div>
+
+{#if pemShown}
+    <StringModal textSelected={true} on:close={() => (pemShown = false)}>
+        <p class="pem">{getPemFromBase64(cert.certificate)}</p>
+    </StringModal>
+{/if}
 
 <style>
     /*
@@ -136,5 +140,12 @@
         max-height: 94%;
         width: 70%;
         top: 3% !important;
+    }
+    .pem {
+        font:
+            10pt Courier New,
+            sans-serif;
+        padding: 2px 20px;
+        white-space: pre-wrap;
     }
 </style>
