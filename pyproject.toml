@@ -51,3 +51,7 @@ warn_return_any = true
 # Twisted/ldaptor not very well typed :/
 disallow_untyped_calls = false
 module = ["testserver.main"]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
