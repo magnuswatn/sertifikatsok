@@ -45,6 +45,7 @@ export default defineConfig(({ command, mode, ssrBuild }) => {
   if (process.env.VITE_PROXY) {
     serverConfig.proxy = {
       '/api': 'http://127.0.0.1:7001',
+      '/revocation_info': 'http://127.0.0.1:7001',
     }
   }
 

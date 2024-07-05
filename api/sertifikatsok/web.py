@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 
 import uvicorn
+from cattrs.preconf.json import make_converter
+from cattrs.strategies import include_subclasses
 from fastapi import Depends, FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.datastructures import MutableHeaders
@@ -15,6 +17,7 @@ from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from sertifikatsok import get_version, is_dev
+from sertifikatsok.revocation_info import BaseOcspError, get_revocation_info
 
 from .audit_log import AuditLogger
 from .brreg_batch import schedule_batch
@@ -27,6 +30,9 @@ from .search import CertificateSearch, CouldNotContactCaError, SearchParams
 from .serialization import sertifikatsok_serialization
 
 logger = logging.getLogger(__name__)
+
+converter = make_converter()
+include_subclasses(BaseOcspError, converter)
 
 
 async def handle_request_validation_error(request: Request, exc: Exception) -> Response:
@@ -180,6 +186,36 @@ async def api_endpoint(
         response.headers["Cache-Control"] = cache_control
 
         return response
+
+
+@app.get("/revocation_info")
+@performance_log()
+async def revocation_endpoint(
+    env: Environment,
+    cert: str,
+    request: Request,
+) -> Response:
+    revocation_info = await get_revocation_info(
+        cert,
+        request.app.state.cert_retrievers[env],
+        request.app.state.crl_retriever,
+        request.app.state.database,
+    )
+
+    response = Response(
+        content=converter.dumps(revocation_info),
+        status_code=200,
+        media_type="application/json",
+    )
+
+    if revocation_info.cacheable and not request.app.state.dev:
+        cache_control = "public, max-age=300"
+    else:
+        cache_control = "no-cache, no-store, must-revalidate, private, s-maxage=0"
+
+    response.headers["Cache-Control"] = cache_control
+
+    return response
 
 
 def run() -> None:

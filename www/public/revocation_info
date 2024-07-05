@@ -1,0 +1,11 @@
+{
+   "ocsp_status": "good",
+   "crl_status": "good",
+
+   "ocsp_produced_at": "2024-05-03",
+   "ocsp_this_update": "20204-05-03",
+   "ocsp_next_update": "2024-05-03",
+   "crl_this_update": "2024-06-04",
+   "crl_next_update": "2024-05-06"
+
+}
