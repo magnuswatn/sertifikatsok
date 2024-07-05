@@ -19,3 +19,4 @@ www/public/api*
 www/public/resources/external
 testserver/cloned_certs/*/*
 api/database/*
+target/**
