@@ -25,7 +25,7 @@ lint.select = [
     "FBT",
 ]
 lint.ignore = ["TRY003", "S101", "W191", "E501"]
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint.per-file-ignores]
 # Twisted...

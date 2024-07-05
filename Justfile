@@ -4,7 +4,7 @@ set positional-arguments
   rm -Rf .venv || true
 
 @create-venv:
-  uv venv -p python3.11
+  uv venv -p python3.12
 
 @pip-sync:
   uv pip sync --require-hashes requirements/main.txt requirements/dev.txt requirements/ruldap3.txt
