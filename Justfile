@@ -51,13 +51,13 @@ alias py := python
 
 alias ulib := update-lib
 @update-lib:
-  source ./.venv/bin/activate && maturin develop -m ruldap3/Cargo.toml
+  source ./.venv/bin/activate && maturin develop --uv -m ruldap3/Cargo.toml
 
 @build-lib:
   source ./.venv/bin/activate && maturin build --release -m ruldap3/Cargo.toml
 
 @install-optimized-lib: build-lib
-  source ./.venv/bin/activate && pip install --force-reinstall ./ruldap3/target/wheels/*
+  source ./.venv/bin/activate && uv pip install --force-reinstall ./ruldap3/target/wheels/*
 
 # docker compose stuff
 
