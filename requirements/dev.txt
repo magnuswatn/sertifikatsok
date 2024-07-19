@@ -274,3 +274,5 @@ zope-interface==6.4.post2 \
     # via
     #   ldaptor
     #   twisted
+# The following packages are considered to be unsafe in a requirements file:
+# TEST FOR DEPENDABOT
