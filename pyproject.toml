@@ -55,3 +55,8 @@ module = ["testserver.main"]
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
+
+[tool.pip-tools.compile]
+# TODO: This can be removed once it becomes the default.
+# See: https://github.com/jazzband/pip-tools/issues/989
+allow-unsafe = true
