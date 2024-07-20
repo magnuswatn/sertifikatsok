@@ -63,6 +63,7 @@ move_dev_setuptools_dependency_to_unsafe_footer:
   if setuptools_lines:
       new_reqs.extend(
           [
+              "",
               "# The following packages are considered to be unsafe in a requirements file:",
               *setuptools_lines,
           ]
