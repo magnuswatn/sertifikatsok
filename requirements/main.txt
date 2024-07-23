@@ -336,9 +336,9 @@ typing-extensions==4.12.0 \
     #   fastapi-slim
     #   pydantic
     #   pydantic-core
-uvicorn[standard]==0.30.2 \
-    --hash=sha256:48a0384f6b1d0404cceff4af40877e3d638144c38baf82ffe251f62351814f5f \
-    --hash=sha256:f15cf5ba2dc95a671b8bf09fade3ca17be501b9da27c659c6a41f4f5dde500db
+uvicorn[standard]==0.30.3 \
+    --hash=sha256:0d114d0831ff1adbf231d358cbf42f17333413042552a624ea6a9b4c33dcfd81 \
+    --hash=sha256:94a3608da0e530cea8f69683aa4126364ac18e3826b6630d1a65f4638aade503
     # via -r main.in
 uvloop==0.19.0 \
     --hash=sha256:0246f4fd1bf2bf702e06b0d45ee91677ee5c31242f39aab4ea6fe0c51aedd0fd \
