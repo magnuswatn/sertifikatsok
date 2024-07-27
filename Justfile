@@ -85,9 +85,9 @@ move_dev_setuptools_dependency_to_unsafe_footer:
   just move_dev_setuptools_dependency_to_unsafe_footer
 
 @upgrade-pkg *args='':
-  cd requirements && uv pip compile main.in -o main.txt --generate-hashes --no-header --upgrade-package --no-strip-extras "$@"
-  cd requirements && uv pip compile dev.in -o dev.txt --generate-hashes --no-header --upgrade-package --no-strip-extras "$@"
-  cd requirements && uv pip compile ruldap3.in -o ruldap3.txt --generate-hashes --no-header --upgrade-package --no-strip-extras "$@"
+  cd requirements && uv pip compile main.in -o main.txt --generate-hashes --no-header --no-strip-extras --upgrade-package "$@"
+  cd requirements && uv pip compile dev.in -o dev.txt --generate-hashes --no-header --no-strip-extras --upgrade-package "$@"
+  cd requirements && uv pip compile ruldap3.in -o ruldap3.txt --generate-hashes --no-header --no-strip-extras --upgrade-package "$@"
   just move_dev_setuptools_dependency_to_unsafe_footer
 
 alias ulib := update-lib
