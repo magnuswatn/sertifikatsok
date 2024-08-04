@@ -194,7 +194,9 @@ def _get_norwegian_cert_status(
                 if revocation_date is not None
                 else "Revokert"
             )
-        case CertificateStatus.INVALID:
+        # TODO: Should UNTRUSTED be with UNKNOWN? We don't
+        # trust the issuer, but others might...
+        case CertificateStatus.INVALID | CertificateStatus.UNTRUSTED:
             return "Ugyldig"
         case CertificateStatus.UNKNOWN:
             return "Ukjent"

@@ -394,9 +394,7 @@ class CertValidator:
 
         issuer = self._cert_retriever.retrieve(cert.issuer)
         if issuer is None:
-            # TODO: Should this be UNKNOWN? We don't
-            # trust the issuer, but others might...
-            status = CertificateStatus.INVALID
+            status = CertificateStatus.UNTRUSTED
         elif not self._validate_cert_against_issuer(cert.cert, issuer):
             status = CertificateStatus.INVALID
         elif not self._check_date_on_cert(cert.cert):

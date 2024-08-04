@@ -32,6 +32,7 @@ class CertificateStatus(Enum):
     REVOKED = 3
     INVALID = 4
     UNKNOWN = 5
+    UNTRUSTED = 6
 
 
 class CertificateRoles(Enum):

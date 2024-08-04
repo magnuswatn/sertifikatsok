@@ -415,7 +415,7 @@ class TestCertValidator:
             DummyRequestCrlRetriever({}),
         )
         cert_status, revocation_date = await cert_validator.validate_cert(ee_cert)
-        assert cert_status == CertificateStatus.INVALID
+        assert cert_status == CertificateStatus.UNTRUSTED
         assert revocation_date is None
 
     async def test_invalid_signature(self, ee_cert: MaybeInvalidCertificate) -> None:
