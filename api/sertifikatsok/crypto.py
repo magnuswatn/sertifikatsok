@@ -246,14 +246,6 @@ class AppCrlRetriever:
                 CrlErrorReason.MISSING_NEXT_UPDATE, "CRL is missing next update field"
             )
 
-        now = datetime_now_utc()
-        if not (crl.next_update_utc > now and crl.last_update_utc < now):
-            raise CrlError(
-                CrlDateValidationError(crl.last_update_utc, crl.next_update_utc),
-                f"CRL failed date validation. "
-                f"Last update: '{crl.last_update_utc}' Next Update: '{crl.next_update_utc}'",
-            )
-
         if not crl.issuer == issuer.subject:
             raise CrlError(
                 CrlErrorReason.WRONG_ISSUER,
@@ -267,6 +259,13 @@ class AppCrlRetriever:
         if not crl.is_signature_valid(cast(RSAPublicKey, issuer.public_key())):
             raise CrlError(
                 CrlErrorReason.SIGNATURE_INVALID, "CRL failed signature validation"
+            )
+
+        if not (crl.next_update_utc > datetime_now_utc() > crl.last_update_utc):
+            raise CrlError(
+                CrlDateValidationError(crl.last_update_utc, crl.next_update_utc),
+                f"CRL failed date validation. "
+                f"Last update: '{crl.last_update_utc}' Next Update: '{crl.next_update_utc}'",
             )
 
 
