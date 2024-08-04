@@ -155,7 +155,7 @@ class AppCrlRetriever:
         crl = self._get_from_file(url, issuer)
 
         if crl is None:
-            crl = await self._download(url, issuer)
+            crl = await self._download_and_store_to_disk(url, issuer)
 
         self.crls[url] = crl
         return crl
@@ -225,7 +225,7 @@ class AppCrlRetriever:
         return crl
 
     @performance_log(id_param=1)
-    async def _download(
+    async def _download_and_store_to_disk(
         self, url: str, issuer: x509.Certificate
     ) -> x509.CertificateRevocationList:
         """Downloads a crl from the specified url"""
