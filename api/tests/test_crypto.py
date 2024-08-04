@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import datetime
-from unittest import mock
 from urllib.parse import quote_plus
 
 import httpx
@@ -294,31 +293,30 @@ class TestAppCrlRetriever:
     async def test_concurrent_retrieving(self, ca: CertificateAuthority) -> None:
         crl = ca.generate_crl([])
 
-        call_count = 0
+        class DummyCrlDownloader:
+            def __init__(self) -> None:
+                self.call_count = 0
 
-        async def _download_crl_dummy(_: CrlDownloader, __: str) -> bytes:
-            await asyncio.sleep(0.1)
-            nonlocal call_count
-            call_count += 1
-            return crl.public_bytes(Encoding.DER)
+            async def download_crl(self, url: str) -> bytes:
+                await asyncio.sleep(0.1)
+                self.call_count += 1
+                return crl.public_bytes(Encoding.DER)
 
-        with mock.patch(
-            "sertifikatsok.crypto.CrlDownloader.download_crl", new=_download_crl_dummy
-        ):
-            app_crl_retriever = AppCrlRetriever(CrlDownloader())
+        crl_downloader = DummyCrlDownloader()
+        app_crl_retriever = AppCrlRetriever(crl_downloader)
 
-            async with asyncio.TaskGroup() as task_group:
-                task_group.create_task(
-                    app_crl_retriever.retrieve("http://crl.watn.no/crl.crl", ca.cert)
-                )
-                task_group.create_task(
-                    app_crl_retriever.retrieve("http://crl.watn.no/crl.crl", ca.cert)
-                )
-                task_group.create_task(
-                    app_crl_retriever.retrieve("http://crl.watn.no/crl.crl", ca.cert)
-                )
+        async with asyncio.TaskGroup() as task_group:
+            task_group.create_task(
+                app_crl_retriever.retrieve("http://crl.watn.no/crl.crl", ca.cert)
+            )
+            task_group.create_task(
+                app_crl_retriever.retrieve("http://crl.watn.no/crl.crl", ca.cert)
+            )
+            task_group.create_task(
+                app_crl_retriever.retrieve("http://crl.watn.no/crl.crl", ca.cert)
+            )
 
-        assert call_count == 1
+        assert crl_downloader.call_count == 1
 
 
 class TestRequestCrlRetriever:
