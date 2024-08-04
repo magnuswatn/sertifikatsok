@@ -5,6 +5,7 @@ import logging
 import urllib.parse
 from collections import defaultdict
 from datetime import datetime
+from enum import Enum, auto
 from pathlib import Path
 from typing import ClassVar, Protocol, cast
 
@@ -20,10 +21,36 @@ from sertifikatsok.utils import datetime_now_utc
 
 from .cert import MaybeInvalidCertificate
 from .enums import CertificateStatus, Environment
-from .errors import ConfigurationError, CouldNotGetValidCRLError
+from .errors import ConfigurationError, SertifikatSokError
 from .logging import performance_log
 
 logger = logging.getLogger(__name__)
+
+
+class CrlErrorReason(Enum):
+    SIGNATURE_INVALID = auto()
+    MALFORMED = auto()
+    NETWORK_ERROR = auto()
+    INVALID_CONTENT_TYPE = auto()
+    WRONG_ISSUER = auto()
+    MISSING_NEXT_UPDATE = auto()
+
+
+@frozen
+class CrlHttpStatusError:
+    http_status_code: int
+
+
+@frozen
+class CrlDateValidationError:
+    last_update: datetime
+    next_update: datetime
+
+
+@frozen
+class CrlError(SertifikatSokError):
+    error_reason: CrlErrorReason | CrlHttpStatusError | CrlDateValidationError
+    message: str | None = None
 
 
 class CrlDownloaderProto(Protocol):
@@ -66,21 +93,23 @@ class CrlDownloader:
         try:
             resp = await client.get(url, headers=self.HEADERS)
         except HTTPError as error:
-            raise CouldNotGetValidCRLError() from error
+            raise CrlError(CrlErrorReason.NETWORK_ERROR) from error
 
         logger.debug("Finishined downloading CRL %s", url)
 
         if resp.status_code != 200:
-            raise CouldNotGetValidCRLError(
-                f"Got status code {resp.status_code} for url {url}"
+            raise CrlError(
+                CrlHttpStatusError(resp.status_code),
+                f"Got status code {resp.status_code} for url {url}",
             )
 
         if (content_type := resp.headers.get("Content-Type")) not in {
             "application/pkix-crl",
             "application/x-pkcs7-crl",
         }:
-            raise CouldNotGetValidCRLError(
-                f"Got content type: {content_type} for url {url}"
+            raise CrlError(
+                CrlErrorReason.INVALID_CONTENT_TYPE,
+                f"Got content type: {content_type} for url {url}",
             )
         return resp.content
 
@@ -109,18 +138,17 @@ class AppCrlRetriever:
         self, url: str, issuer: x509.Certificate
     ) -> x509.CertificateRevocationList:
         """Retrieves the CRL from the specified url"""
-        try:
-            return self._get_cached_crl(url, issuer)
-        except CouldNotGetValidCRLError as error:
-            logger.debug("Could not get CRL '%s' from memory cache: %s", url, error)
-            try:
-                crl = self._get_from_file(url, issuer)
-            except CouldNotGetValidCRLError as error:
-                logger.debug("Could not get CRL '%s' from file: %s", url, error)
-                crl = await self._download(url, issuer)
 
-            self.crls[url] = crl
+        if (crl := self._get_cached_crl(url, issuer)) is not None:
             return crl
+
+        crl = self._get_from_file(url, issuer)
+
+        if crl is None:
+            crl = await self._download(url, issuer)
+
+        self.crls[url] = crl
+        return crl
 
     def get_retriever_for_request(self) -> RequestCrlRetriever:
         """
@@ -131,35 +159,41 @@ class AppCrlRetriever:
 
     def _get_cached_crl(
         self, url: str, issuer: x509.Certificate
-    ) -> x509.CertificateRevocationList:
-        """Returnes CRL from memory"""
+    ) -> x509.CertificateRevocationList | None:
+        """Returns CRL from memory"""
         try:
             crl = self.crls[url]
         except KeyError:
-            raise CouldNotGetValidCRLError(
-                "Not in AppCrlRetriever memory cache"
-            ) from None
+            logger.debug("CRL %s not in AppCrlRetriever memory cache", url)
+            return None
 
-        self._validate(crl, issuer)
+        try:
+            self._validate(crl, issuer)
+        except CrlError as e:
+            logger.debug(
+                "CRL %s in AppCrlRetriever memory cache was invalid: %s", url, e
+            )
+            return None
 
         logger.debug("Returning CRL for %s from memory", url)
         return crl
 
     def _get_from_file(
         self, url: str, issuer: x509.Certificate
-    ) -> x509.CertificateRevocationList:
+    ) -> x509.CertificateRevocationList | None:
         """Retrieves a CRL from disk"""
         try:
             crl_bytes = Path("crls", urllib.parse.quote_plus(url)).read_bytes()
         except FileNotFoundError:
-            raise CouldNotGetValidCRLError("Not found on disk") from None
+            logger.debug("CRL %s not found on disk", url)
+            return None
 
         try:
             crl = x509.load_der_x509_crl(crl_bytes)
-        except ValueError as error:
-            raise CouldNotGetValidCRLError(error) from error
-
-        self._validate(crl, issuer)
+            self._validate(crl, issuer)
+        except (ValueError, CrlError) as e:
+            logger.debug("CRL %s in disk cache was invalid: %s", url, e)
+            return None
 
         logger.debug("Returning CRL for %s from disk", url)
         return crl
@@ -175,7 +209,7 @@ class AppCrlRetriever:
         try:
             crl = x509.load_der_x509_crl(crl_bytes)
         except ValueError as error:
-            raise CouldNotGetValidCRLError(error) from error
+            raise CrlError(CrlErrorReason.MALFORMED) from error
 
         self._validate(crl, issuer)
 
@@ -192,26 +226,32 @@ class AppCrlRetriever:
         if crl.next_update_utc is None:
             # rfc5280: Conforming CRL issuers MUST
             # include the nextUpdate field in all CRLs.
-            raise CouldNotGetValidCRLError("CRL is missing next update field")
+            raise CrlError(
+                CrlErrorReason.MISSING_NEXT_UPDATE, "CRL is missing next update field"
+            )
 
         now = datetime_now_utc()
         if not (crl.next_update_utc > now and crl.last_update_utc < now):
-            raise CouldNotGetValidCRLError(
+            raise CrlError(
+                CrlDateValidationError(crl.last_update_utc, crl.next_update_utc),
                 f"CRL failed date validation. "
-                f"Last update: '{crl.last_update_utc}' Next Update: '{crl.next_update_utc}'"
+                f"Last update: '{crl.last_update_utc}' Next Update: '{crl.next_update_utc}'",
             )
 
         if not crl.issuer == issuer.subject:
-            raise CouldNotGetValidCRLError(
+            raise CrlError(
+                CrlErrorReason.WRONG_ISSUER,
                 f"CRL failed issuer validation. "
                 f"Expected: {issuer.subject.rfc4514_string()} "
-                f"Actual: {crl.issuer.rfc4514_string()}."
+                f"Actual: {crl.issuer.rfc4514_string()}.",
             )
 
         # cast because mypy. The type of key is checked
         # when it is loaded in CertRetriever.
         if not crl.is_signature_valid(cast(RSAPublicKey, issuer.public_key())):
-            raise CouldNotGetValidCRLError("CRL failed signature validation")
+            raise CrlError(
+                CrlErrorReason.SIGNATURE_INVALID, "CRL failed signature validation"
+            )
 
 
 @frozen
@@ -246,7 +286,7 @@ class RequestCrlRetriever:
         crl: x509.CertificateRevocationList | None
         try:
             crl = await self.crl_retriever.retrieve(url, issuer)
-        except CouldNotGetValidCRLError:
+        except CrlError:
             logger.exception("Could not retrieve CRL %s", url)
             self.errors.append("ERR-003")
             crl = None

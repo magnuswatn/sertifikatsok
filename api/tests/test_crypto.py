@@ -19,11 +19,15 @@ from sertifikatsok.crypto import (
     AppCrlRetriever,
     CertRetriever,
     CertValidator,
+    CrlDateValidationError,
     CrlDownloader,
+    CrlError,
+    CrlErrorReason,
+    CrlHttpStatusError,
     RequestCrlRetriever,
 )
 from sertifikatsok.enums import CertificateStatus, Environment
-from sertifikatsok.errors import CouldNotGetValidCRLError, SertifikatSokError
+from sertifikatsok.errors import SertifikatSokError
 from sertifikatsok.utils import datetime_now_utc
 
 from .testlib import read_pem_file
@@ -203,24 +207,30 @@ class TestAppCrlRetriever:
 
     def test_validate_expired(self, ca: CertificateAuthority) -> None:
         crl = ca.generate_crl([], expired=True)
-        with pytest.raises(CouldNotGetValidCRLError) as error:
+        with pytest.raises(CrlError) as error:
             AppCrlRetriever._validate(crl, ca.cert)
-        assert "CRL failed date validation" in error.value.args[0]
+        assert error.value.message
+        assert "CRL failed date validation" in error.value.message
+        assert isinstance(error.value.error_reason, CrlDateValidationError)
 
     def test_validate_wrong_issuer(self, ca: CertificateAuthority) -> None:
         ca2 = CertificateAuthority.create("sertifikatsok.no CA2")
         crl = ca2.generate_crl([])
-        with pytest.raises(CouldNotGetValidCRLError) as error:
+        with pytest.raises(CrlError) as error:
             AppCrlRetriever._validate(crl, ca.cert)
-        assert "CRL failed issuer validation" in error.value.args[0]
+        assert error.value.message
+        assert "CRL failed issuer validation" in error.value.message
+        assert error.value.error_reason == CrlErrorReason.WRONG_ISSUER
 
     def test_validate_invalid_signature(self, ca: CertificateAuthority) -> None:
         # same name, but different key
         ca2 = CertificateAuthority.create("sertifikatsok.no CA")
         crl = ca2.generate_crl([])
-        with pytest.raises(CouldNotGetValidCRLError) as error:
+        with pytest.raises(CrlError) as error:
             AppCrlRetriever._validate(crl, ca.cert)
-        assert "CRL failed signature validation" in error.value.args[0]
+        assert error.value.message
+        assert "CRL failed signature validation" in error.value.message
+        assert error.value.error_reason == CrlErrorReason.SIGNATURE_INVALID
 
     async def test_concurrent_retrieving(self, ca: CertificateAuthority) -> None:
         crl = ca.generate_crl([])
@@ -285,7 +295,7 @@ class TestRequestCrlRetriever:
                 self, url: str, issuer: x509.Certificate
             ) -> x509.CertificateRevocationList:
                 self.count += 1
-                raise CouldNotGetValidCRLError()
+                raise CrlError(CrlErrorReason.MALFORMED)
 
         dummy_app_crl_retriever = DummyAppCrlRetriever()
         request_crl_retriever = RequestCrlRetriever(dummy_app_crl_retriever)
@@ -312,7 +322,7 @@ class TestRequestCrlRetriever:
                 self, url: str, issuer: x509.Certificate
             ) -> x509.CertificateRevocationList:
                 if issuer == ca2.cert:
-                    raise CouldNotGetValidCRLError("CRL did not validate")
+                    raise CrlError(CrlErrorReason.WRONG_ISSUER, "CRL did not validate")
                 else:
                     return crl
 
@@ -518,11 +528,13 @@ class TestCrlDownloader:
             )
         )
 
-        with pytest.raises(CouldNotGetValidCRLError) as error:
+        with pytest.raises(CrlError) as error:
             async with httpx.AsyncClient(transport=transport) as client:
                 await CrlDownloader()._download_crl_with_client(
                     client, "http://crl.watn.no"
                 )
+        assert isinstance(error.value.error_reason, CrlHttpStatusError)
+        assert error.value.error_reason.http_status_code == 404
         assert "status code 404 " in str(error)
 
     async def test_failed_download_wrong_content_type(self) -> None:
@@ -534,9 +546,11 @@ class TestCrlDownloader:
             )
         )
 
-        with pytest.raises(CouldNotGetValidCRLError) as error:
+        with pytest.raises(CrlError) as error:
             async with httpx.AsyncClient(transport=transport) as client:
                 await CrlDownloader()._download_crl_with_client(
                     client, "http://crl.watn.no"
                 )
+        assert isinstance(error.value.error_reason, CrlErrorReason)
+        assert error.value.error_reason == CrlErrorReason.INVALID_CONTENT_TYPE
         assert "Got content type: text/plain " in str(error)
