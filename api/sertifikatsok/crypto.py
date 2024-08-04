@@ -48,8 +48,18 @@ class CrlDateValidationError:
 
 
 @frozen
+class UnsupportedCriticalExtensionInCrlError:
+    extensions: list[str]
+
+
+@frozen
 class CrlError(SertifikatSokError):
-    error_reason: CrlErrorReason | CrlHttpStatusError | CrlDateValidationError
+    error_reason: (
+        CrlErrorReason
+        | CrlHttpStatusError
+        | CrlDateValidationError
+        | UnsupportedCriticalExtensionInCrlError
+    )
     message: str | None = None
 
 
@@ -266,6 +276,17 @@ class AppCrlRetriever:
                 CrlDateValidationError(crl.last_update_utc, crl.next_update_utc),
                 f"CRL failed date validation. "
                 f"Last update: '{crl.last_update_utc}' Next Update: '{crl.next_update_utc}'",
+            )
+
+        # None of the extensions we expect should be marked critical according to rfc5280,
+        # so let's just error out on any critical extensions.
+        if any(ext.critical for ext in crl.extensions):
+            critical_extensions = [
+                ext.oid.dotted_string for ext in crl.extensions if ext.critical
+            ]
+            raise CrlError(
+                UnsupportedCriticalExtensionInCrlError(critical_extensions),
+                "Unsupported critical extension(s) in CRL",
             )
 
 

@@ -25,6 +25,7 @@ from sertifikatsok.crypto import (
     CrlErrorReason,
     CrlHttpStatusError,
     RequestCrlRetriever,
+    UnsupportedCriticalExtensionInCrlError,
 )
 from sertifikatsok.enums import CertificateStatus, Environment
 from sertifikatsok.errors import SertifikatSokError
@@ -100,6 +101,7 @@ class CertificateAuthority:
         self,
         revoked_certs: list[x509.Certificate],
         last_and_next_update: tuple[datetime.datetime, datetime.datetime] | None = None,
+        extra_extensions: list[tuple[x509.ExtensionType, bool]] | None = None,
     ) -> x509.CertificateRevocationList:
         if last_and_next_update is not None:
             last_update, next_update = last_and_next_update
@@ -119,6 +121,10 @@ class CertificateAuthority:
             .last_update(last_update)
             .next_update(next_update)
         )
+
+        if extra_extensions:
+            for extval, critical in extra_extensions:
+                crl_builder = crl_builder.add_extension(extval, critical)
 
         for revoked_cert in revoked_certs:
             crl_builder = crl_builder.add_revoked_certificate(
@@ -259,6 +265,31 @@ class TestAppCrlRetriever:
         assert error.value.message
         assert "CRL failed signature validation" in error.value.message
         assert error.value.error_reason == CrlErrorReason.SIGNATURE_INVALID
+
+    def test_validate_with_unknown_critical_extension(
+        self, ca: CertificateAuthority
+    ) -> None:
+        # Let's pretend this is a partitioned CRL
+        critical_extension = x509.IssuingDistributionPoint(
+            full_name=[x509.UniformResourceIdentifier("http://crl.watn.no/crl.crl")],
+            relative_name=None,
+            only_contains_user_certs=True,
+            only_contains_ca_certs=False,
+            only_some_reasons=None,
+            indirect_crl=False,
+            only_contains_attribute_certs=False,
+        )
+
+        crl = ca.generate_crl([], extra_extensions=[(critical_extension, True)])
+
+        with pytest.raises(CrlError) as error:
+            AppCrlRetriever._validate(crl, ca.cert)
+        assert isinstance(
+            error.value.error_reason, UnsupportedCriticalExtensionInCrlError
+        )
+        assert error.value.error_reason.extensions == ["2.5.29.28"]
+        assert error.value.message
+        assert "Unsupported critical extension(s) in CRL" in error.value.message
 
     async def test_concurrent_retrieving(self, ca: CertificateAuthority) -> None:
         crl = ca.generate_crl([])
