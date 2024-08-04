@@ -97,9 +97,15 @@ class CertificateAuthority:
         return cls(name, cert, private_key)
 
     def generate_crl(
-        self, revoked_certs: list[x509.Certificate], *, expired: bool = False
+        self,
+        revoked_certs: list[x509.Certificate],
+        last_and_next_update: tuple[datetime.datetime, datetime.datetime] | None = None,
     ) -> x509.CertificateRevocationList:
-        date_skew = datetime.timedelta(days=-120 if expired else 0)
+        if last_and_next_update is not None:
+            last_update, next_update = last_and_next_update
+        else:
+            last_update = datetime_now_utc()
+            next_update = last_update + ONE_DAY
 
         crl_builder = (
             x509.CertificateRevocationListBuilder()
@@ -110,8 +116,8 @@ class CertificateAuthority:
                     ]
                 )
             )
-            .last_update(datetime_now_utc() + date_skew)
-            .next_update(datetime_now_utc() + ONE_DAY + date_skew)
+            .last_update(last_update)
+            .next_update(next_update)
         )
 
         for revoked_cert in revoked_certs:
@@ -206,12 +212,34 @@ class TestAppCrlRetriever:
         AppCrlRetriever._validate(crl, ca.cert)
 
     def test_validate_expired(self, ca: CertificateAuthority) -> None:
-        crl = ca.generate_crl([], expired=True)
+        last_and_next_update = (
+            datetime_now_utc() - ONE_DAY,
+            datetime_now_utc() - datetime.timedelta(seconds=5),
+        )
+        crl = ca.generate_crl([], last_and_next_update)
         with pytest.raises(CrlError) as error:
             AppCrlRetriever._validate(crl, ca.cert)
         assert error.value.message
         assert "CRL failed date validation" in error.value.message
         assert isinstance(error.value.error_reason, CrlDateValidationError)
+        assert error.value.error_reason.last_update, (
+            error.value.error_reason.next_update == last_and_next_update
+        )
+
+    def test_validate_not_yet_valid(self, ca: CertificateAuthority) -> None:
+        last_and_next_update = (
+            datetime_now_utc() + datetime.timedelta(seconds=5),
+            datetime_now_utc() + ONE_DAY,
+        )
+        crl = ca.generate_crl([], last_and_next_update)
+        with pytest.raises(CrlError) as error:
+            AppCrlRetriever._validate(crl, ca.cert)
+        assert error.value.message
+        assert "CRL failed date validation" in error.value.message
+        assert isinstance(error.value.error_reason, CrlDateValidationError)
+        assert error.value.error_reason.last_update, (
+            error.value.error_reason.next_update == last_and_next_update
+        )
 
     def test_validate_wrong_issuer(self, ca: CertificateAuthority) -> None:
         ca2 = CertificateAuthority.create("sertifikatsok.no CA2")
