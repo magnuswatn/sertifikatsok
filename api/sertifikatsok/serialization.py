@@ -12,6 +12,8 @@ from typing import Any
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import Encoding
 
+from sertifikatsok.utils import get_datetime_as_norway_timezone_str
+
 from .enums import (
     CertificateRoles,
     CertificateStatus,
@@ -47,8 +49,8 @@ def qualified_certificate(val: QualifiedCertificate) -> dict[str, str | dict[str
     ).decode("ascii")
     info["Emne"] = val.print_subject(full=True)
     info["Utsteder"] = val.issuer
-    info["Gyldig fra"] = val.cert.not_valid_before.isoformat()
-    info["Gyldig til"] = val.cert.not_valid_after.isoformat()
+    info["Gyldig fra"] = get_datetime_as_norway_timezone_str(val.cert.not_valid_before)
+    info["Gyldig til"] = get_datetime_as_norway_timezone_str(val.cert.not_valid_after)
     info["Nøkkelbruk"] = val.get_key_usages()
     eku = val.get_extended_key_usages()
     info["Utvidet nøkkelbruk"] = eku if eku is not None else "(ingen)"
@@ -187,7 +189,7 @@ def _get_norwegian_cert_status(
         return "Utgått"
     elif cert_status == CertificateStatus.REVOKED:
         if revocation_date:
-            return f"Revokert ({revocation_date})"
+            return f"Revokert ({get_datetime_as_norway_timezone_str(revocation_date)})"
         return "Revokert"
     elif cert_status == CertificateStatus.INVALID:
         return "Ugyldig"

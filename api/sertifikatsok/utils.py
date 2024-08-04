@@ -1,4 +1,7 @@
 from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
+
+NORWAY_TIME_ZONE = ZoneInfo("Europe/Oslo")
 
 
 def get_subject_order(field: str) -> int:
@@ -22,3 +25,7 @@ def get_subject_order(field: str) -> int:
 
 def datetime_now_utc() -> datetime:
     return datetime.now(tz=UTC)
+
+
+def get_datetime_as_norway_timezone_str(dt: datetime) -> str:
+    return dt.astimezone(NORWAY_TIME_ZONE).isoformat(sep=" ")
