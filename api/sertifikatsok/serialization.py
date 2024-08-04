@@ -183,17 +183,21 @@ def certificate_search(val: CertificateSearchResponse) -> dict[str, Any]:
 def _get_norwegian_cert_status(
     cert_status: CertificateStatus, revocation_date: datetime | None
 ) -> str:
-    if cert_status == CertificateStatus.OK:
-        return "OK"
-    elif cert_status == CertificateStatus.EXPIRED:
-        return "Utgått"
-    elif cert_status == CertificateStatus.REVOKED:
-        if revocation_date:
-            return f"Revokert ({get_datetime_as_norway_timezone_str(revocation_date)})"
-        return "Revokert"
-    elif cert_status == CertificateStatus.INVALID:
-        return "Ugyldig"
-    return "Ukjent"
+    match cert_status:
+        case CertificateStatus.OK:
+            return "OK"
+        case CertificateStatus.EXPIRED:
+            return "Utgått"
+        case CertificateStatus.REVOKED:
+            return (
+                f"Revokert ({get_datetime_as_norway_timezone_str(revocation_date)})"
+                if revocation_date is not None
+                else "Revokert"
+            )
+        case CertificateStatus.INVALID:
+            return "Ugyldig"
+        case CertificateStatus.UNKNOWN:
+            return "Ukjent"
 
 
 def _get_norwegian_display_name(cert: QualifiedCertificate) -> tuple[str, str]:
