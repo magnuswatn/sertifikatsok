@@ -170,9 +170,18 @@ class AppCrlRetriever:
         try:
             self._validate(crl, issuer)
         except CrlError as e:
-            logger.debug(
-                "CRL %s in AppCrlRetriever memory cache was invalid: %s", url, e
-            )
+            if not isinstance(e.error_reason, CrlDateValidationError):
+                # Don't really espect memory cache to become invalid in any
+                # other way than just being old.
+                logger.warning(
+                    "CRL %s in AppCrlRetriever memory cache was invalid",
+                    url,
+                    exc_info=True,
+                )
+            else:
+                logger.debug(
+                    "CRL %s in AppCrlRetriever memory cache was invalid: %s", url, e
+                )
             return None
 
         logger.debug("Returning CRL for %s from memory", url)
@@ -192,7 +201,14 @@ class AppCrlRetriever:
             crl = x509.load_der_x509_crl(crl_bytes)
             self._validate(crl, issuer)
         except (ValueError, CrlError) as e:
-            logger.debug("CRL %s in disk cache was invalid: %s", url, e)
+            if isinstance(e, ValueError) or not isinstance(
+                e.error_reason, CrlDateValidationError
+            ):
+                # Don't really espect files on disk to become invalid in any
+                # other way than just being old.
+                logger.warning("CRL %s in disk cache was invalid", url, exc_info=True)
+            else:
+                logger.debug("CRL %s in disk cache was invalid: %s", url, e)
             return None
 
         logger.debug("Returning CRL for %s from disk", url)
