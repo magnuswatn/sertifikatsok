@@ -36,16 +36,16 @@ class CaLoader:
         impl: type[CertIssuingImpl],
     ) -> CertificateAuthority:
         cloned_ca_config = cloned_ca.value
-        cdp, ca_cert = (
-            (cloned_ca_config.cdp_test, cloned_ca_config.org_ca_cert_test)
+        env_config = (
+            cloned_ca_config.test_config
             if env == "test"
-            else (cloned_ca_config.cdp_prod, cloned_ca_config.org_ca_cert_prod)
+            else cloned_ca_config.prod_config
         )
 
-        input_file = self.input_folder.joinpath(ca_cert)
-        output_file = self.output_folder.joinpath(ca_cert)
+        input_file = self.input_folder.joinpath(env_config.org_ca_cert)
+        output_file = self.output_folder.joinpath(env_config.org_ca_cert)
         cache_folder = self.output_folder.joinpath(".key_cache")
-        key_cache_file = cache_folder.joinpath(ca_cert)
+        key_cache_file = cache_folder.joinpath(env_config.org_ca_cert)
 
         cache_folder.mkdir(exist_ok=True)
 
@@ -56,7 +56,7 @@ class CaLoader:
             )
             assert isinstance(cached_priv_key, RSAPrivateKey)
             ca = CertificateAuthority.create_from_cache(
-                cdp,
+                env_config.cdp,
                 load_pem_x509_certificate(output_file.read_bytes()),
                 cached_priv_key,
                 cloned_ca_config.seid_v,
@@ -67,7 +67,7 @@ class CaLoader:
         else:
             logger.info("Duplicating CA %s", cloned_ca)
             ca = CertificateAuthority.create_from_original(
-                cdp,
+                env_config.cdp,
                 load_pem_x509_certificate(input_file.read_bytes()),
                 cloned_ca_config.seid_v,
                 impl,
