@@ -24,6 +24,7 @@ from cryptography.x509 import (
     CertificatePolicies,
     CertificateRevocationListBuilder,
     CRLDistributionPoints,
+    CRLNumber,
     DistributionPoint,
     ExtendedKeyUsage,
     ExtensionNotFound,
@@ -268,7 +269,17 @@ class CertIssuingImpl:
             .issuer_name(self.cert.subject)
             .last_update(now)
             .next_update(now + timedelta(days=1))
+            .add_extension(CRLNumber(randbelow(100000)), critical=False)
+            .add_extension(
+                AuthorityKeyIdentifier.from_issuer_subject_key_identifier(
+                    self.cert.extensions.get_extension_for_class(
+                        SubjectKeyIdentifier
+                    ).value
+                ),
+                critical=False,
+            )
         )
+
         for cert in self.revoked_certs:
             builder = builder.add_revoked_certificate(cert)
         return builder.sign(self.private_key, SHA256()).public_bytes(Encoding.DER)
