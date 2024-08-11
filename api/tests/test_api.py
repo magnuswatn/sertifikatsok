@@ -373,3 +373,17 @@ def test_search_does_not_fail_when_only_some_servers_fail(
         if query == "buypassfail"
         else "Kunne ikke hente alle sertfikater fra Buypass"
     )
+
+
+@pytest.mark.parametrize("env", ["test", "prod"])
+def test_search_revoked_certs_are_marked_as_such(client: Client, env: str) -> None:
+    resp = client.search_resp(env=env, typ="enterprise", query="987654321")
+
+    resp_json = resp.json()
+    assert not resp_json["errors"]
+
+    cert_sets = resp_json["certificate_sets"]
+    for cert_set in cert_sets:
+        assert cert_set["status"] == "Revokert"
+        for cert in cert_set["certificates"]:
+            assert cert["info"]["Status"].startswith("Revokert ")

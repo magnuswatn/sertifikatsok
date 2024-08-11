@@ -19,6 +19,10 @@ while [[ x -le 15 ]]; do
 
   echo "Contact with server for prod env"
 
+  # Delete CRL cache, since new CA databases have been
+  # created
+  rm /opt/sertifikatsok/api/crls/*.crl
+
   exit 0
 done
 

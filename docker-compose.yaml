@@ -18,7 +18,8 @@ services:
       - ldap_server_prod
     volumes:
       - ./misc:/opt/sertifikatsok/misc
-    command: "bash /opt/sertifikatsok/misc/check_if_testserver_started.sh"
+      - ./api:/opt/sertifikatsok/api
+    command: "bash /opt/sertifikatsok/misc/check_if_testserver_started_and_delete_crl_cache.sh"
   sertifikatsok:
     build:
       dockerfile: Dockerfile

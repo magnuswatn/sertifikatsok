@@ -24,6 +24,7 @@ from cryptography.x509 import (
     CertificateRevocationListBuilder,
     CRLDistributionPoints,
     CRLNumber,
+    CRLReason,
     DistributionPoint,
     ExtendedKeyUsage,
     ExtensionType,
@@ -32,7 +33,9 @@ from cryptography.x509 import (
     NameAttribute,
     ObjectIdentifier,
     PolicyInformation,
+    ReasonFlags,
     RevokedCertificate,
+    RevokedCertificateBuilder,
     RFC822Name,
     SubjectAlternativeName,
     SubjectKeyIdentifier,
@@ -179,6 +182,18 @@ class CertIssuingImpl:
         for cert in self.revoked_certs:
             builder = builder.add_revoked_certificate(cert)
         return builder.sign(self.private_key, SHA256()).public_bytes(Encoding.DER)
+
+    def revoke_cert(self, cert: Certificate, reason: ReasonFlags | None = None) -> None:
+        builder = (
+            RevokedCertificateBuilder()
+            .revocation_date(datetime.now(tz=UTC))
+            .serial_number(cert.serial_number)
+        )
+
+        if reason is not None:
+            builder = builder.add_extension(CRLReason(reason), critical=False)
+
+        self.revoked_certs.append(builder.build())
 
 
 class CommfidesCertIssuingImpl(CertIssuingImpl):
