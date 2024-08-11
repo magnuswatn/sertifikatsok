@@ -113,9 +113,9 @@ idna==3.7 \
     #   -c main.txt
     #   hyperlink
     #   twisted
-incremental==22.10.0 \
-    --hash=sha256:912feeb5e0f7e0188e6f42241d2f450002e11bbc0937c65865045854c24c0bd0 \
-    --hash=sha256:b864a1f30885ee72c5ac2835a761b8fe8aa9c28b9395cacf27286602688d3e51
+incremental==24.7.2 \
+    --hash=sha256:8cb2c3431530bec48ad70513931a760f446ad6c25e8333ca5d95e24b0ed7b8fe \
+    --hash=sha256:fb4f1d47ee60efe87d4f6f0ebb5f70b9760db2b2574c59c8e8912be4ebd464c9
     # via twisted
 iniconfig==2.0.0 \
     --hash=sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3 \
@@ -214,12 +214,10 @@ six==1.16.0 \
     # via
     #   automat
     #   ldaptor
-twisted[tls]==24.3.0 \
-    --hash=sha256:039f2e6a49ab5108abd94de187fa92377abe5985c7a72d68d0ad266ba19eae63 \
-    --hash=sha256:6b38b6ece7296b5e122c9eb17da2eeab3d98a198f50ca9efd00fb03e5b4fd4ae
-    # via
-    #   ldaptor
-    #   twisted
+twisted[tls]==24.7.0 \
+    --hash=sha256:5a60147f044187a127ec7da96d170d49bcce50c6fd36f594e60f4587eff4d394 \
+    --hash=sha256:734832ef98108136e222b5230075b1079dad8a3fc5637319615619a7725b0c81
+    # via ldaptor
 typing-extensions==4.12.0 \
     --hash=sha256:8cbcdc8606ebcb0d95453ad7dc5065e6237b6aa230a31e81d0f440c30fed5fd8 \
     --hash=sha256:b349c66bea9016ac22978d800cfff206d5f9816951f12a7d0ec5578b0a819594
@@ -272,4 +270,6 @@ zope-interface==6.4.post2 \
 setuptools==70.2.0 \
     --hash=sha256:b8b8060bb426838fbe942479c90296ce976249451118ef566a5a0b7d8b78fb05 \
     --hash=sha256:bd63e505105011b25c3c11f753f7e3b8465ea739efddaccef8f0efac2137bac1
-    # via zope-interface
+    # via
+    #   incremental
+    #   zope-interface
