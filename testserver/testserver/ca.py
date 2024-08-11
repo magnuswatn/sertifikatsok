@@ -270,7 +270,7 @@ class CertIssuingImpl:
             .next_update(now + timedelta(days=1))
         )
         for cert in self.revoked_certs:
-            builder.add_revoked_certificate(cert)
+            builder = builder.add_revoked_certificate(cert)
         return builder.sign(self.private_key, SHA256()).public_bytes(Encoding.DER)
 
 
