@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import httpx
 import pytest
-from attr import frozen
+from attrs import frozen
 
 from sertifikatsok.brreg_batch import (
     BATCH_NAME,

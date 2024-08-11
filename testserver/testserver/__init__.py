@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Literal
 
-from attr import field, frozen
+from attrs import field, frozen
 
 Env = Literal["test", "prod"]
 

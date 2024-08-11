@@ -2,7 +2,7 @@ import hashlib
 from collections.abc import Collection
 from typing import Literal, Self
 
-from attr import frozen
+from attrs import frozen
 
 from ruldap3 import SearchEntry, ldap_escape
 

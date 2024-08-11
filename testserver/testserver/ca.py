@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 from secrets import choice, randbelow, randbits
 from typing import Literal, Self
 
-from attr import field, frozen
+from attrs import field, frozen
 from cryptography.hazmat.primitives.asymmetric.rsa import (
     RSAPrivateKey,
     RSAPublicKey,

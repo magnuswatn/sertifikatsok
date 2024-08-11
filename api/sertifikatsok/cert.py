@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 
-from attr import frozen
+from attrs import frozen
 from cryptography.x509 import (
     Certificate,
     CertificatePolicies,
