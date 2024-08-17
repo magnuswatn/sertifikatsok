@@ -200,7 +200,7 @@ class TestQualifiedCertificateSet:
         assert CertificateRoles.CRYPT not in non_encryption_cert.roles
 
     @pytest.mark.parametrize(
-        ["file_path", "invalid_subject", "invalid_exts"],
+        ("file_path", "invalid_subject", "invalid_exts"),
         [
             ("tests/resources/cert_with_invalid_subject.pem", True, False),
             ("tests/resources/cert_with_invalid_extensions.pem", False, True),

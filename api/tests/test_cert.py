@@ -34,5 +34,5 @@ def test_cert_with_invalid_subject_and_extensions() -> None:
 def test_cert_with_invalid_issuer() -> None:
     raw_cert = read_pem_file("tests/resources/cert_with_invalid_issuer.pem")
     # We do not expect this, so it should fail
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa
         MaybeInvalidCertificate.create(raw_cert)

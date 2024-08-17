@@ -23,14 +23,14 @@ def database() -> Database:
 
 
 @pytest.mark.parametrize(
-    [
+    (
         "ldap_url",
         "expected_scope",
         "expected_hostname",
         "expected_base",
         "expected_ca",
         "expected_query",
-    ],
+    ),
     [
         (
             "ldap://ldap.buypass.no",
@@ -98,30 +98,6 @@ def database() -> Database:
         ),
         (
             "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?%2A?sub??",
-            Scope.SUB,
-            "ldap.buypass.no",
-            "dc=Buypass,dc=no,CN=Buypass Class 3",
-            CertificateAuthority.BUYPASS,
-            "(objectClass=*)",
-        ),
-        (
-            "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?%2A?sub??",
-            Scope.SUB,
-            "ldap.buypass.no",
-            "dc=Buypass,dc=no,CN=Buypass Class 3",
-            CertificateAuthority.BUYPASS,
-            "(objectClass=*)",
-        ),
-        (
-            "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?%2A?sub??",
-            Scope.SUB,
-            "ldap.buypass.no",
-            "dc=Buypass,dc=no,CN=Buypass Class 3",
-            CertificateAuthority.BUYPASS,
-            "(objectClass=*)",
-        ),
-        (
-            "ldap://ldap.buypass.no/dc=Buypass,dc=no,CN=Buypass%20Class%203?*?sub??",
             Scope.SUB,
             "ldap.buypass.no",
             "dc=Buypass,dc=no,CN=Buypass Class 3",
@@ -393,7 +369,7 @@ def test_should_auto_detect_url_with_garbage_prefix(database: Database) -> None:
 
 
 @pytest.mark.parametrize(
-    ["serial", "expected_searched_for_serial_numbers"],
+    ("serial", "expected_searched_for_serial_numbers"),
     [
         (
             "13:fd:31:a6:2a:a6:11:af:b6:89:82",  # hex with colons
