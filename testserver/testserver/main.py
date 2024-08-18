@@ -50,7 +50,7 @@ class CrlResource(resource.Resource):
         return self.crls[req.getRequestHostname().decode()][path.decode()]
 
 
-def is_valid_market(env: str) -> TypeGuard[Literal["test", "prod"]]:
+def is_valid_env(env: str) -> TypeGuard[Literal["test", "prod"]]:
     return env in ["test", "prod"]
 
 
@@ -68,7 +68,7 @@ def main() -> None:
     logging.basicConfig(level=logging.DEBUG)
 
     env = os.environ.get("ENVIRONMENT", "test")
-    assert is_valid_market(env)
+    assert is_valid_env(env)
 
     logger.info("Loading certs for environment %s", env)
 
