@@ -1,9 +1,17 @@
 import logging
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from secrets import randbelow
 from typing import Any, Self
 
 from cryptography.hazmat.primitives.serialization import Encoding
+from cryptography.x509 import (
+    ExtensionNotFound,
+    NameOID,
+    ObjectIdentifier,
+    RFC822Name,
+    SubjectAlternativeName,
+)
 from ldaptor.inmemory import ReadOnlyInMemoryLDAPEntry  # type: ignore
 from ldaptor.protocols.ldap.ldaperrors import (  # type: ignore
     LDAPNoSuchAttribute,
@@ -22,7 +30,7 @@ from twisted.internet.interfaces import IAddress
 from twisted.internet.protocol import ServerFactory
 
 from testserver import LdapOU
-from testserver.ca import LdapPublishedCertificate
+from testserver.ca import IssuedCertificate
 from testserver.config import CertificateAuthority
 
 logger = logging.getLogger(__name__)
@@ -161,7 +169,7 @@ class LDAPServerFactory(ServerFactory):
     def add_commfides_ca(self, ca: CertificateAuthority) -> None:
         ca_ou = self.commfides_root.addChild(f"ou={ca.ldap_name}", {})
 
-        sorted_certs: dict[LdapOU, list[LdapPublishedCertificate]] = defaultdict(list)
+        sorted_certs: dict[LdapOU, list[IssuedCertificate]] = defaultdict(list)
         for issued_cert in ca.impl.issued_certs:
             assert issued_cert.cert_role
             sorted_certs[issued_cert.cert_role].append(issued_cert)
@@ -176,22 +184,125 @@ class LDAPServerFactory(ServerFactory):
                 },
             )
             for cert in sorted_certs[role]:
-                role_ou.addChild(rdn=cert.rdn, attributes=cert.ldap_attrs)
+                cert_ldap_attrs: dict[str, Sequence[str | bytes]] = {
+                    "userCertificate;binary": [
+                        cert.certificate.public_bytes(Encoding.DER)
+                    ],
+                    "certificateSerialNumber": [str(cert.certificate.serial_number)],
+                    "objectClass": [
+                        "top",
+                        "person",
+                        "organizationalPerson",
+                        "inetOrgPerson",
+                        "inetOrgPersonWithCertSerno",
+                    ],
+                }
+
+                subject_attrs: list[tuple[ObjectIdentifier, str]] = [
+                    (NameOID.COMMON_NAME, "cn"),
+                    (NameOID.ORGANIZATIONAL_UNIT_NAME, "ou"),
+                    (NameOID.GIVEN_NAME, "givenName"),
+                    (NameOID.SURNAME, "sn"),
+                    (NameOID.SERIAL_NUMBER, "serialNumber"),
+                    (NameOID.ORGANIZATION_NAME, "o"),
+                ]
+                for name_oid, ldap_attr in subject_attrs:
+                    # do not include attr when no value
+                    if subject_val := cert.certificate.subject.get_attributes_for_oid(
+                        name_oid
+                    ):
+                        cert_ldap_attrs[ldap_attr] = [subject_val[0].value]
+
+                try:
+                    sans = cert.certificate.extensions.get_extension_for_class(
+                        SubjectAlternativeName
+                    )
+                    cert_ldap_attrs["mail"] = [
+                        sans.value.get_values_for_type(RFC822Name)[0]
+                    ]
+                except ExtensionNotFound:
+                    pass
+
+                assert cert.enterprise_cert is not None
+                if cert.enterprise_cert:
+                    # generate a random "uid" for rdn
+                    uid = str(randbelow(9999999999999))
+                    cert_ldap_attrs["uid"] = [uid]
+                    rdn = f"uid={uid}"
+                else:
+                    # use serial number
+                    assert "serialNumber" in cert_ldap_attrs
+                    [serial_number] = cert_ldap_attrs["serialNumber"]
+                    assert isinstance(serial_number, str)
+                    rdn = f"serialNumber={serial_number}"
+
+                role_ou.addChild(rdn=rdn, attributes=cert_ldap_attrs)
 
     def add_buypass_ca(self, ca: CertificateAuthority) -> None:
+        ca_cert_bytes = ca.impl.cert.public_bytes(Encoding.DER)
+        crl_bytes = ca.impl.get_crl()
         ldap_attrs = {
             "objectClass": ["certificationAuthority", "cRLDistributionPoint"],
             "cn": [ca.name],
-            "cACertificate;binary": [ca.impl.cert.public_bytes(Encoding.DER)],
-            "certificateRevocationList;binary": [ca.impl.get_crl()],
+            "cACertificate;binary": [ca_cert_bytes],
+            "certificateRevocationList;binary": [crl_bytes],
         }
 
         main = self.root.addChild(f"CN={ca.name}", ldap_attrs)
         no = main.addChild("dc=no", ldap_attrs)
         ca_root = no.addChild("dc=Buypass", ldap_attrs)
 
+        _last_pss_identifier = randbelow(99999)
         for issued_cert in ca.impl.issued_certs:
-            ca_root.addChild(rdn=issued_cert.rdn, attributes=issued_cert.ldap_attrs)
+            pss_unique_id = _last_pss_identifier
+            _last_pss_identifier += 1
+
+            cert_ldap_attrs: dict[str, Sequence[str | bytes]] = {
+                "userCertificate;binary": [
+                    issued_cert.certificate.public_bytes(Encoding.DER)
+                ],
+                "certificateSerialNumber": [str(issued_cert.certificate.serial_number)],
+                "pssUniqueIdentifier": [str(pss_unique_id)],
+                "cACertificate;binary": [ca_cert_bytes],
+                "certificateRevocationList;binary": [crl_bytes],
+                "objectClass": ["top"],
+            }
+
+            subject_attrs: list[tuple[ObjectIdentifier, str]] = [
+                (NameOID.COMMON_NAME, "displayName"),
+                (NameOID.COMMON_NAME, "cn"),
+                (NameOID.ORGANIZATIONAL_UNIT_NAME, "ou"),
+                (NameOID.GIVEN_NAME, "givenname"),
+                (NameOID.SURNAME, "surname"),
+                (NameOID.SERIAL_NUMBER, "serialNumber"),
+                (NameOID.ORGANIZATION_IDENTIFIER, "organizationidentifier"),
+                (NameOID.ORGANIZATION_NAME, "o"),
+            ]
+            for name_oid, ldap_attr in subject_attrs:
+                # include attr even when no value
+                cert_ldap_attrs[ldap_attr] = (
+                    [subject_val[0].value]
+                    if (
+                        subject_val
+                        := issued_cert.certificate.subject.get_attributes_for_oid(
+                            name_oid
+                        )
+                    )
+                    else [""]
+                )
+
+            try:
+                sans = issued_cert.certificate.extensions.get_extension_for_class(
+                    SubjectAlternativeName
+                )
+                email = sans.value.get_values_for_type(RFC822Name)[0]
+            except ExtensionNotFound:
+                email = ""
+            cert_ldap_attrs["mail"] = [email]
+
+            rdn = f"pssUniqueIdentifier={pss_unique_id}"
+
+            ca_root.addChild(rdn=rdn, attributes=cert_ldap_attrs)
 
     def buildProtocol(self, addr: IAddress) -> BaseLDAPServer:
         proto = self.protocol()  # type: ignore

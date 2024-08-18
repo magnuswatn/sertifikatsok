@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import string
-from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from secrets import choice, randbelow, randbits
 from typing import Literal, Self
@@ -27,7 +26,6 @@ from cryptography.x509 import (
     CRLNumber,
     DistributionPoint,
     ExtendedKeyUsage,
-    ExtensionNotFound,
     ExtensionType,
     KeyUsage,
     Name,
@@ -89,112 +87,10 @@ def generate_dummy_rsa_public_key(key_size: int) -> RSAPublicKey:
 
 
 @frozen
-class LdapPublishedCertificate:
+class IssuedCertificate:
     certificate: Certificate
-    rdn: str
-    ldap_attrs: Mapping[str, Sequence[str | bytes]]
     cert_role: LdapOU | None
-
-    @classmethod
-    def create_buypass(
-        cls,
-        ca_impl: BuypassCertIssuingImpl,
-        certificate: Certificate,
-        pss_unique_id: str,
-    ) -> Self:
-        ldap_attrs: dict[str, Sequence[str | bytes]] = {
-            "userCertificate;binary": [certificate.public_bytes(Encoding.DER)],
-            "certificateSerialNumber": [str(certificate.serial_number)],
-            "pssUniqueIdentifier": [pss_unique_id],
-            "cACertificate;binary": [ca_impl.cert.public_bytes(Encoding.DER)],
-            "certificateRevocationList;binary": [ca_impl.get_crl()],
-            "objectClass": ["top"],
-        }
-
-        subject_attrs: list[tuple[ObjectIdentifier, str]] = [
-            (NameOID.COMMON_NAME, "displayName"),
-            (NameOID.COMMON_NAME, "cn"),
-            (NameOID.ORGANIZATIONAL_UNIT_NAME, "ou"),
-            (NameOID.GIVEN_NAME, "givenname"),
-            (NameOID.SURNAME, "surname"),
-            (NameOID.SERIAL_NUMBER, "serialNumber"),
-            (NameOID.ORGANIZATION_IDENTIFIER, "organizationidentifier"),
-            (NameOID.ORGANIZATION_NAME, "o"),
-        ]
-        for name_oid, ldap_attr in subject_attrs:
-            # include attr even when no value
-            ldap_attrs[ldap_attr] = (
-                [subject_val[0].value]
-                if (subject_val := certificate.subject.get_attributes_for_oid(name_oid))
-                else [""]
-            )
-
-        try:
-            sans = certificate.extensions.get_extension_for_class(
-                SubjectAlternativeName
-            )
-            email = sans.value.get_values_for_type(RFC822Name)[0]
-        except ExtensionNotFound:
-            email = ""
-        ldap_attrs["mail"] = [email]
-
-        rdn = f"pssUniqueIdentifier={pss_unique_id}"
-        return cls(certificate, rdn, ldap_attrs, cert_role=None)
-
-    @classmethod
-    def create_commfides(
-        cls,
-        certificate: Certificate,
-        cert_role: LdapOU,
-        *,
-        enterprise_cert: bool,
-    ) -> Self:
-        ldap_attrs: dict[str, Sequence[str | bytes]] = {
-            "userCertificate;binary": [certificate.public_bytes(Encoding.DER)],
-            "certificateSerialNumber": [str(certificate.serial_number)],
-            "objectClass": [
-                "top",
-                "person",
-                "organizationalPerson",
-                "inetOrgPerson",
-                "inetOrgPersonWithCertSerno",
-            ],
-        }
-
-        subject_attrs: list[tuple[ObjectIdentifier, str]] = [
-            (NameOID.COMMON_NAME, "cn"),
-            (NameOID.ORGANIZATIONAL_UNIT_NAME, "ou"),
-            (NameOID.GIVEN_NAME, "givenName"),
-            (NameOID.SURNAME, "sn"),
-            (NameOID.SERIAL_NUMBER, "serialNumber"),
-            (NameOID.ORGANIZATION_NAME, "o"),
-        ]
-        for name_oid, ldap_attr in subject_attrs:
-            # do not include attr when no value
-            if subject_val := certificate.subject.get_attributes_for_oid(name_oid):
-                ldap_attrs[ldap_attr] = [subject_val[0].value]
-
-        try:
-            sans = certificate.extensions.get_extension_for_class(
-                SubjectAlternativeName
-            )
-            ldap_attrs["mail"] = [sans.value.get_values_for_type(RFC822Name)[0]]
-        except ExtensionNotFound:
-            pass
-
-        if enterprise_cert:
-            # generate a random "uid" for rdn
-            uid = str(randbelow(9999999999999))
-            ldap_attrs["uid"] = [uid]
-            rdn = f"uid={uid}"
-        else:
-            # use serial number
-            assert "serialNumber" in ldap_attrs
-            [serial_number] = ldap_attrs["serialNumber"]
-            assert isinstance(serial_number, str)
-            rdn = f"serialNumber={serial_number}"
-
-        return cls(certificate, rdn, ldap_attrs, cert_role)
+    enterprise_cert: bool | None
 
 
 class CertIssuingImpl:
@@ -211,7 +107,7 @@ class CertIssuingImpl:
         self.seid_v = seid_v
         self.cdp = cdp
         self.revoked_certs: list[RevokedCertificate] = []
-        self.issued_certs: list[LdapPublishedCertificate] = []
+        self.issued_certs: list[IssuedCertificate] = []
         self.env = env
 
     def _get_cert_builder(self) -> CertificateBuilder:
@@ -250,7 +146,7 @@ class CertIssuingImpl:
         self,
         person: Person,
         valid_from: datetime,
-    ) -> list[LdapPublishedCertificate]:
+    ) -> list[IssuedCertificate]:
         raise NotImplementedError()
 
     def issue_enterprise_certs(
@@ -259,7 +155,7 @@ class CertIssuingImpl:
         valid_from: datetime,
         common_name: str | None = None,
         ou: str | None = None,
-    ) -> list[LdapPublishedCertificate]:
+    ) -> list[IssuedCertificate]:
         raise NotImplementedError()
 
     def get_crl(self) -> bytes:
@@ -317,7 +213,7 @@ class CommfidesCertIssuingImpl(CertIssuingImpl):
         extra_extensions: list[ExtensionType],
         *,
         enterprise_cert: bool,
-    ) -> list[LdapPublishedCertificate]:
+    ) -> list[IssuedCertificate]:
         valid_to = min(
             valid_from + timedelta(days=365 * 3),
             self.cert.not_valid_after_utc,
@@ -497,13 +393,13 @@ class CommfidesCertIssuingImpl(CertIssuingImpl):
             .sign(self.private_key, SHA256())
         )
 
-        auth_ldap_cert = LdapPublishedCertificate.create_commfides(
+        auth_ldap_cert = IssuedCertificate(
             auth_cert, LdapOU.AUTH, enterprise_cert=enterprise_cert
         )
-        sign_ldap_cert = LdapPublishedCertificate.create_commfides(
+        sign_ldap_cert = IssuedCertificate(
             sign_cert, LdapOU.SIGN, enterprise_cert=enterprise_cert
         )
-        krypt_ldap_cert = LdapPublishedCertificate.create_commfides(
+        krypt_ldap_cert = IssuedCertificate(
             krypt_cert, LdapOU.CRYPT, enterprise_cert=enterprise_cert
         )
         issued_certs = [auth_ldap_cert, sign_ldap_cert, krypt_ldap_cert]
@@ -514,7 +410,7 @@ class CommfidesCertIssuingImpl(CertIssuingImpl):
         self,
         person: Person,
         valid_from: datetime,
-    ) -> list[LdapPublishedCertificate]:
+    ) -> list[IssuedCertificate]:
         if self.seid_v == 1:
             subject_attrs = [
                 NameAttribute(NameOID.COMMON_NAME, person.full_name),
@@ -546,7 +442,7 @@ class CommfidesCertIssuingImpl(CertIssuingImpl):
         valid_from: datetime,
         common_name: str | None = None,
         ou: str | None = None,
-    ) -> list[LdapPublishedCertificate]:
+    ) -> list[IssuedCertificate]:
         if self.seid_v == 1:
             subject_attrs = [
                 NameAttribute(NameOID.SERIAL_NUMBER, enterprise.org_nr),
@@ -579,21 +475,6 @@ class CommfidesCertIssuingImpl(CertIssuingImpl):
 
 
 class BuypassCertIssuingImpl(CertIssuingImpl):
-    def __init__(
-        self,
-        cert: Certificate,
-        private_key: RSAPrivateKey,
-        cdp: list[str],
-        seid_v: Literal[1, 2],
-        env: Env,
-    ) -> None:
-        super().__init__(cert, private_key, cdp, seid_v, env)
-        self._last_pss_identifier = randbelow(99999)
-
-    def get_pss_identifier(self) -> str:
-        self._last_pss_identifier += 1
-        return str(self._last_pss_identifier)
-
     def _issue_certs(
         self,
         subject_attrs: list[NameAttribute],
@@ -603,7 +484,7 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
         extra_extensions: list[ExtensionType] | None = None,
         *,
         include_eku: bool,
-    ) -> list[LdapPublishedCertificate]:
+    ) -> list[IssuedCertificate]:
         valid_to = min(
             valid_from + timedelta(days=365 * 3),
             self.cert.not_valid_after_utc,
@@ -671,12 +552,8 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
             .sign(self.private_key, SHA256())
         )
 
-        auth_ldap_cert = LdapPublishedCertificate.create_buypass(
-            self, auth_cert, self.get_pss_identifier()
-        )
-        sign_ldap_cert = LdapPublishedCertificate.create_buypass(
-            self, sign_cert, self.get_pss_identifier()
-        )
+        auth_ldap_cert = IssuedCertificate(auth_cert, None, None)
+        sign_ldap_cert = IssuedCertificate(sign_cert, None, None)
         issued_certs = [auth_ldap_cert, sign_ldap_cert]
         self.issued_certs.extend(issued_certs)
         return issued_certs
@@ -685,7 +562,7 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
         self,
         person: Person,
         valid_from: datetime,
-    ) -> list[LdapPublishedCertificate]:
+    ) -> list[IssuedCertificate]:
         if self.seid_v == 1:
             subject_attrs = [
                 NameAttribute(NameOID.SERIAL_NUMBER, person.buypass_id),
@@ -728,7 +605,7 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
         valid_from: datetime,
         common_name: str | None = None,
         ou: str | None = None,
-    ) -> list[LdapPublishedCertificate]:
+    ) -> list[IssuedCertificate]:
         if self.seid_v == 1:
             subject_attrs = [
                 NameAttribute(NameOID.SERIAL_NUMBER, enterprise.org_nr),
@@ -769,7 +646,7 @@ class CertificateAuthority:
     impl: CertIssuingImpl
     ldap_name: str | None
 
-    issued_certs: list[LdapPublishedCertificate] = field(factory=list)
+    issued_certs: list[IssuedCertificate] = field(factory=list)
     revoked_certs: list[RevokedCertificate] = field(factory=list)
 
     @property
@@ -779,14 +656,6 @@ class CertificateAuthority:
         ].value
         assert isinstance(cn_value, str)
         return cn_value
-
-    def ldap_attrs(self) -> dict:
-        return {
-            "objectClass": ["certificationAuthority", "cRLDistributionPoint"],
-            "cn": [self.name],
-            "cACertificate;binary": [b"hei"],
-            "certificateRevocationList;binary": [b"hei"],
-        }
 
     @classmethod
     def create_from_cache(
