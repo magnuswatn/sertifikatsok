@@ -1,10 +1,8 @@
 import logging
 import os
 import sys
-from collections import defaultdict
 from collections.abc import Iterable
 from typing import Literal, Self, TypeGuard
-from urllib.parse import urlparse
 
 from ldaptor.interfaces import IConnectedLDAPEntry  # type: ignore
 from twisted.internet import endpoints, reactor
@@ -12,6 +10,7 @@ from twisted.python import log
 from twisted.python.components import registerAdapter
 from twisted.web import resource, server
 from twisted.web.http import Request
+from yarl import URL
 
 from testserver.testdata import generate_testdata
 
@@ -24,20 +23,19 @@ logger = logging.getLogger(__name__)
 class CrlResource(resource.Resource):
     isLeaf = True
 
-    def __init__(self, crls: dict[str, dict[str, bytes]]) -> None:
+    def __init__(self, crls: dict[URL, bytes]) -> None:
         self.crls = crls
         super().__init__()
 
     @classmethod
     def create(cls, cas: Iterable[CertificateAuthority]) -> Self:
-        crls: dict[str, dict[str, bytes]] = defaultdict(dict)
+        crls: dict[URL, bytes] = {}
         for ca in cas:
             crl = ca.impl.get_crl()
             for cdp in ca.impl.cdp:
-                parsed_cdp = urlparse(cdp)
-                if parsed_cdp.scheme == "http":
-                    assert parsed_cdp.hostname
-                    crls[parsed_cdp.hostname][parsed_cdp.path] = crl
+                if cdp.scheme == "http":
+                    assert cdp.host
+                    crls[cdp] = crl
 
         return cls(dict(crls))
 
@@ -46,8 +44,12 @@ class CrlResource(resource.Resource):
         if path == b"/ping":
             return b"pong"
 
+        request_url = URL.build(
+            scheme="http", host=req.getRequestHostname().decode(), path=path.decode()
+        )
+
         req.setHeader("Content-Type", "application/pkix-crl")
-        return self.crls[req.getRequestHostname().decode()][path.decode()]
+        return self.crls[request_url]
 
 
 def is_valid_env(env: str) -> TypeGuard[Literal["test", "prod"]]:

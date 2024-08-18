@@ -44,6 +44,7 @@ from cryptography.x509 import (
     random_serial_number,
 )
 from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
+from yarl import URL
 
 from testserver import Enterprise, Env, LdapOU, Person
 
@@ -117,7 +118,7 @@ class CertIssuingImpl:
         self,
         cert: Certificate,
         private_key: RSAPrivateKey,
-        cdp: list[str],
+        cdp: list[URL],
         seid_v: Literal[1, 2],
         env: Env,
         cert_database: IssuedCertificateDatabase,
@@ -149,7 +150,7 @@ class CertIssuingImpl:
                 CRLDistributionPoints(
                     [
                         DistributionPoint(
-                            full_name=[UniformResourceIdentifier(cdp)],
+                            full_name=[UniformResourceIdentifier(str(cdp))],
                             relative_name=None,
                             crl_issuer=None,
                             reasons=None,
@@ -689,7 +690,7 @@ class CertificateAuthority:
     @classmethod
     def create_from_cache(
         cls,
-        cdp: list[str],
+        cdp: list[URL],
         cached_cert: Certificate,
         cached_key: RSAPrivateKey,
         seid_v: Literal[1, 2],
@@ -707,7 +708,7 @@ class CertificateAuthority:
     @classmethod
     def create_from_original(
         cls,
-        cdp: list[str],
+        cdp: list[URL],
         org_cert: Certificate,
         seid_v: Literal[1, 2],
         impl_class: type[CertIssuingImpl],

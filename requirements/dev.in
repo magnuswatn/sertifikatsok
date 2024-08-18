@@ -4,3 +4,4 @@ pytest
 mypy
 pytest-asyncio
 ldaptor
+yarl
