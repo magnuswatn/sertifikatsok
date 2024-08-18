@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import logging
 import string
+from collections.abc import Iterable
 from datetime import UTC, datetime, timedelta
 from secrets import choice, randbelow, randbits
 from typing import Literal, Self
 
-from attrs import field, frozen
+from attrs import field, frozen, mutable
 from cryptography.hazmat.primitives.asymmetric.rsa import (
     RSAPrivateKey,
     RSAPublicKey,
@@ -96,6 +97,21 @@ class IssuedCertificate:
     enterprise_cert: bool | None
 
 
+@mutable
+class IssuedCertificateDatabase:
+    issued_certs: dict[int, IssuedCertificate] = field(factory=dict)
+    revoked_certs: dict[int, RevokedCertificate] = field(factory=dict)
+
+    def add_issued_certs(self, certs: Iterable[IssuedCertificate]) -> None:
+        for cert in certs:
+            assert cert.certificate.serial_number not in self.issued_certs
+            self.issued_certs[cert.certificate.serial_number] = cert
+
+    def add_revoked_cert(self, cert: RevokedCertificate) -> None:
+        assert cert.serial_number not in self.revoked_certs
+        self.revoked_certs[cert.serial_number] = cert
+
+
 class CertIssuingImpl:
     def __init__(
         self,
@@ -104,13 +120,13 @@ class CertIssuingImpl:
         cdp: list[str],
         seid_v: Literal[1, 2],
         env: Env,
+        cert_database: IssuedCertificateDatabase,
     ) -> None:
         self.cert = cert
         self.private_key = private_key
         self.seid_v = seid_v
         self.cdp = cdp
-        self.revoked_certs: list[RevokedCertificate] = []
-        self.issued_certs: list[IssuedCertificate] = []
+        self.cert_database = cert_database
         self.env = env
 
     def _get_cert_builder(self) -> CertificateBuilder:
@@ -179,7 +195,7 @@ class CertIssuingImpl:
             )
         )
 
-        for cert in self.revoked_certs:
+        for cert in self.cert_database.revoked_certs.values():
             builder = builder.add_revoked_certificate(cert)
         return builder.sign(self.private_key, SHA256()).public_bytes(Encoding.DER)
 
@@ -193,7 +209,7 @@ class CertIssuingImpl:
         if reason is not None:
             builder = builder.add_extension(CRLReason(reason), critical=False)
 
-        self.revoked_certs.append(builder.build())
+        self.cert_database.add_revoked_cert(builder.build())
 
 
 class CommfidesCertIssuingImpl(CertIssuingImpl):
@@ -418,7 +434,7 @@ class CommfidesCertIssuingImpl(CertIssuingImpl):
             krypt_cert, LdapOU.CRYPT, enterprise_cert=enterprise_cert
         )
         issued_certs = [auth_ldap_cert, sign_ldap_cert, krypt_ldap_cert]
-        self.issued_certs.extend(issued_certs)
+        self.cert_database.add_issued_certs(issued_certs)
         return issued_certs
 
     def issue_person_certs(
@@ -570,7 +586,7 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
         auth_ldap_cert = IssuedCertificate(auth_cert, None, None)
         sign_ldap_cert = IssuedCertificate(sign_cert, None, None)
         issued_certs = [auth_ldap_cert, sign_ldap_cert]
-        self.issued_certs.extend(issued_certs)
+        self.cert_database.add_issued_certs(issued_certs)
         return issued_certs
 
     def issue_person_certs(
@@ -660,9 +676,7 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
 class CertificateAuthority:
     impl: CertIssuingImpl
     ldap_name: str | None
-
-    issued_certs: list[IssuedCertificate] = field(factory=list)
-    revoked_certs: list[RevokedCertificate] = field(factory=list)
+    cert_database: IssuedCertificateDatabase
 
     @property
     def name(self) -> str:
@@ -683,7 +697,12 @@ class CertificateAuthority:
         ldap_name: str | None,
         env: Env,
     ) -> Self:
-        return cls(impl_class(cached_cert, cached_key, cdp, seid_v, env), ldap_name)
+        cert_database = IssuedCertificateDatabase()
+        return cls(
+            impl_class(cached_cert, cached_key, cdp, seid_v, env, cert_database),
+            ldap_name,
+            cert_database,
+        )
 
     @classmethod
     def create_from_original(
@@ -695,6 +714,8 @@ class CertificateAuthority:
         ldap_name: str | None,
         env: Env,
     ) -> Self:
+        cert_database = IssuedCertificateDatabase()
+
         org_cert_pubkey = org_cert.public_key()
         assert isinstance(org_cert_pubkey, RSAPublicKey)
         private_key = generate_private_key(65537, org_cert_pubkey.key_size)
@@ -721,4 +742,8 @@ class CertificateAuthority:
             private_key=signing_key,
             algorithm=SHA256(),
         )
-        return cls(impl_class(certificate, private_key, cdp, seid_v, env), ldap_name)
+        return cls(
+            impl_class(certificate, private_key, cdp, seid_v, env, cert_database),
+            ldap_name,
+            cert_database,
+        )

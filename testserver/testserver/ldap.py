@@ -170,7 +170,7 @@ class LDAPServerFactory(ServerFactory):
         ca_ou = self.commfides_root.addChild(f"ou={ca.ldap_name}", {})
 
         sorted_certs: dict[LdapOU, list[IssuedCertificate]] = defaultdict(list)
-        for issued_cert in ca.impl.issued_certs:
+        for issued_cert in ca.cert_database.issued_certs.values():
             assert issued_cert.cert_role
             sorted_certs[issued_cert.cert_role].append(issued_cert)
 
@@ -253,7 +253,7 @@ class LDAPServerFactory(ServerFactory):
         ca_root = no.addChild("dc=Buypass", ldap_attrs)
 
         _last_pss_identifier = randbelow(99999)
-        for issued_cert in ca.impl.issued_certs:
+        for issued_cert in ca.cert_database.issued_certs.values():
             pss_unique_id = _last_pss_identifier
             _last_pss_identifier += 1
 
