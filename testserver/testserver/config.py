@@ -3,6 +3,7 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
 
 from attrs import field, frozen
+from cattrs.preconf.json import make_converter
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
@@ -21,6 +22,22 @@ from .ca import (
 )
 
 logger = logging.getLogger(__name__)
+
+json_converter = make_converter()
+json_converter.register_structure_hook(
+    RSAPrivateKey, lambda v, _: load_pem_private_key(v.encode(), password=None)
+)
+json_converter.register_unstructure_hook(
+    RSAPrivateKey,
+    lambda v: v.private_bytes(
+        Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()
+    ).decode(),
+)
+
+
+@frozen
+class DuplicatedCaCache:
+    key: RSAPrivateKey
 
 
 @frozen
@@ -45,20 +62,19 @@ class CaLoader:
         input_file = self.input_folder.joinpath(env_config.org_ca_cert)
         output_file = self.output_folder.joinpath(env_config.org_ca_cert)
         cache_folder = self.output_folder.joinpath(".key_cache")
-        key_cache_file = cache_folder.joinpath(env_config.org_ca_cert)
+        cache_file = cache_folder.joinpath(f"{env_config.org_ca_cert}.json")
 
         cache_folder.mkdir(exist_ok=True)
 
-        if output_file.exists() and key_cache_file.exists():
+        if output_file.exists() and cache_file.exists():
             logger.info("Loading cached duplicated CA %s", cloned_ca)
-            cached_priv_key = load_pem_private_key(
-                key_cache_file.read_bytes(), password=None
-            )
-            assert isinstance(cached_priv_key, RSAPrivateKey)
+
+            cached_ca = json_converter.loads(cache_file.read_bytes(), DuplicatedCaCache)
+
             ca = CertificateAuthority.create_from_cache(
                 env_config.cdp,
                 load_pem_x509_certificate(output_file.read_bytes()),
-                cached_priv_key,
+                cached_ca.key,
                 cloned_ca_config.seid_v,
                 impl,
                 cloned_ca_config.ldap_name,
@@ -75,11 +91,9 @@ class CaLoader:
                 env,
             )
             output_file.write_bytes(ca.impl.cert.public_bytes(Encoding.PEM))
-            key_cache_file.write_bytes(
-                ca.impl.private_key.private_bytes(
-                    Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()
-                )
-            )
+
+            duplicated_ca_cache = DuplicatedCaCache(ca.impl.private_key)
+            cache_file.write_text(json_converter.dumps(duplicated_ca_cache))
         self.loaded_ca_s[cloned_ca] = ca
         return ca
 
