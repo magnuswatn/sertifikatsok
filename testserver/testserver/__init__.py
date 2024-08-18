@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from enum import Enum
+from datetime import timedelta
+from enum import Enum, auto
 from typing import Literal
 
 from attrs import field, frozen
@@ -27,6 +28,23 @@ class Person:
         return f"{self.given_name} {self.family_name}"
 
 
+class OcspType(Enum):
+    DELEGATED_RESPONDER_KEY_HASH = auto()
+    DELEGATED_RESPONDER_NAME = auto()
+    DIRECT_RESPONDER_NAME = auto()
+
+    @property
+    def is_delegated_responder(self) -> bool:
+        return self in (
+            OcspType.DELEGATED_RESPONDER_KEY_HASH,
+            OcspType.DELEGATED_RESPONDER_NAME,
+        )
+
+    @property
+    def is_key_hash(self) -> bool:
+        return self is OcspType.DELEGATED_RESPONDER_KEY_HASH
+
+
 @frozen
 class Enterprise:
     org_nr: str
@@ -38,6 +56,7 @@ class Enterprise:
 class ClonedCaEnvConfig:
     org_ca_cert: str
     cdp: list[URL]
+    ocsp_url: URL
 
 
 @frozen
@@ -45,6 +64,8 @@ class ClonedCaConfig:
     prod_config: ClonedCaEnvConfig
     test_config: ClonedCaEnvConfig
     seid_v: Literal[1, 2]
+    ocsp_type: OcspType
+    ocsp_lifetime: timedelta | None = None
     ldap_name: str | None = field(default=None)
 
 
@@ -58,6 +79,7 @@ class ClonedCa(Enum):
                     "ldap://ldap.buypass.no/dc=Buypass,dc=NO,CN=Buypass%20Class%203%20CA%201?certificateRevocationList"
                 ),
             ],
+            URL("http://ocsp.buypass.no/ocsp/BPClass3CA1"),
         ),
         ClonedCaEnvConfig(
             "BPClass3T4CA1.pem",
@@ -67,8 +89,10 @@ class ClonedCa(Enum):
                     "ldap://ldap.test4.buypass.no/dc=Buypass,dc=NO,CN=Buypass%20Class%203%20Test4%20CA%201?certificateRevocationList"
                 ),
             ],
+            URL("http://ocsp.test4.buypass.no/ocsp/BPClass3T4CA1"),
         ),
         seid_v=1,
+        ocsp_type=OcspType.DIRECT_RESPONDER_NAME,
     )
     BUYPASS_CLASS_3_CA_3 = ClonedCaConfig(
         ClonedCaEnvConfig(
@@ -79,6 +103,7 @@ class ClonedCa(Enum):
                     "ldap://ldap.buypass.no/dc=Buypass,dc=NO,CN=Buypass%20Class%203%20CA%203?certificateRevocationList"
                 ),
             ],
+            URL("http://ocsp.buypass.no/ocsp/BPClass3CA3"),
         ),
         ClonedCaEnvConfig(
             "BPClass3T4CA3.pem",
@@ -88,45 +113,61 @@ class ClonedCa(Enum):
                     "ldap://ldap.test4.buypass.no/dc=Buypass,dc=NO,CN=Buypass%20Class%203%20Test4%20CA%203?certificateRevocationList"
                 ),
             ],
+            URL("http://ocsp.test4.buypass.no/ocsp/BPClass3T4CA3"),
         ),
         seid_v=1,
+        ocsp_type=OcspType.DIRECT_RESPONDER_NAME,
     )
     BUYPASS_CLASS_3_CA_G2_HTBS = ClonedCaConfig(
         ClonedCaEnvConfig(
-            "BPCl3CaG2HTBS.pem", [URL("http://crl.buypassca.com/BPCl3CaG2HTBS.crl")]
+            "BPCl3CaG2HTBS.pem",
+            [URL("http://crl.buypassca.com/BPCl3CaG2HTBS.crl")],
+            URL("http://ocspbs.buypassca.com"),
         ),
         ClonedCaEnvConfig(
             "BPCl3CaG2HTBS.pem",
             [URL("http://crl.test4.buypassca.com/BPCl3CaG2HTBS.crl")],
+            URL("http://ocspbs.test4.buypassca.com"),
         ),
         seid_v=2,
+        ocsp_type=OcspType.DELEGATED_RESPONDER_NAME,
+        ocsp_lifetime=timedelta(hours=8),
     )
     BUYPASS_CLASS_3_CA_G2_STBS = ClonedCaConfig(
         ClonedCaEnvConfig(
             "BPCl3CaG2STBS.pem",
             [URL("http://crl.buypassca.com/BPCl3CaG2STBS.crl")],
+            URL("http://ocspbs.buypassca.com"),
         ),
         ClonedCaEnvConfig(
             "BPCl3CaG2STBS.pem",
             [URL("http://crl.test4.buypassca.com/BPCl3CaG2STBS.crl")],
+            URL("http://ocspbs.test4.buypassca.com"),
         ),
         seid_v=2,
+        ocsp_type=OcspType.DELEGATED_RESPONDER_NAME,
+        ocsp_lifetime=timedelta(hours=8),
     )
     BUYPASS_CLASS_3_CA_G2_HTPS = ClonedCaConfig(
         ClonedCaEnvConfig(
             "BPCl3CaG2HTPS.pem",
             [URL("http://crl.buypassca.com/BPCl3CaG2HTPS.crl")],
+            URL("http://ocspps.buypassca.com"),
         ),
         ClonedCaEnvConfig(
             "BPCl3CaG2HTPS.pem",
             [URL("http://crl.test4.buypassca.com/BPCl3CaG2HTPS.crl")],
+            URL("http://ocspps.test4.buypassca.com"),
         ),
         seid_v=2,
+        ocsp_type=OcspType.DELEGATED_RESPONDER_NAME,
+        ocsp_lifetime=timedelta(hours=8),
     )
     COMMFIDES_LEGAL_PERSON_CA_G3 = ClonedCaConfig(
         ClonedCaEnvConfig(
             "CommfidesLegalPersonCA-G3.crt",
             [URL("http://crl.commfides.com/G3/CommfidesLegalPersonCA-G3.crl")],
+            URL("http://ocsp.commfides.com"),
         ),
         ClonedCaEnvConfig(
             "CommfidesLegalPersonCA-G3-TEST.crt",
@@ -135,14 +176,17 @@ class ClonedCa(Enum):
                     "http://crl.test.commfides.com/G3/CommfidesLegalPersonCA-G3-TEST.crl"
                 )
             ],
+            URL("http://ocsp.test.commfides.com"),
         ),
         seid_v=2,
         ldap_name="Legal-Person-G3",
+        ocsp_type=OcspType.DELEGATED_RESPONDER_KEY_HASH,
     )
     COMMFIDES_NATURAL_PERSON_CA_G3 = ClonedCaConfig(
         ClonedCaEnvConfig(
             "CommfidesNaturalPersonCA-G3.crt",
             [URL("http://crl.commfides.com/G3/CommfidesNaturalPersonCA-G3.crl")],
+            URL("http://ocsp.commfides.com"),
         ),
         ClonedCaEnvConfig(
             "CommfidesNaturalPersonCA-G3-TEST.crt",
@@ -151,9 +195,11 @@ class ClonedCa(Enum):
                     "http://crl.test.commfides.com/G3/CommfidesNaturalPersonCA-G3-TEST.crl"
                 )
             ],
+            URL("http://ocsp.test.commfides.com"),
         ),
         seid_v=2,
         ldap_name="Natural-Person-G3",
+        ocsp_type=OcspType.DELEGATED_RESPONDER_KEY_HASH,
     )
     COMMFIDES_PERSON_HIGH = ClonedCaConfig(
         ClonedCaEnvConfig(
@@ -162,6 +208,7 @@ class ClonedCa(Enum):
                 URL("http://crl1.commfides.com/CommfidesPerson-High-SHA256.crl"),
                 URL("http://crl2.commfides.com/CommfidesPerson-High-SHA256.crl"),
             ],
+            URL("http://ocsp1.commfides.com"),
         ),
         ClonedCaEnvConfig(
             "CommfidesPerson-High-SHA256.pem",
@@ -169,9 +216,11 @@ class ClonedCa(Enum):
                 URL("http://crl1.test.commfides.com/CommfidesPerson-High-SHA256.crl"),
                 URL("http://crl2.test.commfides.com/CommfidesPerson-High-SHA256.crl"),
             ],
+            URL("http://ocsp1.test.commfides.com"),
         ),
         seid_v=1,
         ldap_name="Person-High",
+        ocsp_type=OcspType.DELEGATED_RESPONDER_KEY_HASH,
     )
     COMMFIDES_ENTERPRISE = ClonedCaConfig(
         ClonedCaEnvConfig(
@@ -180,6 +229,7 @@ class ClonedCa(Enum):
                 URL("http://crl1.commfides.com/CommfidesEnterprise-SHA256.crl"),
                 URL("http://crl2.commfides.com/CommfidesEnterprise-SHA256.crl"),
             ],
+            URL("http://ocsp1.commfides.com"),
         ),
         ClonedCaEnvConfig(
             "CommfidesEnterprise-SHA256.pem",
@@ -187,9 +237,11 @@ class ClonedCa(Enum):
                 URL("http://crl1.test.commfides.com/CommfidesEnterprise-SHA256.crl"),
                 URL("http://crl2.test.commfides.com/CommfidesEnterprise-SHA256.crl"),
             ],
+            URL("http://ocsp1.test.commfides.com"),
         ),
         seid_v=1,
         ldap_name="Enterprise",
+        ocsp_type=OcspType.DELEGATED_RESPONDER_KEY_HASH,
     )
 
     @property

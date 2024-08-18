@@ -52,11 +52,16 @@ services:
         aliases:
           - ldap.test4.buypass.no
           - crl.test4.buypass.no
+          - ocsp.test4.buypass.no
           - crl.test4.buypassca.com
+          - ocspbs.test4.buypassca.com
+          - ocspps.test4.buypassca.com
           - ldap.test.commfides.com
           - crl1.test.commfides.com
           - crl2.test.commfides.com
           - crl.test.commfides.com
+          - ocsp1.test.commfides.com
+          - ocsp.test.commfides.com
   ldap_server_prod:
     build:
       dockerfile: Dockerfile
@@ -76,11 +81,16 @@ services:
         aliases:
           - ldap.buypass.no
           - crl.buypass.no
+          - ocsp.buypass.no
           - crl.buypassca.com
+          - ocspbs.buypassca.com
+          - cspps.buypassca.com
           - ldap.commfides.com
           - crl1.commfides.com
           - crl2.commfides.com
           - crl.commfides.com
+          - ocsp1.commfides.com
+          - ocsp.commfides.com
 
 networks:
   default:

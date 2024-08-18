@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import string
 from collections.abc import Iterable
+from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 from secrets import choice, randbelow, randbits
 from typing import Literal, Self
@@ -14,9 +15,11 @@ from cryptography.hazmat.primitives.asymmetric.rsa import (
     RSAPublicNumbers,
     generate_private_key,
 )
-from cryptography.hazmat.primitives.hashes import SHA256
-from cryptography.hazmat.primitives.serialization import Encoding
+from cryptography.hazmat.primitives.hashes import SHA1, SHA256, Hash
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from cryptography.x509 import (
+    AccessDescription,
+    AuthorityInformationAccess,
     AuthorityKeyIdentifier,
     BasicConstraints,
     Certificate,
@@ -28,11 +31,14 @@ from cryptography.x509 import (
     CRLReason,
     DistributionPoint,
     ExtendedKeyUsage,
+    ExtensionNotFound,
     ExtensionType,
     KeyUsage,
     Name,
     NameAttribute,
     ObjectIdentifier,
+    OCSPNoCheck,
+    OCSPNonce,
     PolicyInformation,
     ReasonFlags,
     RevokedCertificate,
@@ -41,14 +47,22 @@ from cryptography.x509 import (
     SubjectAlternativeName,
     SubjectKeyIdentifier,
     UniformResourceIdentifier,
+    ocsp,
     random_serial_number,
 )
-from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
+from cryptography.x509.ocsp import OCSPCertStatus
+from cryptography.x509.oid import (
+    AuthorityInformationAccessOID,
+    ExtendedKeyUsageOID,
+    NameOID,
+)
 from yarl import URL
 
-from testserver import Enterprise, Env, LdapOU, Person
+from testserver import Enterprise, Env, LdapOU, OcspType, Person
 
 logger = logging.getLogger(__name__)
+
+SUPPORTED_HASH_ALGORITHMS = [SHA1(), SHA256()]  # noqa: S303
 
 
 def get_key_usage(
@@ -119,6 +133,7 @@ class CertIssuingImpl:
         cert: Certificate,
         private_key: RSAPrivateKey,
         cdp: list[URL],
+        ocsp: URL,
         seid_v: Literal[1, 2],
         env: Env,
         cert_database: IssuedCertificateDatabase,
@@ -128,6 +143,7 @@ class CertIssuingImpl:
         self.seid_v = seid_v
         self.cdp = cdp
         self.cert_database = cert_database
+        self.ocsp = ocsp
         self.env = env
 
     def _get_cert_builder(self) -> CertificateBuilder:
@@ -156,6 +172,17 @@ class CertIssuingImpl:
                             reasons=None,
                         )
                         for cdp in self.cdp
+                    ]
+                ),
+                critical=False,
+            )
+            .add_extension(
+                AuthorityInformationAccess(
+                    [
+                        AccessDescription(
+                            AuthorityInformationAccessOID.OCSP,
+                            UniformResourceIdentifier(str(self.ocsp)),
+                        )
                     ]
                 ),
                 critical=False,
@@ -677,6 +704,7 @@ class BuypassCertIssuingImpl(CertIssuingImpl):
 class CertificateAuthority:
     impl: CertIssuingImpl
     ldap_name: str | None
+    ocsp_responder: OcspResponder
     cert_database: IssuedCertificateDatabase
 
     @property
@@ -691,17 +719,32 @@ class CertificateAuthority:
     def create_from_cache(
         cls,
         cdp: list[URL],
+        ocsp_url: URL,
+        ocsp_type: OcspType,
+        ocsp_response_lifetime: timedelta | None,
         cached_cert: Certificate,
         cached_key: RSAPrivateKey,
         seid_v: Literal[1, 2],
         impl_class: type[CertIssuingImpl],
         ldap_name: str | None,
+        delegated_responder: tuple[Certificate, RSAPrivateKey] | None,
         env: Env,
     ) -> Self:
         cert_database = IssuedCertificateDatabase()
+
         return cls(
-            impl_class(cached_cert, cached_key, cdp, seid_v, env, cert_database),
+            impl_class(
+                cached_cert, cached_key, cdp, ocsp_url, seid_v, env, cert_database
+            ),
             ldap_name,
+            OcspResponder(
+                *(delegated_responder or (cached_cert, cached_key)),
+                cached_cert,
+                ocsp_type,
+                URL(ocsp_url),
+                ocsp_response_lifetime,
+                cert_database,
+            ),
             cert_database,
         )
 
@@ -709,11 +752,16 @@ class CertificateAuthority:
     def create_from_original(
         cls,
         cdp: list[URL],
+        ocsp_url: URL,
+        ocsp_type: OcspType,
+        ocsp_response_lifetime: timedelta | None,
         org_cert: Certificate,
         seid_v: Literal[1, 2],
         impl_class: type[CertIssuingImpl],
         ldap_name: str | None,
         env: Env,
+        *,
+        generate_delegated_responder: bool,
     ) -> Self:
         cert_database = IssuedCertificateDatabase()
 
@@ -743,8 +791,210 @@ class CertificateAuthority:
             private_key=signing_key,
             algorithm=SHA256(),
         )
+
+        ocsp_responder = (
+            OcspResponder.create_delegated_responder(
+                certificate,
+                private_key,
+                ocsp_type,
+                URL(ocsp_url),
+                ocsp_response_lifetime,
+                cert_database,
+            )
+            if generate_delegated_responder
+            else OcspResponder(
+                certificate,
+                private_key,
+                certificate,
+                ocsp_type,
+                URL(ocsp_url),
+                ocsp_response_lifetime,
+                cert_database,
+            )
+        )
         return cls(
-            impl_class(certificate, private_key, cdp, seid_v, env, cert_database),
+            impl_class(
+                certificate, private_key, cdp, ocsp_url, seid_v, env, cert_database
+            ),
             ldap_name,
+            ocsp_responder,
             cert_database,
         )
+
+
+@frozen
+class OcspResponder:
+    cert: Certificate
+    private_key: RSAPrivateKey
+    ca_cert: Certificate
+    type: OcspType
+    url: URL
+    response_lifetime: timedelta | None
+    cert_database: IssuedCertificateDatabase
+
+    @classmethod
+    def create_delegated_responder(
+        cls,
+        certificate: Certificate,
+        private_key: RSAPrivateKey,
+        type: OcspType,
+        url: URL,
+        response_lifetime: timedelta | None,
+        cert_database: IssuedCertificateDatabase,
+    ) -> Self:
+        not_valid_before = datetime.now(tz=UTC)
+        not_valid_after = not_valid_before + timedelta(days=180)
+        responder_private_key = generate_private_key(65537, 2048)
+
+        responder_cert = (
+            CertificateBuilder()
+            .subject_name(
+                Name([NameAttribute(NameOID.COMMON_NAME, "Delegated OCSP responder")])
+            )
+            .issuer_name(certificate.subject)
+            .not_valid_before(not_valid_before)
+            .not_valid_after(not_valid_after)
+            .serial_number(random_serial_number())
+            .public_key(responder_private_key.public_key())
+            .add_extension(
+                ExtendedKeyUsage([ExtendedKeyUsageOID.OCSP_SIGNING]),
+                critical=False,
+            )
+            .add_extension(OCSPNoCheck(), critical=False)
+            .sign(
+                private_key=private_key,
+                algorithm=SHA256(),
+            )
+        )
+        return cls(
+            responder_cert,
+            responder_private_key,
+            certificate,
+            type,
+            url,
+            response_lifetime,
+            cert_database,
+        )
+
+    @staticmethod
+    def _get_nonce_from_request(ocsp_req: ocsp.OCSPRequest):
+        for extension in ocsp_req.extensions:
+            if extension.oid == OCSPNonce.oid:
+                if (nonce_length := len(extension.value.nonce)) > 30:
+                    raise ValueError(f"Nonce in request too large ({nonce_length})")
+                return extension.value.nonce
+        return None
+
+    def get_cert_status(
+        self, cert_serial: int
+    ) -> (
+        tuple[Literal[OCSPCertStatus.GOOD], None, None]
+        | tuple[Literal[OCSPCertStatus.UNKNOWN], None, None]
+        | tuple[Literal[OCSPCertStatus.REVOKED], datetime, ReasonFlags]
+    ):
+        if cert_serial not in self.cert_database.issued_certs:
+            return OCSPCertStatus.UNKNOWN, None, None
+
+        if (
+            revoked_cert := self.cert_database.revoked_certs.get(cert_serial)
+        ) is not None:
+            reason = ReasonFlags.unspecified
+            with suppress(ExtensionNotFound):
+                reason = revoked_cert.extensions.get_extension_for_class(
+                    CRLReason
+                ).value.reason
+            return OCSPCertStatus.REVOKED, revoked_cert.revocation_date_utc, reason
+
+        return OCSPCertStatus.GOOD, None, None
+
+    def get_response(self, ocsp_request: ocsp.OCSPRequest) -> bytes:
+        cert_status, revocation_time, revocation_reason = self.get_cert_status(
+            ocsp_request.serial_number
+        )
+        if cert_status is OCSPCertStatus.UNKNOWN:
+            raise ValueError(f"No issued cert with serial {ocsp_request.serial_number}")
+
+        cert = self.cert_database.issued_certs[ocsp_request.serial_number]
+
+        this_update = datetime.now(tz=UTC)
+        next_update = (
+            this_update + self.response_lifetime
+            if self.response_lifetime is not None
+            else None
+        )
+
+        resp_builder = (
+            ocsp.OCSPResponseBuilder()
+            .add_response(
+                cert=cert.certificate,
+                issuer=self.ca_cert,
+                algorithm=ocsp_request.hash_algorithm,
+                cert_status=cert_status,
+                this_update=this_update,
+                next_update=next_update,
+                revocation_time=revocation_time,
+                revocation_reason=revocation_reason,
+            )
+            .responder_id(
+                ocsp.OCSPResponderEncoding.HASH
+                if self.type.is_key_hash
+                else ocsp.OCSPResponderEncoding.NAME,
+                self.cert,
+            )
+        )
+        if self.type.is_delegated_responder:
+            resp_builder = resp_builder.certificates([self.cert])
+
+        if (nonce := self._get_nonce_from_request(ocsp_request)) is not None:
+            resp_builder = resp_builder.add_extension(OCSPNonce(nonce), critical=False)
+
+        ocsp_response = resp_builder.sign(self.private_key, SHA256())
+        return ocsp_response.public_bytes(Encoding.DER)
+
+
+@frozen
+class CertificateId:
+    hash_name: str
+    name_hash: bytes
+    key_hash: bytes
+
+    @classmethod
+    def from_ocsp_request(cls, ocsp_req: ocsp.OCSPRequest):
+        return cls(
+            ocsp_req.hash_algorithm.name,
+            ocsp_req.issuer_name_hash,
+            ocsp_req.issuer_key_hash,
+        )
+
+
+@frozen
+class OcspResponders:
+    responders: dict[CertificateId, OcspResponder]
+
+    @classmethod
+    def create(cls, ocsp_responders: list[OcspResponder]) -> Self:
+        responders_mapping = {}
+        for ocsp_responder in ocsp_responders:
+            cert_ids = cls.get_cert_ids(ocsp_responder.ca_cert)
+            for cert_id in cert_ids:
+                responders_mapping[cert_id] = ocsp_responder
+        return cls(responders_mapping)
+
+    @staticmethod
+    def get_cert_ids(issuer: Certificate) -> list[CertificateId]:
+        ids = []
+        for hash_algorithm in SUPPORTED_HASH_ALGORITHMS:
+            name_hash = Hash(hash_algorithm)
+            name_hash.update(issuer.subject.public_bytes())
+            issuer_name_hash = name_hash.finalize()
+
+            key_hash = Hash(hash_algorithm)
+            key_hash.update(
+                issuer.public_key().public_bytes(Encoding.DER, PublicFormat.PKCS1)
+            )
+            issuer_key_hash = key_hash.finalize()
+
+            ids.append(
+                CertificateId(hash_algorithm.name, issuer_name_hash, issuer_key_hash)
+            )
+        return ids

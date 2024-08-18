@@ -15,6 +15,7 @@ from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from sertifikatsok import get_version, is_dev
+from sertifikatsok.revocation_info import get_revocation_info
 
 from .audit_log import AuditLogger
 from .brreg_batch import schedule_batch
@@ -24,7 +25,7 @@ from .enums import Environment, RequestCertType, SearchAttribute
 from .errors import ClientError
 from .logging import audit_logger, correlation_context, get_log_config, performance_log
 from .search import CertificateSearch, CouldNotContactCaError, SearchParams
-from .serialization import sertifikatsok_serialization
+from .serialization import converter, sertifikatsok_serialization
 
 logger = logging.getLogger(__name__)
 
@@ -180,6 +181,41 @@ async def api_endpoint(
         response.headers["Cache-Control"] = cache_control
 
         return response
+
+
+@app.post("/revocation_info")
+@performance_log()
+async def revocation_endpoint(
+    env: Environment,
+    request: Request,
+    audit_logger: Annotated[AuditLogger, Depends(AuditLogger)],
+) -> Response:
+    if request.headers.get("Content-Type") != "application/pkix-cert":
+        raise ClientError("Unsupported content type")
+
+    cert = b""
+    async for chunk in request.stream():
+        cert += chunk
+        if len(cert) > 5000:
+            raise ClientError("Body too big")
+
+    with audit_logger:
+        revocation_info, thumbprint = await get_revocation_info(
+            cert,
+            env,
+            request.app.state.cert_retrievers[env],
+            request.app.state.crl_retriever,
+            request.app.state.database,
+        )
+        audit_logger.set_revocation_info_results(revocation_info, thumbprint)
+
+    response = Response(
+        content=converter.dumps(revocation_info),
+        status_code=200,
+        media_type="application/json",
+    )
+
+    return response
 
 
 def run() -> None:

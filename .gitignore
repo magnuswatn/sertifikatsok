@@ -16,6 +16,7 @@ api/log_*.log
 *.db
 www/dist
 www/public/api*
+www/public/revocation_info*
 www/public/resources/external
 testserver/cloned_certs/*/*
 api/database/*

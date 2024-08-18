@@ -5,6 +5,14 @@ from cryptography.x509 import NameOID
 
 from .enums import SEID, CertType, SearchAttribute
 
+DISCONTINUED_CAS = (
+    "CN=Buypass Class 3 Test4 CA 1,O=Buypass,C=NO",
+    "CN=Buypass Class 3 CA 1,O=Buypass AS-983163327,C=NO",
+    "C=NO,O=Commfides Norge AS - 988 312 495,OU=CPN Person High SHA256 CA - TEST,OU=Commfides Trust Environment(C) 2014 Commfides Norge AS - TEST,CN=Commfides CPN Person-High SHA256 CA - TEST",
+    "C=NO,O=Commfides Norge AS - 988 312 495,OU=CPN Enterprise-Norwegian SHA256 CA- TEST,OU=Commfides Trust Environment(C) 2014 Commfides Norge AS - TEST,CN=Commfides CPN Enterprise-Norwegian SHA256 CA - TEST",
+    "C=NO,O=Commfides Norge AS - 988 312 495,OU=CPN Enterprise-Norwegian SHA256 CA- TEST2,OU=Commfides Trust Environment(C) 2014 Commfides Norge AS - TEST,CN=Commfides CPN Enterprise-Norwegian SHA256 CA - TEST2",
+)
+
 LDAP_CONN_TIMEOUT = 2
 LDAP_TIMEOUT = 7
 LDAP_RETRIES = 5

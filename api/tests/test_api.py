@@ -1,3 +1,4 @@
+from base64 import b64decode
 from datetime import datetime
 from itertools import permutations
 from typing import Literal
@@ -43,6 +44,19 @@ class Client:
         resp_json = resp.json()
         assert isinstance(resp_json, dict)
         return resp_json
+
+    def revocation_info(
+        self, env: str, typ: str, query: str, cert: bytes
+    ) -> httpx.Response:
+        params = {"env": env, "type": typ, "query": query}
+
+        resp = self.httpx_client.post(
+            "http://sertifikatsok:7001/revocation_info",
+            params=params,
+            content=cert,
+            headers={"Content-Type": "application/pkix-cert"},
+        )
+        return resp
 
 
 @pytest.fixture(scope="session")
@@ -387,3 +401,43 @@ def test_search_revoked_certs_are_marked_as_such(client: Client, env: str) -> No
         assert cert_set["status"] == "Revokert"
         for cert in cert_set["certificates"]:
             assert cert["info"]["Status"].startswith("Revokert ")
+
+
+@pytest.mark.parametrize("revocation_expected", [False, True])
+@pytest.mark.parametrize("env", ["test", "prod"])
+def test_revocation_info(
+    client: Client, *, env: str, revocation_expected: bool
+) -> None:
+    resp = client.search_resp(
+        env=env,
+        typ="enterprise",
+        query="987654321" if revocation_expected else "123456789",
+    )
+
+    resp_json = resp.json()
+    cert_sets = resp_json["certificate_sets"]
+    for cert_set in cert_sets:
+        for cert in cert_set["certificates"]:
+            raw_cert = b64decode(cert["certificate"])
+            revocation_info_resp = client.revocation_info(
+                env=env,
+                typ="enterprise",
+                query="987654321" if revocation_expected else "123456789",
+                cert=raw_cert,
+            )
+            revocation_info_resp.raise_for_status()
+            revocation_info = revocation_info_resp.json()
+            assert revocation_info["ocsp_result"] is not None
+            assert "error" not in revocation_info["ocsp_result"]
+            assert (
+                revocation_info["ocsp_result"]["status"] == "REVOKED"
+                if revocation_expected
+                else "GOOD"
+            )
+
+            assert revocation_info["crl_result"] is not None
+            assert "error" not in revocation_info["crl_result"]
+            if revocation_expected:
+                assert revocation_info["crl_result"]["revoked_at"] is not None
+            else:
+                assert revocation_info["crl_result"]["revoked_at"] is None

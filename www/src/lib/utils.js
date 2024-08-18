@@ -178,6 +178,32 @@ export const callApi = async function (query) {
     throw new ApiError(jsonResponse.error);
 }
 
+export const callRevocationInfoApi = async function (query, base64cert) {
+
+    const byteString = window.atob(base64cert);
+
+    const ab = new ArrayBuffer(byteString.length);
+    let ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+
+    let response = await fetch(`/revocation_info${query}`, {
+        method: "POST",
+        headers: {
+            "sertifikatsok-version": getVersion(),
+            "content-type": "application/pkix-cert"
+        },
+        body: ia
+    });
+
+    let jsonResponse = await response.json();
+    if (response.status == 200) {
+        return jsonResponse;
+    }
+    throw new ApiError(jsonResponse.error);
+};
+
 export const getErrorText = function (error) {
     if (error instanceof ApiError) {
         return error.error_text;

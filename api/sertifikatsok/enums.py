@@ -80,3 +80,9 @@ class SearchType(Enum):
 class BatchResult(Enum):
     OK = "ok"
     ERROR = "error"
+
+
+class RevocationCheckUnavailableReason(Enum):
+    UNTRUSTED = 1
+    DISCONTINUED_CA = 2
+    INVALID_EXTENSIONS = 3

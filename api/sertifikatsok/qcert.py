@@ -16,6 +16,7 @@ from cryptography.x509.oid import NameOID
 from .cert import MaybeInvalidCertificate
 from .constants import (
     ALLOWED_LDAP_URL_CHARS,
+    DISCONTINUED_CAS,
     EXTENDED_KEY_USAGES,
     KEY_USAGES,
     KNOWN_CERT_TYPES,
@@ -23,7 +24,14 @@ from .constants import (
     UNDERENHET_REGEX,
 )
 from .crypto import CertValidator
-from .enums import SEID, CertificateRoles, CertificateStatus, CertType, SearchAttribute
+from .enums import (
+    SEID,
+    CertificateRoles,
+    CertificateStatus,
+    CertType,
+    RevocationCheckUnavailableReason,
+    SearchAttribute,
+)
 from .errors import MalformedCertificateError
 from .ldap import LdapCertificateEntry, LdapFilter
 from .utils import get_subject_order
@@ -248,6 +256,17 @@ class QualifiedCertificate:
                 ekus.append(eku.dotted_string)
 
         return ", ".join(ekus)
+
+    def get_revocation_check_unavailable_reason(
+        self,
+    ) -> RevocationCheckUnavailableReason | None:
+        if self.status == CertificateStatus.UNTRUSTED:
+            return RevocationCheckUnavailableReason.UNTRUSTED
+        if self.cert.extensions is None:
+            return RevocationCheckUnavailableReason.INVALID_EXTENSIONS
+        if self.issuer in DISCONTINUED_CAS:
+            return RevocationCheckUnavailableReason.DISCONTINUED_CA
+        return None
 
 
 @frozen

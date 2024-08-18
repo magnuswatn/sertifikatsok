@@ -4,6 +4,8 @@
     import PemButton from "./buttons/PemButton.svelte";
     import StringModal from "./modals/StringModal.svelte";
     import { getPemFromBase64 } from "./utils";
+    import RevocationInfoModal from "./RevocationInfoModal.svelte";
+    import MaterializeButton from "./buttons/MaterializeButton.svelte";
 
     const dispatch = createEventDispatcher();
     export let cert;
@@ -12,6 +14,7 @@
 
     let modal;
     let pemShown = false;
+    let revocationInfoShown = false;
 
     function onCloseEnd(e) {
         dispatch("close");
@@ -29,7 +32,7 @@
     });
 
     const handleKeyDown = (e) => {
-        if (e.key === "Escape" && !pemShown) {
+        if (e.key === "Escape" && !pemShown && !revocationInfoShown) {
             // Only close this modal if the pem modal
             // is not on top of it.
             window.M.Modal.getInstance(modal).close();
@@ -118,6 +121,16 @@
         </table>
         <br />
         <div class="modal-footer">
+            <MaterializeButton
+                data_position="top"
+                data_tooltip={cert.revocation_check_unavailable_reason
+                    ? `Kan ikke utføre revokeringssjekk fordi ${cert.revocation_check_unavailable_reason}`
+                    : "Hent detaljert revokeringsinfo"}
+                disabled={cert.revocation_check_unavailable_reason}
+                on:click={() => (revocationInfoShown = true)}
+            >
+                <i class="material-icons">verified_user</i>
+            </MaterializeButton>
             <PemButton on:open={() => (pemShown = true)} />
             <DownloadCertButton base64cert={cert.certificate} {thumbprint} />
         </div>
@@ -128,6 +141,13 @@
     <StringModal textSelected={true} on:close={() => (pemShown = false)}>
         <p class="pem">{getPemFromBase64(cert.certificate)}</p>
     </StringModal>
+{/if}
+
+{#if revocationInfoShown}
+    <RevocationInfoModal
+        {cert}
+        on:close={() => (revocationInfoShown = false)}
+    />
 {/if}
 
 <style>
