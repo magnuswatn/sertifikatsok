@@ -127,9 +127,9 @@ cryptography==43.0.1 \
     --hash=sha256:f98bf604c82c416bc829e490c700ca1553eafdf2912a91e23a79d97d9801372a \
     --hash=sha256:fba1007b3ef89946dbbb515aeeb41e30203b004f0b4b00e5e16078b518563289
     # via -r main.in
-fastapi-slim==0.114.0 \
-    --hash=sha256:2299d5e0b8818f264725bd13dd91c80b904589be06c98c3d8115132576e5e2dd \
-    --hash=sha256:83c8e95301c75c6575f7f6c4b885bf42a4c0b4a85e936e2faca25055470d0afe
+fastapi-slim==0.114.2 \
+    --hash=sha256:52ae76c53a30ad0fa96beb84c1bf4bef9c72e88c2f7c0473e836f01d7ac3ca6b \
+    --hash=sha256:76d0a450826fb0fa740268be55ef04c44807da87a94fbbf5f16338b5a4a2d321
     # via -r main.in
 h11==0.14.0 \
     --hash=sha256:8f19fbbe99e72420ff35c00b27a34cb9937e902a8b810e2c88300c6f0a3b699d \
