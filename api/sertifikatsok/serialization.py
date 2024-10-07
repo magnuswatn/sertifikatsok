@@ -277,7 +277,7 @@ def ocsp_error_hook(val: OcspError) -> dict:
             )
         case OcspStatusError():
             msg = (
-                f"OCSP-responsen hadde en gyldig status: "
+                f"OCSP-responsen hadde en ugyldig status: "
                 f"{val.error_reason.ocsp_status}"
             )
         case OcspNextUpdateInThePastError():
