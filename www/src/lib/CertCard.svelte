@@ -31,7 +31,7 @@
         <div class="card blue-grey darken-1 hoverable cert">
             <div class="card-content white-text">
                 <span class="card-title">{cert.name}</span>
-                <p />
+                <p></p>
                 <div class="card-data">
                     <div>Bruksområde(r)</div>
                     <div class="value-div">

@@ -21,8 +21,8 @@
         <table class="bordered">
             <thead>
                 <tr>
-                    <th />
-                    <th />
+                    <th></th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>

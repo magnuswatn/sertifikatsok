@@ -67,7 +67,7 @@
                     <span
                         class="new badge {getStatusBadgeColor(cert_set.status)}"
                         data-badge-caption={cert_set.status}
-                    />
+                    ></span>
                 </div>
                 <div class="col s2">
                     <div class="right">
@@ -114,7 +114,7 @@
                     <h6 class="center-align">
                         Dette settet er gyldig til {getNorwegianDate(
                             cert_set.valid_to,
-                            true
+                            true,
                         )}
                     </h6>
                     <br />
@@ -124,7 +124,7 @@
                         {/each}
                     </div>
                     <div>
-                        <div class="divider" />
+                        <div class="divider"></div>
                         <br />
                         <div class="right-align">
                             {#if cert_set.org_number}
