@@ -13,5 +13,5 @@ pyo3 = { version = "0.22.6", features = ["extension-module"] }
 pyo3-asyncio = { package = "pyo3-async-runtimes", version = "0.22.0", features = [
     "tokio-runtime",
 ] }
-tokio = "1.41.0"
+tokio = "1.41.1"
 ldap3 = { version = "0.11.5", default-features = false }
