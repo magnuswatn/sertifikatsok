@@ -43,6 +43,12 @@ RUN set -x \
     && apt-get install --no-install-recommends -y \
     gcc curl libc6-dev
 
+# install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# (uv is installed to .cargo/bin)
+ENV PATH="/root/.cargo/bin/:${PATH}"
+
 #
 # Python container for building the Rust lib
 #
@@ -52,15 +58,13 @@ FROM build-base as rust-build
 RUN set -x && curl https://sh.rustup.rs -sSf | sh -s -- -y \
     --default-toolchain stable --profile minimal
 
-ENV PATH="/root/.cargo/bin/:${PATH}"
-
-RUN set -x && python3 -m venv /opt/sertifikatsok/rust-venv
-RUN set -x && /opt/sertifikatsok/rust-venv/bin/pip --no-cache-dir --disable-pip-version-check install --upgrade pip
+RUN set -x && uv venv --seed /opt/sertifikatsok/rust-venv
+ENV VIRTUAL_ENV="/opt/sertifikatsok/rust-venv"
 
 COPY requirements/ruldap3.txt /tmp/ruldap-requirements.txt
 
 RUN set -x \
-    && /opt/sertifikatsok/rust-venv/bin/pip install --require-hashes -r /tmp/ruldap-requirements.txt
+    && uv pip sync --require-hashes /tmp/ruldap-requirements.txt
 
 COPY ruldap3 /opt/sertifikatsok/ruldap3
 
@@ -74,15 +78,19 @@ RUN set -x \
 FROM build-base as build
 
 # Create venv for the app
-RUN set -x && python3 -m venv /opt/sertifikatsok/venv
-RUN set -x && /opt/sertifikatsok/venv/bin/pip --no-cache-dir --disable-pip-version-check install --upgrade pip
+RUN set -x && uv venv --seed /opt/sertifikatsok/venv
+ENV VIRTUAL_ENV="/opt/sertifikatsok/venv"
 ENV PATH="/opt/sertifikatsok/venv/bin:${PATH}"
 
 COPY requirements/main.txt /tmp/requirements.txt
 
 RUN set -x \
     && cd /tmp \
-    && /opt/sertifikatsok/venv/bin/pip install --require-hashes -r /tmp/requirements.txt
+    && uv pip sync --require-hashes /tmp/requirements.txt
+
+COPY --from=rust-build /opt/sertifikatsok/ruldap3/target/wheels /opt/sertifikatsok/ruldap3/target/wheels
+
+RUN uv pip install /opt/sertifikatsok/ruldap3/target/wheels/*
 
 #
 # Python container for testing
@@ -93,11 +101,12 @@ COPY requirements/dev.txt /tmp/requirements.dev.txt
 
 RUN set -x \
     && cd /tmp \
-    && /opt/sertifikatsok/venv/bin/pip install --require-hashes -r /tmp/requirements.dev.txt
+    && uv pip sync --require-hashes /tmp/requirements.txt /tmp/requirements.dev.txt
 
+# (ruldap3 was removed by the `uv pip sync` above, so we need to reinstall it)
 COPY --from=rust-build /opt/sertifikatsok/ruldap3/target/wheels /opt/sertifikatsok/ruldap3/target/wheels
 
-RUN pip install /opt/sertifikatsok/ruldap3/target/wheels/*
+RUN uv pip install /opt/sertifikatsok/ruldap3/target/wheels/*
 
 #
 # PROD container
@@ -112,9 +121,6 @@ WORKDIR /opt/sertifikatsok/api
 
 COPY --from=www-build /opt/sertifikatsok/www/dist /opt/sertifikatsok/www/
 COPY --from=build /opt/sertifikatsok/venv/ /opt/sertifikatsok/venv/
-COPY --from=rust-build /opt/sertifikatsok/ruldap3/target/wheels /opt/sertifikatsok/ruldap3/target/wheels
-
-RUN pip install /opt/sertifikatsok/ruldap3/target/wheels/*
 
 COPY api /opt/sertifikatsok/api
 
