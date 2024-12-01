@@ -1,7 +1,7 @@
 #
 # Node container for frontend build ("build")
 #
-FROM node:current-bookworm-slim@sha256:2bf48899bbba183a33b362842c9a9832f19c99896159551f9a0420c53ec27522 as www-build
+FROM node:current-bookworm-slim@sha256:2bf48899bbba183a33b362842c9a9832f19c99896159551f9a0420c53ec27522 AS www-build
 
 RUN set -x \
     && apt-get update \
@@ -31,12 +31,12 @@ RUN [ "find", "dist", "-type", "f", "-not", "-name", "*.woff2", \
 #
 # Python base container
 #
-FROM python:3.12.7-slim-bookworm@sha256:032c52613401895aa3d418a4c563d2d05f993bc3ecc065c8f4e2280978acd249 as python-base
+FROM python:3.12.7-slim-bookworm@sha256:032c52613401895aa3d418a4c563d2d05f993bc3ecc065c8f4e2280978acd249 AS python-base
 
 #
 # Build base container
 #
-FROM python-base as build-base
+FROM python-base AS build-base
 
 RUN set -x \
     && apt-get update \
@@ -46,7 +46,7 @@ RUN set -x \
 #
 # Python container for building the Rust lib
 #
-FROM build-base as rust-build
+FROM build-base AS rust-build
 
 # Download and install rustup
 RUN set -x && curl https://sh.rustup.rs -sSf | sh -s -- -y \
@@ -71,7 +71,7 @@ RUN set -x \
 #
 # Python container for building
 #
-FROM build-base as build
+FROM build-base AS build
 
 # Create venv for the app
 RUN set -x && python3 -m venv /opt/sertifikatsok/venv
@@ -87,7 +87,7 @@ RUN set -x \
 #
 # Python container for testing
 #
-FROM build as test
+FROM build AS test
 
 COPY requirements/dev.txt /tmp/requirements.dev.txt
 
