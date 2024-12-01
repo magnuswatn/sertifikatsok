@@ -105,7 +105,7 @@ struct PyLdapConnection {
 #[pymethods]
 impl PyLdapConnection {
     pub fn __aenter__(slf: Py<Self>, py: pyo3::Python<'_>) -> PyResult<Bound<PyAny>> {
-        pyo3_asyncio::tokio::future_into_py(py, async {
+        pyo3_async_runtimes::tokio::future_into_py(py, async {
             return Ok(slf);
         })
     }
@@ -119,7 +119,7 @@ impl PyLdapConnection {
     ) -> PyResult<Bound<PyAny, 'a>> {
         let mut ldap = self.ldap.clone();
 
-        pyo3_asyncio::tokio::future_into_py(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             if let Err(e) = ldap.unbind().await {
                 return Err(PyLdapError(e).into());
             }
@@ -140,7 +140,7 @@ impl PyLdapConnection {
 
         let rust_scope = Scope::from(scope);
 
-        pyo3_asyncio::tokio::future_into_py(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let (rs, _res) = ldap
                 .with_timeout(Duration::new(timeout_sec, 0))
                 .search(&base, rust_scope, &filtr, attrlist)
@@ -190,7 +190,7 @@ impl PyLdapConnection {
         ldap_server: String,
         timeout_sec: u64,
     ) -> PyResult<Bound<PyAny, 'a>> {
-        pyo3_asyncio::tokio::future_into_py(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let settings: LdapConnSettings =
                 LdapConnSettings::new().set_conn_timeout(Duration::new(timeout_sec, 0));
 
