@@ -465,7 +465,8 @@ async def get_crl_status(
             x509.CRLNumber
         ).value.crl_number
 
-    revoked_cert = crl.get_revoked_certificate_by_serial_number(cert.cert.serial_number)
+    revoked_cert: x509.RevokedCertificate | None
+    revoked_cert = crl.get_revoked_certificate_by_serial_number(cert.cert.serial_number)  # type:ignore
 
     if revoked_cert is None:
         return CrlRevocationInfo(
