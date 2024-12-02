@@ -52,7 +52,8 @@ impl From<PyLdapError> for PyErr {
     }
 }
 
-#[pyclass]
+#[pyclass(eq, eq_int)]
+#[derive(PartialEq)]
 #[pyo3(name = "Scope")]
 pub enum PyScope {
     BASE,
