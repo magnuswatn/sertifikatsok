@@ -170,7 +170,7 @@ impl PyLdapConnection {
                                     (
                                         k,
                                         v.into_iter()
-                                            .map(|f| PyBytes::new_bound(py, &f).into())
+                                            .map(|f| PyBytes::new(py, &f).into())
                                             .collect(),
                                     )
                                 })
@@ -215,25 +215,19 @@ fn ruldap3(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<PyLdapConnection>()?;
 
     // Exceptions
-    m.add("Ruldap3Error", py.get_type_bound::<Ruldap3Error>())?;
+    m.add("Ruldap3Error", py.get_type::<Ruldap3Error>())?;
 
-    m.add("IoError", py.get_type_bound::<IoError>())?;
-    m.add("OpSendError", py.get_type_bound::<OpSendError>())?;
-    m.add("ResultRecvError", py.get_type_bound::<ResultRecvError>())?;
-    m.add("IdScrubSendError", py.get_type_bound::<IdScrubSendError>())?;
-    m.add("MiscSendError", py.get_type_bound::<MiscSendError>())?;
-    m.add("TimeoutError", py.get_type_bound::<TimeoutError>())?;
-    m.add(
-        "FilterParsingError",
-        py.get_type_bound::<FilterParsingError>(),
-    )?;
-    m.add("EndOfStreamError", py.get_type_bound::<EndOfStreamError>())?;
-    m.add("UrlParsingError", py.get_type_bound::<UrlParsingError>())?;
-    m.add("LdapResultError", py.get_type_bound::<LdapResultError>())?;
-    m.add(
-        "DecodingUTF8Error",
-        py.get_type_bound::<DecodingUTF8Error>(),
-    )?;
+    m.add("IoError", py.get_type::<IoError>())?;
+    m.add("OpSendError", py.get_type::<OpSendError>())?;
+    m.add("ResultRecvError", py.get_type::<ResultRecvError>())?;
+    m.add("IdScrubSendError", py.get_type::<IdScrubSendError>())?;
+    m.add("MiscSendError", py.get_type::<MiscSendError>())?;
+    m.add("TimeoutError", py.get_type::<TimeoutError>())?;
+    m.add("FilterParsingError", py.get_type::<FilterParsingError>())?;
+    m.add("EndOfStreamError", py.get_type::<EndOfStreamError>())?;
+    m.add("UrlParsingError", py.get_type::<UrlParsingError>())?;
+    m.add("LdapResultError", py.get_type::<LdapResultError>())?;
+    m.add("DecodingUTF8Error", py.get_type::<DecodingUTF8Error>())?;
 
     Ok(())
 }
