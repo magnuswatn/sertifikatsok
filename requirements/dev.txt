@@ -400,9 +400,9 @@ pytest==8.3.4 \
     # via
     #   -r dev.in
     #   pytest-asyncio
-pytest-asyncio==0.24.0 \
-    --hash=sha256:a811296ed596b69bf0b6f3dc40f83bcaf341b155a269052d82efa2b25ac7037b \
-    --hash=sha256:d081d828e576d85f875399194281e92bf8a68d60d72d1a2faf2feddb6c46b276
+pytest-asyncio==0.25.0 \
+    --hash=sha256:8c0610303c9e0442a5db8604505fc0f545456ba1528824842b37b4a626cbf609 \
+    --hash=sha256:db5432d18eac6b7e28b46dcd9b69921b55c3b1086e85febfe04e70b18d9e81b3
     # via -r dev.in
 service-identity==24.2.0 \
     --hash=sha256:6b047fbd8a84fd0bb0d55ebce4031e400562b9196e1e0d3e0fe2b8a59f6d4a85 \
@@ -415,7 +415,9 @@ six==1.17.0 \
 twisted[tls]==24.11.0 \
     --hash=sha256:695d0556d5ec579dcc464d2856b634880ed1319f45b10d19043f2b57eb0115b5 \
     --hash=sha256:fe403076c71f04d5d2d789a755b687c5637ec3bcd3b2b8252d76f2ba65f54261
-    # via ldaptor
+    # via
+    #   ldaptor
+    #   twisted
 typing-extensions==4.12.2 \
     --hash=sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d \
     --hash=sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8
