@@ -400,9 +400,9 @@ pytest==8.3.4 \
     # via
     #   -r dev.in
     #   pytest-asyncio
-pytest-asyncio==0.25.0 \
-    --hash=sha256:8c0610303c9e0442a5db8604505fc0f545456ba1528824842b37b4a626cbf609 \
-    --hash=sha256:db5432d18eac6b7e28b46dcd9b69921b55c3b1086e85febfe04e70b18d9e81b3
+pytest-asyncio==0.25.3 \
+    --hash=sha256:9e89518e0f9bd08928f97a3482fdc4e244df17529460bc038291ccaf8f85c7c3 \
+    --hash=sha256:fc1da2cf9f125ada7e710b4ddad05518d4cee187ae9412e9ac9271003497f07a
     # via -r dev.in
 service-identity==24.2.0 \
     --hash=sha256:6b047fbd8a84fd0bb0d55ebce4031e400562b9196e1e0d3e0fe2b8a59f6d4a85 \
