@@ -3,12 +3,24 @@ updates:
   - package-ecosystem: pip
     directory: "/requirements"
     schedule:
-      interval: "daily"
+      interval: "monthly"
+    groups:
+      py-deps:
+        patterns:
+          - "*"
   - package-ecosystem: npm
     directory: "/www"
     schedule:
-      interval: "daily"
+      interval: "monthly"
+    groups:
+      js-deps:
+        patterns:
+          - "*"
   - package-ecosystem: cargo
     directory: "/ruldap3"
     schedule:
-      interval: "daily"
+      interval: "monthly"
+    groups:
+      rust-deps:
+        patterns:
+          - "*"
