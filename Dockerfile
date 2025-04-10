@@ -1,7 +1,7 @@
 #
 # Node container for frontend build ("build")
 #
-FROM node:current-bookworm-slim@sha256:2bf48899bbba183a33b362842c9a9832f19c99896159551f9a0420c53ec27522 AS www-build
+FROM node:current-bookworm-slim@sha256:dfb18d8011c0b3a112214a32e772d9c6752131ffee512e974e59367e46fcee52 AS www-build
 
 RUN set -x \
     && apt-get update \
@@ -31,7 +31,7 @@ RUN [ "find", "dist", "-type", "f", "-not", "-name", "*.woff2", \
 #
 # Python base container
 #
-FROM python:3.12.7-slim-bookworm@sha256:032c52613401895aa3d418a4c563d2d05f993bc3ecc065c8f4e2280978acd249 AS python-base
+FROM python:3.12.10-slim-bookworm@sha256:85824326bc4ae27a1abb5bc0dd9e08847aa5fe73d8afb593b1b45b7cb4180f57 AS python-base
 
 #
 # Build base container
