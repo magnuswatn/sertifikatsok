@@ -1,6 +1,6 @@
 import random
 from math import ceil
-from typing import Any, Literal
+from typing import Literal
 from unittest import mock
 from uuid import uuid4
 
