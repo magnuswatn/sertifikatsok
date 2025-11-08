@@ -28,7 +28,8 @@ def database() -> Database:
 
 
 @frozen
-class ChangedOrganization(Organization):
+class ChangedOrganization:
+    org: Organization
     removed: bool  # 410 GONE
     deleted: bool  # with "slettedato"
     disappeared: bool  # 404 not found
@@ -37,19 +38,6 @@ class ChangedOrganization(Organization):
     def __attrs_post_init__(self) -> None:
         if self.change_type == "Sletting":
             assert self.deleted
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, Organization):
-            return False
-
-        return all(
-            [
-                self.orgnr == other.orgnr,
-                self.name == other.name,
-                self.is_child == other.is_child,
-                self.parent_orgnr == other.parent_orgnr,
-            ]
-        )
 
 
 def generate_update_list(
@@ -64,15 +52,15 @@ def generate_update_list(
         update_id: {
             "oppdateringsid": update_id,
             "dato": "2022-10-31T05:04:09.595Z",
-            "organisasjonsnummer": changed_org.orgnr,
+            "organisasjonsnummer": changed_org.org.orgnr,
             "endringstype": changed_org.change_type,
             "_links": {
-                "underenhet" if changed_org.is_child else "enhet": {
+                "underenhet" if changed_org.org.is_child else "enhet": {
                     "href": "https://data.brreg.no/enhetsregisteret/api/"
                     + (
-                        f"underenheter/{changed_org.orgnr}"
-                        if changed_org.is_child
-                        else f"enheter/{changed_org.orgnr}"
+                        f"underenheter/{changed_org.org.orgnr}"
+                        if changed_org.org.is_child
+                        else f"enheter/{changed_org.org.orgnr}"
                     )
                 }
             },
@@ -83,11 +71,11 @@ def generate_update_list(
 
 def generate_single_unit_resp(changed_org: ChangedOrganization) -> dict:
     single_unit_resp = {
-        "organisasjonsnummer": changed_org.orgnr,
-        "navn": f"Nytt navn på {changed_org.orgnr}",
+        "organisasjonsnummer": changed_org.org.orgnr,
+        "navn": f"Nytt navn på {changed_org.org.orgnr}",
     }
-    if changed_org.parent_orgnr:
-        single_unit_resp["overordnetEnhet"] = changed_org.parent_orgnr
+    if changed_org.org.parent_orgnr:
+        single_unit_resp["overordnetEnhet"] = changed_org.org.parent_orgnr
     if changed_org.deleted:
         single_unit_resp["slettedato"] = "2022-10-31T05:04:09.595Z"
     return single_unit_resp
@@ -158,7 +146,7 @@ def get_mock_httpx_client(
             )
         elif request.url.path.startswith(MAIN_SINGLE_URL.path):
             org_nr = request.url.path.split("/")[-1]
-            [org] = [org for org in all_main_units if org.orgnr == org_nr]
+            [org] = [org for org in all_main_units if org.org.orgnr == org_nr]
             if org.removed:
                 status_code = 410
                 body = None
@@ -169,7 +157,7 @@ def get_mock_httpx_client(
                 body = generate_single_unit_resp(org)
         elif request.url.path.startswith(CHILD_SINGLE_URL.path):
             org_nr = request.url.path.split("/")[-1]
-            [org] = [org for org in all_child_units if org.orgnr == org_nr]
+            [org] = [org for org in all_child_units if org.org.orgnr == org_nr]
             if org.removed:
                 status_code = 410
                 body = None
@@ -203,20 +191,24 @@ async def test_no_updates(database: Database) -> None:
 
 async def test_starts_from_where_it_left_of(database: Database) -> None:
     main_org = ChangedOrganization(
-        "012345678",
-        "Gammelt navn på 012345678",
-        is_child=False,
-        parent_orgnr=None,
+        Organization(
+            "012345678",
+            "Gammelt navn på 012345678",
+            is_child=False,
+            parent_orgnr=None,
+        ),
         removed=False,
         deleted=True,
         disappeared=False,
         change_type="Sletting",
     )
     child_org = ChangedOrganization(
-        "123456789",
-        "Gammelt navn på 123456789",
-        is_child=True,
-        parent_orgnr="234567890",
+        Organization(
+            "123456789",
+            "Gammelt navn på 123456789",
+            is_child=True,
+            parent_orgnr="234567890",
+        ),
         removed=False,
         deleted=True,
         disappeared=False,
@@ -255,29 +247,38 @@ async def test_starts_from_where_it_left_of(database: Database) -> None:
 
 async def test_updates_exisiting_orgs(database: Database) -> None:
     existing_main_org = ChangedOrganization(
-        "012345678",
-        "Gammelt navn på 012345678",
-        is_child=False,
-        parent_orgnr=None,
+        Organization(
+            "012345678",
+            "Gammelt navn på 012345678",
+            is_child=False,
+            parent_orgnr=None,
+        ),
         removed=False,
         deleted=False,
         disappeared=False,
         change_type="Endring",
     )
     existing_child_org = ChangedOrganization(
-        "123456789",
-        "Gammelt navn på 123456789",
-        is_child=True,
-        parent_orgnr="234567890",
+        Organization(
+            "123456789",
+            "Gammelt navn på 123456789",
+            is_child=True,
+            parent_orgnr="234567890",
+        ),
         removed=False,
         deleted=False,
         disappeared=False,
         change_type="Endring",
     )
 
-    database.upsert_organizations([existing_main_org, existing_child_org])
-    assert database.get_organization(existing_main_org.orgnr) == existing_main_org
-    assert database.get_organization(existing_child_org.orgnr) == existing_child_org
+    database.upsert_organizations([existing_main_org.org, existing_child_org.org])
+    assert (
+        database.get_organization(existing_main_org.org.orgnr) == existing_main_org.org
+    )
+    assert (
+        database.get_organization(existing_child_org.org.orgnr)
+        == existing_child_org.org
+    )
 
     main_update_list, max_main_update_id = generate_update_list(
         INITIAL_UPDATE_ID + 1, [existing_main_org]
@@ -303,37 +304,41 @@ async def test_updates_exisiting_orgs(database: Database) -> None:
     assert batch_data.main_updateid == max_main_update_id
     assert batch_data.child_updateid == max_child_update_id
 
-    for existing_org in existing_main_org, existing_child_org:
-        new_org = database.get_organization(existing_org.orgnr)
+    for existing_changed_org in existing_main_org, existing_child_org:
+        new_org = database.get_organization(existing_changed_org.org.orgnr)
         assert new_org
-        assert new_org != existing_org
-        assert new_org.name == f"Nytt navn på {existing_org.orgnr}"
+        assert new_org != existing_changed_org.org
+        assert new_org.name == f"Nytt navn på {existing_changed_org.org.orgnr}"
 
 
 async def test_handles_gone_orgs(database: Database) -> None:
     existing_main_org = ChangedOrganization(
-        "012345678",
-        "Gammelt navn på 012345678",
-        is_child=False,
-        parent_orgnr=None,
+        Organization(
+            "012345678",
+            "Gammelt navn på 012345678",
+            is_child=False,
+            parent_orgnr=None,
+        ),
         removed=True,
         deleted=False,
         disappeared=False,
         change_type="Endring",
     )
     existing_child_org = ChangedOrganization(
-        "123456789",
-        "Gammelt navn på 123456789",
-        is_child=True,
-        parent_orgnr="234567890",
+        Organization(
+            "123456789",
+            "Gammelt navn på 123456789",
+            is_child=True,
+            parent_orgnr="234567890",
+        ),
         removed=True,
         deleted=False,
         disappeared=False,
         change_type="Endring",
     )
 
-    assert database.get_organization(existing_main_org.orgnr) is None
-    assert database.get_organization(existing_child_org.orgnr) is None
+    assert database.get_organization(existing_main_org.org.orgnr) is None
+    assert database.get_organization(existing_child_org.org.orgnr) is None
 
     main_update_list, max_main_update_id = generate_update_list(
         INITIAL_UPDATE_ID + 13, [existing_main_org]
@@ -359,34 +364,38 @@ async def test_handles_gone_orgs(database: Database) -> None:
     assert batch_data.main_updateid == max_main_update_id
     assert batch_data.child_updateid == max_child_update_id
 
-    assert database.get_organization(existing_main_org.orgnr) is None
-    assert database.get_organization(existing_child_org.orgnr) is None
+    assert database.get_organization(existing_main_org.org.orgnr) is None
+    assert database.get_organization(existing_child_org.org.orgnr) is None
 
 
 async def test_handles_mysteriously_disappeared_orgs(database: Database) -> None:
     existing_main_org = ChangedOrganization(
-        "931221671",
-        "Gammelt navn på 931221671",
-        is_child=False,
-        parent_orgnr=None,
+        Organization(
+            "931221671",
+            "Gammelt navn på 931221671",
+            is_child=False,
+            parent_orgnr=None,
+        ),
         removed=False,
         deleted=False,
         disappeared=True,
         change_type="Ny",
     )
     existing_child_org = ChangedOrganization(
-        "931164147",
-        "Gammelt navn på 931164147",
-        is_child=True,
-        parent_orgnr="234567890",
+        Organization(
+            "931164147",
+            "Gammelt navn på 931164147",
+            is_child=True,
+            parent_orgnr="234567890",
+        ),
         removed=False,
         deleted=False,
         disappeared=True,
         change_type="Ny",
     )
 
-    assert database.get_organization(existing_main_org.orgnr) is None
-    assert database.get_organization(existing_child_org.orgnr) is None
+    assert database.get_organization(existing_main_org.org.orgnr) is None
+    assert database.get_organization(existing_child_org.org.orgnr) is None
 
     main_update_list, max_main_update_id = generate_update_list(
         INITIAL_UPDATE_ID + 13, [existing_main_org]
@@ -412,34 +421,38 @@ async def test_handles_mysteriously_disappeared_orgs(database: Database) -> None
     assert batch_data.main_updateid == max_main_update_id
     assert batch_data.child_updateid == max_child_update_id
 
-    assert database.get_organization(existing_main_org.orgnr) is None
-    assert database.get_organization(existing_child_org.orgnr) is None
+    assert database.get_organization(existing_main_org.org.orgnr) is None
+    assert database.get_organization(existing_child_org.org.orgnr) is None
 
 
 async def test_handles_changed_org_but_later_deleted(database: Database) -> None:
     existing_main_org = ChangedOrganization(
-        "012345678",
-        "Gammelt navn på 012345678",
-        is_child=False,
-        parent_orgnr=None,
+        Organization(
+            "012345678",
+            "Gammelt navn på 012345678",
+            is_child=False,
+            parent_orgnr=None,
+        ),
         removed=False,
         deleted=True,
         disappeared=False,
         change_type="Endring",
     )
     existing_child_org = ChangedOrganization(
-        "123456789",
-        "Gammelt navn på 123456789",
-        is_child=True,
-        parent_orgnr="234567890",
+        Organization(
+            "123456789",
+            "Gammelt navn på 123456789",
+            is_child=True,
+            parent_orgnr="234567890",
+        ),
         removed=False,
         deleted=True,
         disappeared=False,
         change_type="Endring",
     )
 
-    assert database.get_organization(existing_main_org.orgnr) is None
-    assert database.get_organization(existing_child_org.orgnr) is None
+    assert database.get_organization(existing_main_org.org.orgnr) is None
+    assert database.get_organization(existing_child_org.org.orgnr) is None
 
     main_update_list, max_main_update_id = generate_update_list(
         INITIAL_UPDATE_ID + 1700, [existing_main_org]
@@ -465,17 +478,19 @@ async def test_handles_changed_org_but_later_deleted(database: Database) -> None
     assert batch_data.main_updateid == max_main_update_id
     assert batch_data.child_updateid == max_child_update_id
 
-    assert database.get_organization(existing_main_org.orgnr) is None
-    assert database.get_organization(existing_child_org.orgnr) is None
+    assert database.get_organization(existing_main_org.org.orgnr) is None
+    assert database.get_organization(existing_child_org.org.orgnr) is None
 
 
 async def test_handles_several_pages(database: Database) -> None:
     main_orgs = [
         ChangedOrganization(
-            str(org_nr),
-            f"Nytt navn på {org_nr}",
-            is_child=False,
-            parent_orgnr=None,
+            Organization(
+                str(org_nr),
+                f"Nytt navn på {org_nr}",
+                is_child=False,
+                parent_orgnr=None,
+            ),
             removed=False,
             deleted=False,
             disappeared=False,
@@ -486,10 +501,12 @@ async def test_handles_several_pages(database: Database) -> None:
 
     child_orgs = [
         ChangedOrganization(
-            str(org_nr),
-            f"Nytt navn på {org_nr}",
-            is_child=True,
-            parent_orgnr=str(org_nr - 40000),
+            Organization(
+                str(org_nr),
+                f"Nytt navn på {org_nr}",
+                is_child=True,
+                parent_orgnr=str(org_nr - 40000),
+            ),
             removed=False,
             deleted=False,
             disappeared=False,
@@ -522,8 +539,8 @@ async def test_handles_several_pages(database: Database) -> None:
     assert batch_data.main_updateid == max_main_update_id
     assert batch_data.child_updateid == max_child_update_id
 
-    for org in main_orgs + child_orgs:
-        assert database.get_organization(org.orgnr) == org
+    for changed_org in main_orgs + child_orgs:
+        assert database.get_organization(changed_org.org.orgnr) == changed_org.org
 
 
 async def test_doesnt_update_more_than_limit(database: Database) -> None:
@@ -531,10 +548,12 @@ async def test_doesnt_update_more_than_limit(database: Database) -> None:
 
     main_orgs = [
         ChangedOrganization(
-            str(org_nr),
-            f"Nytt navn på {org_nr}",
-            is_child=False,
-            parent_orgnr=str(org_nr - 10000),
+            Organization(
+                str(org_nr),
+                f"Nytt navn på {org_nr}",
+                is_child=False,
+                parent_orgnr=str(org_nr - 10000),
+            ),
             removed=False,
             deleted=False,
             disappeared=False,
@@ -545,10 +564,12 @@ async def test_doesnt_update_more_than_limit(database: Database) -> None:
 
     child_orgs = [
         ChangedOrganization(
-            str(org_nr),
-            f"Nytt navn på {org_nr}",
-            is_child=True,
-            parent_orgnr=str(org_nr - 40000),
+            Organization(
+                str(org_nr),
+                f"Nytt navn på {org_nr}",
+                is_child=True,
+                parent_orgnr=str(org_nr - 40000),
+            ),
             removed=False,
             deleted=False,
             disappeared=False,
@@ -597,22 +618,22 @@ async def test_doesnt_update_more_than_limit(database: Database) -> None:
     for org_list in [main_orgs, child_orgs]:
         # The first batch should be loaded
         for x in range(max_update_fetches_per_run * 20):
-            org = org_list[x]
-            assert database.get_organization(org.orgnr) == org
+            changed_org = org_list[x]
+            assert database.get_organization(changed_org.org.orgnr) == changed_org.org
 
         # the next batch should NOT be loaded
         for x in range(
             max_update_fetches_per_run * 20, max_update_fetches_per_run * 30
         ):
-            org = org_list[x]
-            assert database.get_organization(org.orgnr) is None
+            changed_org = org_list[x]
+            assert database.get_organization(changed_org.org.orgnr) is None
 
     # run again
     await run_batch(database, httpx_client)
 
     # Every org should now be loaded
-    for org in main_orgs + child_orgs:
-        assert database.get_organization(org.orgnr) == org
+    for changed_org in main_orgs + child_orgs:
+        assert database.get_organization(changed_org.org.orgnr) == changed_org.org
 
     batch_data2 = BrregBatchRun.from_batch_run(
         database.get_last_successful_batch_run(BATCH_NAME)
@@ -625,28 +646,32 @@ async def test_doesnt_update_more_than_limit(database: Database) -> None:
 
 async def test_inserts_new_organizations(database: Database) -> None:
     main_org = ChangedOrganization(
-        "012345678",
-        "Nytt navn på 012345678",
-        is_child=False,
-        parent_orgnr="123456789",
+        Organization(
+            "012345678",
+            "Nytt navn på 012345678",
+            is_child=False,
+            parent_orgnr="123456789",
+        ),
         removed=False,
         deleted=False,
         disappeared=False,
         change_type="Ny",
     )
     child_org = ChangedOrganization(
-        "123456789",
-        "Nytt navn på 123456789",
-        is_child=True,
-        parent_orgnr="123456789",
+        Organization(
+            "123456789",
+            "Nytt navn på 123456789",
+            is_child=True,
+            parent_orgnr="123456789",
+        ),
         removed=False,
         deleted=False,
         disappeared=False,
         change_type="Ny",
     )
 
-    assert database.get_organization(main_org.orgnr) is None
-    assert database.get_organization(child_org.orgnr) is None
+    assert database.get_organization(main_org.org.orgnr) is None
+    assert database.get_organization(child_org.org.orgnr) is None
 
     main_update_list, max_main_update_id = generate_update_list(
         INITIAL_UPDATE_ID + 100, [main_org]
@@ -672,8 +697,8 @@ async def test_inserts_new_organizations(database: Database) -> None:
     assert batch_data.main_updateid == max_main_update_id
     assert batch_data.child_updateid == max_child_update_id
 
-    new_main_org = database.get_organization(main_org.orgnr)
-    assert new_main_org == main_org
+    new_main_org = database.get_organization(main_org.org.orgnr)
+    assert new_main_org == main_org.org
 
-    new_child_org = database.get_organization(child_org.orgnr)
-    assert new_child_org == child_org
+    new_child_org = database.get_organization(child_org.org.orgnr)
+    assert new_child_org == child_org.org
