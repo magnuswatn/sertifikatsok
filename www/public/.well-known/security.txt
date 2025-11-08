@@ -1,2 +1,2 @@
 Contact: https://github.com/magnuswatn/sertifikatsok/issues/new
-Expires: 2025-09-27T18:20:00.000Z
+Expires: 2026-09-27T18:20:00.000Z
