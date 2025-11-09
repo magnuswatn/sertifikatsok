@@ -155,7 +155,7 @@ impl PyLdapConnection {
             // mapped to `list[int]` and it's all very slow. So we grab the
             // GIL and do the conversion ourselves.
             // TODO: Should we convert all the types?
-            Python::with_gil(|py| {
+            Python::attach(|py| {
                 let vec: Vec<PySearchEntry> = rs
                     .into_iter()
                     .map(|re| {
