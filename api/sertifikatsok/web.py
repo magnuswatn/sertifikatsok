@@ -14,6 +14,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from sertifikatsok import get_version
 from sertifikatsok.revocation_info import get_revocation_info
+from sertifikatsok.static import StaticResourceHandler
 
 from .audit_log import AuditLogger
 from .brreg_batch import schedule_batch
@@ -208,3 +209,10 @@ async def revocation_endpoint(
     )
 
     return response
+
+
+# Add handling of static resources
+app.add_route(
+    "/{path:path}",
+    StaticResourceHandler.create().handle_static_request,
+)
