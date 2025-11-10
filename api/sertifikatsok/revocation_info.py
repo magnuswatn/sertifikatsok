@@ -7,6 +7,7 @@ from enum import Enum, auto
 from functools import partial
 from hashlib import sha256
 from secrets import choice
+from typing import cast
 
 import httpx
 from attrs import frozen
@@ -137,7 +138,7 @@ def get_cdp_from_cert(cert: MaybeInvalidCertificate) -> str | None:
         if cdp.full_name is not None:
             url = urllib.parse.urlparse(cdp.full_name[0].value)
             if url.scheme == "http":
-                return cdp.full_name[0].value
+                return cast(str, cdp.full_name[0].value)
 
     return None
 
