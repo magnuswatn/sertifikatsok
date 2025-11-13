@@ -105,7 +105,7 @@ struct PyLdapConnection {
 
 #[pymethods]
 impl PyLdapConnection {
-    pub fn __aenter__(slf: Py<Self>, py: pyo3::Python<'_>) -> PyResult<Bound<PyAny>> {
+    pub fn __aenter__(slf: Py<Self>, py: pyo3::Python<'_>) -> PyResult<Bound<'_, PyAny>> {
         pyo3_async_runtimes::tokio::future_into_py(py, async {
             return Ok(slf);
         })
