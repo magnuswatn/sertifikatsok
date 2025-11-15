@@ -152,9 +152,9 @@ cryptography==44.0.1 \
     --hash=sha256:f51f5705ab27898afda1aaa430f34ad90dc117421057782022edf0600bec5f14 \
     --hash=sha256:fd0ee90072861e276b0ff08bd627abec29e32a53b2be44e41dbcdf87cbee2b00
     # via -r main.in
-fastapi-slim==0.121.1 \
-    --hash=sha256:3f394dd0c09a7c5e36e7a9c239482551e0698a965f9b881f9b5291751d54a24d \
-    --hash=sha256:5fb8fd99200a818de61e9746bf2da74f726458c13b83608b0be7ab02950ca91d
+fastapi-slim==0.121.2 \
+    --hash=sha256:3ca050b77f3bafe94a8ebc602dc086c22b2ebfa32f47abe327901f703c0d62d5 \
+    --hash=sha256:ef6ff21ccfa13ef5d811616411ab5762df45f56095d95caa07cc52bd77995a2c
     # via -r main.in
 h11==0.16.0 \
     --hash=sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1 \
@@ -443,12 +443,10 @@ typing-extensions==4.15.0 \
     --hash=sha256:0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466 \
     --hash=sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548
     # via
-    #   anyio
     #   cattrs
     #   fastapi-slim
     #   pydantic
     #   pydantic-core
-    #   starlette
     #   typing-inspection
 typing-inspection==0.4.2 \
     --hash=sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7 \
