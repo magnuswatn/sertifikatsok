@@ -19,7 +19,7 @@ WORKDIR /opt/sertifikatsok/www/
 RUN ["cp", "--preserve=all", "-R", "/tmp/extjsresources/.", \
     "/opt/sertifikatsok/www/public/resources/external" ]
 
-RUN ["npm", "ci"]
+RUN ["npm", "ci", "--ignore-scripts"]
 
 ARG SERTIFIKATSOK_VERSION
 
