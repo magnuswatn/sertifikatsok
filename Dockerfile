@@ -123,6 +123,6 @@ USER app
 
 RUN pip install /opt/sertifikatsok/ruldap3/target/wheels/*
 
-COPY api /opt/sertifikatsok/api
+COPY --chown=app:app api /opt/sertifikatsok/api
 
 ENTRYPOINT ["python", "-um", "sertifikatsok"]
