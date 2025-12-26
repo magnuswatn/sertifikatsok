@@ -115,6 +115,7 @@ EOT
 
 WORKDIR /opt/sertifikatsok/api
 
+COPY docker-entrypoint.sh /
 COPY --from=www-build --chown=app:app /opt/sertifikatsok/www/dist /opt/sertifikatsok/www/
 COPY --from=build --chown=app:app /opt/sertifikatsok/venv/ /opt/sertifikatsok/venv/
 COPY --from=rust-build --chown=app:app /opt/sertifikatsok/ruldap3/target/wheels /opt/sertifikatsok/ruldap3/target/wheels
@@ -125,4 +126,4 @@ RUN pip install /opt/sertifikatsok/ruldap3/target/wheels/*
 
 COPY --chown=app:app api /opt/sertifikatsok/api
 
-ENTRYPOINT ["python", "-um", "sertifikatsok"]
+ENTRYPOINT ["/docker-entrypoint.sh"]

@@ -1,11 +1,9 @@
-import argparse
 import json
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-import uvicorn
 from fastapi import Depends, FastAPI
 from fastapi.exceptions import RequestValidationError
 from starlette.datastructures import MutableHeaders
@@ -14,7 +12,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from sertifikatsok import get_version, is_dev
+from sertifikatsok import get_version
 from sertifikatsok.revocation_info import get_revocation_info
 
 from .audit_log import AuditLogger
@@ -23,7 +21,7 @@ from .crypto import AppCrlRetriever, CertRetriever, CertValidator, CrlDownloader
 from .db import Database
 from .enums import Environment, RequestCertType, SearchAttribute
 from .errors import ClientError
-from .logging import audit_logger, correlation_context, get_log_config, performance_log
+from .logging import audit_logger, correlation_context, performance_log
 from .search import CertificateSearch, CouldNotContactCaError, SearchParams
 from .serialization import converter, sertifikatsok_serialization
 
@@ -113,7 +111,6 @@ class CorrelationMiddleware:
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     audit_logger.info("## Starting version %s ##", app.version)
-    app.state.dev = is_dev()
     app.state.database = Database.connect_to_database()
     app.state.crl_retriever = AppCrlRetriever(CrlDownloader())
     app.state.cert_retrievers = {
@@ -216,29 +213,3 @@ async def revocation_endpoint(
     )
 
     return response
-
-
-def run() -> None:
-    parser = argparse.ArgumentParser(description="Sertifikatsok API")
-    parser.add_argument("--host")
-    parser.add_argument("--port")
-    parser.add_argument("--log-level")
-    parser.add_argument("--log-files")
-
-    args = parser.parse_args()
-
-    if args.log_level:
-        log_level = getattr(logging, args.log_level)
-    elif is_dev():
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.INFO
-
-    uvicorn.run(
-        "sertifikatsok.web:app",
-        port=int(args.port),
-        host=args.host,
-        log_level=log_level,
-        reload=is_dev(),
-        log_config=get_log_config(log_level, args.log_files),
-    )

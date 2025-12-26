@@ -14,7 +14,7 @@ set positional-arguments
 @mkvenv: clean-venv create-venv sync
 
 @run-dev:
-  source ./.venv/bin/activate && cd ./api && DEV=true python -m sertifikatsok --host 127.0.0.1 --port 7001 2>&1
+  source ./.venv/bin/activate && cd ./api && DEV=true ../docker-entrypoint.sh --host 127.0.0.1 --port 7001 2>&1
 
 @run-testserver:
   source ./.venv/bin/activate && cd ./testserver && python -m testserver

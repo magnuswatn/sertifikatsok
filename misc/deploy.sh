@@ -38,9 +38,10 @@ docker run -d \
   -v "${WWW_DIR}:/tmp/wwwcopy" \
   -v "/var/log/caddy/:/logs" \
   -p 127.0.0.1:7001:7001 \
+  --env 'SERTIFIKATSOK_LOG_FILES=/logs/sertifikatsok_{}.log' \
   --name "${CONTAINER_NAME}" \
   "${container_tag}" \
-  --port 7001 --host 0.0.0.0 --log-files=/logs/sertifikatsok_{}.log
+  --port 7001 --host 0.0.0.0
 
 docker exec "${CONTAINER_NAME}" cp --preserve=all --force -R /opt/sertifikatsok/www/. /tmp/wwwcopy
 
