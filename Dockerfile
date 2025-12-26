@@ -108,11 +108,18 @@ ARG SERTIFIKATSOK_VERSION
 
 ENV PATH="/opt/sertifikatsok/venv/bin:${PATH}" SERTIFIKATSOK_VERSION="${SERTIFIKATSOK_VERSION}"
 
+RUN <<EOT
+groupadd -r app -g 1001
+useradd -r -d /opt/sertifikatsok/ -g app -N app -u 1001
+EOT
+
 WORKDIR /opt/sertifikatsok/api
 
-COPY --from=www-build /opt/sertifikatsok/www/dist /opt/sertifikatsok/www/
-COPY --from=build /opt/sertifikatsok/venv/ /opt/sertifikatsok/venv/
-COPY --from=rust-build /opt/sertifikatsok/ruldap3/target/wheels /opt/sertifikatsok/ruldap3/target/wheels
+COPY --from=www-build --chown=app:app /opt/sertifikatsok/www/dist /opt/sertifikatsok/www/
+COPY --from=build --chown=app:app /opt/sertifikatsok/venv/ /opt/sertifikatsok/venv/
+COPY --from=rust-build --chown=app:app /opt/sertifikatsok/ruldap3/target/wheels /opt/sertifikatsok/ruldap3/target/wheels
+
+USER app
 
 RUN pip install /opt/sertifikatsok/ruldap3/target/wheels/*
 
