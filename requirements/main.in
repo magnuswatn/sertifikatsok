@@ -1,6 +1,6 @@
 cryptography==44.0.1
 attrs>=21.3.0
 httpx
-uvicorn[standard]
+granian[uvloop,reload]
 fastapi-slim
 cattrs

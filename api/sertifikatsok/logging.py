@@ -91,7 +91,7 @@ def get_log_config(log_level: int, log_files: str | None) -> dict:
                 "handlers": ["performance"],
                 "propagate": False,
             },
-            "uvicorn.access": {
+            "granian.access": {
                 "level": "INFO",
                 "handlers": ["access"],
                 "propagate": False,

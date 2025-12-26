@@ -549,8 +549,6 @@ typing-extensions==4.15.0 \
     # via
     #   -c main.txt
     #   mypy
-    #   pyopenssl
-    #   pytest-asyncio
     #   twisted
 yarl==1.22.0 \
     --hash=sha256:01e73b85a5434f89fc4fe27dcda2aff08ddf35e4d47bbbea3bdcd25321af538a \

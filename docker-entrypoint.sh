@@ -1,2 +1,2 @@
 #!/bin/sh
-exec uvicorn sertifikatsok.asgi:app "$@"
+exec granian sertifikatsok.asgi:app --interface ASGI --access-log "$@"
