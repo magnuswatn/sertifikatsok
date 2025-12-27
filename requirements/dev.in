@@ -5,3 +5,4 @@ mypy
 pytest-asyncio
 ldaptor
 yarl
+lxml>=5.3.0

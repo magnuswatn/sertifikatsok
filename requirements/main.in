@@ -1,6 +1,6 @@
 cryptography==44.0.1
 attrs>=21.3.0
-httpx
+httpx[brotli]
 granian[uvloop,reload]
 starlette
 cattrs
