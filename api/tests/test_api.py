@@ -112,11 +112,17 @@ def test_invalid_params(*, client: Client, param: str, invalid: bool) -> None:
     resp_json = resp.json()
     assert "error" in resp_json
 
-    expected_error_msg = (
-        f"Error for query field '{param}': Input should be"
-        if invalid
-        else f"Error for query field '{param}': Field required"
-    )
+    match param:
+        case "env":
+            expected_error_msg = "Unknown environment"
+        case "type":
+            expected_error_msg = "Unknown certificate type"
+        case "query":
+            expected_error_msg = "Missing query parameter"
+        case "attr":
+            expected_error_msg = "Unknown search attribute"
+        case _:
+            raise AssertionError
 
     assert expected_error_msg in resp_json["error"]
 

@@ -2,14 +2,13 @@ import json
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Annotated
 
-from fastapi import Depends, FastAPI
-from fastapi.exceptions import RequestValidationError
+from starlette.applications import Starlette
 from starlette.datastructures import MutableHeaders
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.routing import Route
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from sertifikatsok import get_version
@@ -29,20 +28,31 @@ from .serialization import converter, sertifikatsok_serialization
 logger = logging.getLogger(__name__)
 
 
-async def handle_request_validation_error(request: Request, exc: Exception) -> Response:
-    assert isinstance(exc, RequestValidationError)
-    logger.info("Request validation error %s", exc)
-    error = exc.errors()[0]
-    error_loc = error["loc"][-1]
-    error_msg = error["msg"]
-    return Response(
-        content=json.dumps(
-            {"error": f"Error for query field '{error_loc}': {error_msg}"},
-            ensure_ascii=False,
-        ),
-        status_code=400,
-        media_type="application/json",
-    )
+def _parse_query(
+    request: Request,
+) -> tuple[Environment, RequestCertType, str, SearchAttribute | None]:
+    try:
+        env = Environment(request.query_params.get("env"))
+    except ValueError as e:
+        raise ClientError("Unknown environment") from e
+
+    try:
+        typ = RequestCertType(request.query_params.get("type"))
+    except ValueError as e:
+        raise ClientError("Unknown certificate type") from e
+
+    if not (query := request.query_params.get("query")):
+        raise ClientError("Missing query parameter")
+
+    if (raw_attr := request.query_params.get("attr")) is not None:
+        try:
+            attr = SearchAttribute(raw_attr)
+        except ValueError as e:
+            raise ClientError("Unknown search attribute") from e
+    else:
+        attr = None
+
+    return env, typ, query, attr
 
 
 async def handle_client_error(request: Request, exc: Exception) -> Response:
@@ -105,8 +115,8 @@ class CorrelationMiddleware:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    audit_logger.info("## Starting version %s ##", app.version)
+async def lifespan(app: Starlette) -> AsyncIterator[None]:
+    audit_logger.info("## Starting version %s ##", get_version())
     app.state.database = Database.connect_to_database()
     app.state.crl_retriever = AppCrlRetriever(CrlDownloader())
     app.state.cert_retrievers = {
@@ -119,30 +129,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-app = FastAPI(
-    middleware=[Middleware(CorrelationMiddleware)],
-    lifespan=lifespan,
-    title="Sertifikatsøk",
-    version=get_version(),
-    exception_handlers={
-        ClientError: handle_client_error,
-        RequestValidationError: handle_request_validation_error,
-        CouldNotContactCaError: handle_could_not_contact_ca_error,
-        Exception: handle_exception,
-    },
-)
-
-
-@app.get("/api")
 @performance_log()
-async def api_endpoint(
-    env: Environment,
-    type: RequestCertType,
-    query: str,
-    request: Request,
-    audit_logger: Annotated[AuditLogger, Depends(AuditLogger)],
-    attr: SearchAttribute | None = None,
-) -> Response:
+async def api_endpoint(request: Request) -> Response:
+    env, type, query, attr = _parse_query(request)
+    audit_logger = AuditLogger(env, type, query, request, attr)
     with audit_logger:
         search_params = SearchParams(env, type.to_cert_type(), query, attr)
 
@@ -176,13 +166,11 @@ async def api_endpoint(
         return response
 
 
-@app.post("/revocation_info")
 @performance_log()
-async def revocation_endpoint(
-    env: Environment,
-    request: Request,
-    audit_logger: Annotated[AuditLogger, Depends(AuditLogger)],
-) -> Response:
+async def revocation_endpoint(request: Request) -> Response:
+    env, type, query, attr = _parse_query(request)
+    audit_logger = AuditLogger(env, type, query, request, attr)
+
     if request.headers.get("Content-Type") != "application/pkix-cert":
         raise ClientError("Unsupported content type")
 
@@ -211,8 +199,20 @@ async def revocation_endpoint(
     return response
 
 
-# Add handling of static resources
-app.add_route(
-    "/{path:path}",
-    StaticResourceHandler.create().handle_static_request,
+app = Starlette(
+    middleware=[Middleware(CorrelationMiddleware)],
+    lifespan=lifespan,
+    routes=[
+        Route("/api", api_endpoint),
+        Route("/revocation_info", revocation_endpoint, methods=["POST"]),
+        Route(
+            "/{path:path}",
+            StaticResourceHandler.create().handle_static_request,
+        ),
+    ],
+    exception_handlers={
+        ClientError: handle_client_error,
+        CouldNotContactCaError: handle_could_not_contact_ca_error,
+        Exception: handle_exception,
+    },
 )

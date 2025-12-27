@@ -2,5 +2,5 @@ cryptography==44.0.1
 attrs>=21.3.0
 httpx
 granian[uvloop,reload]
-fastapi-slim
+starlette
 cattrs
