@@ -25,10 +25,10 @@ set positional-arguments
 @mypy:
   source ./.venv/bin/activate && cd ./api && mypy --version && mypy .
 
-@pre-commit:
-  pre-commit run --all-files
+@ruff:
+  source ./.venv/bin/activate && ruff check && ruff format --check
 
-@checks: pre-commit mypy tests
+@checks: ruff mypy tests
 
 alias py := python
 @python:
