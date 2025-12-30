@@ -9,7 +9,7 @@ kill_signal = "SIGINT"
 kill_timeout = "5s"
 
 [experimental]
-cmd = ["--port", "8080"]
+cmd = ["--host", "0.0.0.0", "--port", "8080"]
 auto_rollback = true
 
 [[services]]
@@ -25,16 +25,17 @@ force_https = true
 [[services.ports]]
 port = 443
 handlers = ["tls", "http"]
+
 [services.concurrency]
 type = "connections"
 hard_limit = 25
 soft_limit = 20
+
+[services.ports.http_options]
+h2_backend = true
 
 [[services.tcp_checks]]
 interval = "15s"
 timeout = "2s"
 grace_period = "1s"
 restart_limit = 0
-
-[build.args]
-SERTIFIKATSOK_VERSION = "flydev2"
