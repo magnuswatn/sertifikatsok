@@ -34,61 +34,20 @@ alias py := python
 @python:
   source ./.venv/bin/activate && python
 
-# Dependabot uses pip-tools, which thinks setuptools
-# is a scary dependency, so it adds it to the requirement file
-# after a warning. If Dependabot doesn't see the warning
-# footer in the original requirements file, it will remove it,
-# plus any dependency after it, from the finished file. So, to
-# make sure Dependabot doesn't remove our setuptools dependency,
-# we must add the header to the requirements file. And let's just
-# move the setuptools dependency to it as well, to minimize diffs.
-move_dev_setuptools_dependency_to_unsafe_footer:
-  #!.venv/bin/python3
-  from pathlib import Path
-
-  dev_req = Path("requirements/dev.txt").read_text().splitlines()
-  new_reqs = []
-  setuptools_lines = []
-  in_setuptools = False
-  for line in dev_req:
-      if line.startswith("setuptools=="):
-          in_setuptools = True
-          setuptools_lines.append(line)
-      elif in_setuptools and line.startswith(" "):
-          setuptools_lines.append(line)
-      else:
-          in_setuptools = False
-          new_reqs.append(line)
-
-  if setuptools_lines:
-      new_reqs.extend(
-          [
-              "",
-              "# The following packages are considered to be unsafe in a requirements file:",
-              *setuptools_lines,
-          ]
-      )
-  new_reqs.append("") # final newline
-  Path("requirements/dev.txt").write_text("\n".join(new_reqs))
-
-
 @compile:
   cd requirements && uv pip compile main.in -o main.txt --generate-hashes --no-header --no-strip-extras
   cd requirements && uv pip compile dev.in -o dev.txt --generate-hashes --no-header --no-strip-extras
   cd requirements && uv pip compile ruldap3.in -o ruldap3.txt --generate-hashes --no-header --no-strip-extras
-  just move_dev_setuptools_dependency_to_unsafe_footer
 
 @upgrade:
   cd requirements && uv pip compile main.in -o main.txt --generate-hashes --upgrade --no-header --no-strip-extras
   cd requirements && uv pip compile dev.in -o dev.txt --generate-hashes --upgrade --no-header --no-strip-extras
   cd requirements && uv pip compile ruldap3.in -o ruldap3.txt --generate-hashes --upgrade --no-header --no-strip-extras
-  just move_dev_setuptools_dependency_to_unsafe_footer
 
 @upgrade-pkg *args='':
   cd requirements && uv pip compile main.in -o main.txt --generate-hashes --no-header --no-strip-extras --upgrade-package "$@"
   cd requirements && uv pip compile dev.in -o dev.txt --generate-hashes --no-header --no-strip-extras --upgrade-package "$@"
   cd requirements && uv pip compile ruldap3.in -o ruldap3.txt --generate-hashes --no-header --no-strip-extras --upgrade-package "$@"
-  just move_dev_setuptools_dependency_to_unsafe_footer
 
 alias ulib := update-lib
 @update-lib:
