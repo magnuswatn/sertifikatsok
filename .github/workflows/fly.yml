@@ -1,0 +1,18 @@
+name: Fly Deploy
+on:
+  push:
+    branches:
+      - dev
+jobs:
+  deploy:
+    name: Deploy app
+    runs-on: ubuntu-latest
+    concurrency: deploy-group
+    steps:
+      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      - uses: superfly/flyctl-actions/setup-flyctl@63da3ecc5e2793b98a3f2519b3d75d4f4c11cec2 # @master at 2025-12-30
+        with:
+          version: 0.4.0
+      - run: flyctl deploy --remote-only --build-arg SERTIFIKATSOK_VERSION="$(git rev-parse --short HEAD)"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

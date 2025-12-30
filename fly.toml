@@ -9,7 +9,7 @@ kill_signal = "SIGINT"
 kill_timeout = "5s"
 
 [experimental]
-cmd = ["--port", "8080"]
+cmd = ["--host", "0.0.0.0", "--port", "8080"]
 auto_rollback = true
 
 [[services]]
@@ -35,6 +35,3 @@ interval = "15s"
 timeout = "2s"
 grace_period = "1s"
 restart_limit = 0
-
-[build.args]
-SERTIFIKATSOK_VERSION = "flydev2"
