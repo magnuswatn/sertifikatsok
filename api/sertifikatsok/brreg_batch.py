@@ -315,8 +315,13 @@ def get_seconds_to_next_run() -> float:
 
 
 async def run_batch_when_scheduled(database: Database) -> None:
+    initial_run = True
     while True:
-        sleep_seconds = get_seconds_to_next_run()
+        if initial_run:
+            sleep_seconds = 30
+            initial_run = False
+        else:
+            sleep_seconds = get_seconds_to_next_run()
         logger.debug("Scheduling %s in %d seconds", BATCH_NAME, sleep_seconds)
         await asyncio.sleep(sleep_seconds)
         async with httpx.AsyncClient() as httpx_client:
