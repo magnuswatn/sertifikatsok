@@ -4,9 +4,11 @@ import asyncio
 import logging
 from collections.abc import Iterable
 from datetime import timedelta
+from typing import Literal
 
 import httpx
 from attrs import asdict, frozen
+from cattrs.preconf.json import make_converter
 
 from sertifikatsok.enums import BatchResult
 from sertifikatsok.logging import configure_logging, correlation_context
@@ -33,7 +35,85 @@ CHILD_SINGLE_URL = httpx.URL("https://data.brreg.no/enhetsregisteret/api/underen
 MAX_UPDATE_FETCHES_PER_RUN = 500
 USEFUL_UPDATES = ["Endring", "Ny"]
 
+Converter = make_converter()
+
 logger = logging.getLogger(__name__)
+
+
+@frozen
+class BrregUpdate:
+    oppdateringsid: int
+    organisasjonsnummer: str
+    endringstype: str
+
+
+@frozen
+class BrregEnheterUpdates:
+    oppdaterteEnheter: list[BrregUpdate]
+
+    @property
+    def updated_units(self) -> list[BrregUpdate]:
+        return self.oppdaterteEnheter
+
+
+@frozen
+class BrregUnderenheterUpdates:
+    oppdaterteUnderenheter: list[BrregUpdate]
+
+    @property
+    def updated_units(self) -> list[BrregUpdate]:
+        return self.oppdaterteUnderenheter
+
+
+@frozen
+class BrregPageInfo:
+    size: int
+    totalElements: int
+    totalPages: int
+    number: int
+
+
+@frozen
+class BrregUpdatesResponse[T]:
+    _embedded: T
+    page: BrregPageInfo
+
+
+@frozen
+class BrregEnhet:
+    respons_klasse: Literal["Enhet"]
+    organisasjonsnummer: str
+    navn: str
+    overordnetEnhet: str | None = None
+
+
+@frozen
+class BrregUnderenhet:
+    respons_klasse: Literal["Underenhet"]
+    organisasjonsnummer: str
+    navn: str
+    overordnetEnhet: str
+
+
+@frozen
+class BrregSlettetEnhet:
+    respons_klasse: Literal["SlettetEnhet"]
+    organisasjonsnummer: str
+    navn: str
+    slettedato: str
+
+
+@frozen
+class BrregSlettetUnderenhet:
+    respons_klasse: Literal["SlettetUnderEnhet"]  # why the big E brreg ??
+    organisasjonsnummer: str
+    navn: str
+    slettedato: str
+
+
+BrregGenericEnhet = (
+    BrregEnhet | BrregUnderenhet | BrregSlettetEnhet | BrregSlettetUnderenhet
+)
 
 
 @frozen
@@ -63,43 +143,47 @@ class BrregUpdateResult:
 
 
 async def get_update_from_brreg(
-    httpx_client: httpx.AsyncClient, url: httpx.URL, current_update_id: int
+    httpx_client: httpx.AsyncClient, current_update_id: int, *, children: bool
 ) -> BrregUpdateResult:
+    if children:
+        url = CHILD_UPDATES_URL
+        update_class = BrregUnderenheterUpdates
+    else:
+        url = MAIN_UPDATES_URL
+        update_class = BrregEnheterUpdates
+
     resp = await httpx_client.get(url, params={"oppdateringsid": current_update_id + 1})
     resp.raise_for_status()
-    resp_json = resp.json()
+    brreg_resp = Converter.structure(resp.json(), BrregUpdatesResponse[update_class])
 
-    total_elements = resp_json["page"]["totalElements"]
+    total_elements = brreg_resp.page.totalElements
     if total_elements == 0:
         return BrregUpdateResult(
             elements_left=0, updated_units=set(), highest_update_id=current_update_id
         )
 
-    embedded = resp_json["_embedded"]
-    updated_units = embedded.get("oppdaterteEnheter") or embedded.get(
-        "oppdaterteUnderenheter"
-    )
-
     updates: set[str] = set()
-    for unit in updated_units:
-        if unit["oppdateringsid"] > current_update_id:
-            current_update_id = unit["oppdateringsid"]
+    for unit in brreg_resp._embedded.updated_units:
+        if unit.oppdateringsid > current_update_id:
+            current_update_id = unit.oppdateringsid
 
-        if unit["endringstype"] in USEFUL_UPDATES:
-            updates.add(unit["organisasjonsnummer"])
+        if unit.endringstype in USEFUL_UPDATES:
+            updates.add(unit.organisasjonsnummer)
 
-    elements_left = total_elements - len(updated_units)
+    elements_left = total_elements - len(brreg_resp._embedded.updated_units)
 
     return BrregUpdateResult(elements_left, updates, current_update_id)
 
 
 async def get_updates_from_brreg(
-    httpx_client: httpx.AsyncClient, url: httpx.URL, current_update_id: int
+    httpx_client: httpx.AsyncClient, current_update_id: int, *, children: bool
 ) -> BrregUpdateResult:
     all_updates: set[str] = set()
     result = None
     for _ in range(MAX_UPDATE_FETCHES_PER_RUN):
-        result = await get_update_from_brreg(httpx_client, url, current_update_id)
+        result = await get_update_from_brreg(
+            httpx_client, current_update_id, children=children
+        )
         all_updates.update(result.updated_units)
         current_update_id = result.highest_update_id
 
@@ -112,11 +196,12 @@ async def get_updates_from_brreg(
 
 async def get_organizations_from_brreg(
     httpx_client: httpx.AsyncClient,
-    url: httpx.URL,
     org_numbers: Iterable[str],
     *,
     is_children: bool,
 ) -> list[Organization]:
+    url = CHILD_SINGLE_URL if is_children else MAIN_SINGLE_URL
+
     all_orgs = []
     for org_number in org_numbers:
         resp = await httpx_client.get(url.join(org_number))
@@ -129,17 +214,27 @@ async def get_organizations_from_brreg(
             continue
 
         resp.raise_for_status()
-        raw_org = resp.json()
+        brreg_org: BrregGenericEnhet = Converter.structure(
+            resp.json(),
+            BrregGenericEnhet,  # pyright: ignore[reportArgumentType]
+        )
 
-        if raw_org.get("slettedato") is not None:
+        if isinstance(brreg_org, (BrregSlettetUnderenhet, BrregSlettetEnhet)):
+            # These don't include all the information we need to do a full update
+            # (overordnet enhet), so just skip'em. Worst case is probably that we
+            # miss a last minute name change
             continue
+
+        assert (
+            is_children if isinstance(brreg_org, BrregUnderenhet) else not is_children
+        )
 
         all_orgs.append(
             Organization(
-                raw_org["organisasjonsnummer"],
-                raw_org["navn"],
+                brreg_org.organisasjonsnummer,
+                brreg_org.navn,
                 is_children,
-                raw_org.get("overordnetEnhet"),
+                brreg_org.overordnetEnhet,
             )
         )
     return all_orgs
@@ -152,15 +247,12 @@ async def update_organizations(
     *,
     children: bool,
 ) -> int:
-    updates_url = CHILD_UPDATES_URL if children else MAIN_UPDATES_URL
-    single_url = CHILD_SINGLE_URL if children else MAIN_SINGLE_URL
-
     update_result = await get_updates_from_brreg(
-        httpx_client, updates_url, last_updateid
+        httpx_client, last_updateid, children=children
     )
 
     updated_organizations = await get_organizations_from_brreg(
-        httpx_client, single_url, update_result.updated_units, is_children=children
+        httpx_client, update_result.updated_units, is_children=children
     )
 
     database.upsert_organizations(updated_organizations)

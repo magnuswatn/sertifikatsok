@@ -70,9 +70,19 @@ def generate_update_list(
 
 
 def generate_single_unit_resp(changed_org: ChangedOrganization) -> dict:
+    if changed_org.deleted and changed_org.org.is_child:
+        resp_class = "SlettetUnderEnhet"
+    elif changed_org.deleted:
+        resp_class = "SlettetEnhet"
+    elif changed_org.org.is_child:
+        resp_class = "Underenhet"
+    else:
+        resp_class = "Enhet"
+
     single_unit_resp = {
         "organisasjonsnummer": changed_org.org.orgnr,
         "navn": f"Nytt navn på {changed_org.org.orgnr}",
+        "respons_klasse": resp_class,
     }
     if changed_org.org.parent_orgnr:
         single_unit_resp["overordnetEnhet"] = changed_org.org.parent_orgnr
