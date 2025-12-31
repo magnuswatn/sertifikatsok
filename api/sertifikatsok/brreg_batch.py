@@ -152,7 +152,9 @@ async def get_update_from_brreg(
         url = MAIN_UPDATES_URL
         update_class = BrregEnheterUpdates
 
-    resp = await httpx_client.get(url, params={"oppdateringsid": current_update_id + 1})
+    resp = await httpx_client.get(
+        url, params={"oppdateringsid": current_update_id + 1, "size": "1000"}
+    )
     resp.raise_for_status()
     brreg_resp = Converter.structure(resp.json(), BrregUpdatesResponse[update_class])
 
