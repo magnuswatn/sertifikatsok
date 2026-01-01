@@ -11,7 +11,7 @@ from starlette.responses import Response
 from starlette.routing import Route
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from sertifikatsok import get_version
+from sertifikatsok import get_version, is_running_on_fly
 from sertifikatsok.revocation_info import get_revocation_info
 from sertifikatsok.static import StaticResourceHandler
 
@@ -123,9 +123,10 @@ async def lifespan(app: Starlette) -> AsyncIterator[None]:
         Environment.TEST: CertRetriever.create(Environment.TEST),
         Environment.PROD: CertRetriever.create(Environment.PROD),
     }
-    # Need a reference to this, so the garbage collector
-    # doesn't clean it up.
-    _batch_task = schedule_batch(app.state.database)
+    if not is_running_on_fly():
+        # Need a reference to this, so the garbage collector
+        # doesn't clean it up.
+        _batch_task = schedule_batch(app.state.database)
     yield
 
 
