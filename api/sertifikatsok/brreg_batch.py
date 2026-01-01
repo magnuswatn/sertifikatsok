@@ -145,6 +145,7 @@ class BrregUpdateResult:
 async def get_update_from_brreg(
     httpx_client: httpx.AsyncClient, current_update_id: int, *, children: bool
 ) -> BrregUpdateResult:
+    update_class: type[BrregUnderenheterUpdates | BrregEnheterUpdates]
     if children:
         url = CHILD_UPDATES_URL
         update_class = BrregUnderenheterUpdates
@@ -156,7 +157,7 @@ async def get_update_from_brreg(
         url, params={"oppdateringsid": current_update_id + 1, "size": "1000"}
     )
     resp.raise_for_status()
-    brreg_resp = Converter.structure(resp.json(), BrregUpdatesResponse[update_class])
+    brreg_resp = Converter.structure(resp.json(), BrregUpdatesResponse[update_class])  # type:ignore[valid-type]
 
     if not brreg_resp._embedded:
         assert brreg_resp.page.totalElements == 0
@@ -220,7 +221,7 @@ async def get_organizations_from_brreg(
         resp.raise_for_status()
         brreg_org: BrregGenericEnhet = Converter.structure(
             resp.json(),
-            BrregGenericEnhet,  # pyright: ignore[reportArgumentType]
+            BrregGenericEnhet,  # type:ignore[arg-type]
         )
 
         if isinstance(brreg_org, (BrregSlettetUnderenhet, BrregSlettetEnhet)):
@@ -320,7 +321,7 @@ async def run_batch_when_scheduled(database: Database) -> None:
     initial_run = True
     while True:
         if initial_run:
-            sleep_seconds = 30
+            sleep_seconds: float = 30
             initial_run = False
         else:
             sleep_seconds = get_seconds_to_next_run()
