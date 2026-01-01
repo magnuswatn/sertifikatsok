@@ -327,7 +327,7 @@ async def run_batch_when_scheduled(database: Database) -> None:
             sleep_seconds = get_seconds_to_next_run()
         logger.debug("Scheduling %s in %d seconds", BATCH_NAME, sleep_seconds)
         await asyncio.sleep(sleep_seconds)
-        async with httpx.AsyncClient() as httpx_client:
+        async with httpx.AsyncClient(http2=True) as httpx_client:
             await run_batch(database, httpx_client)
 
 
@@ -339,7 +339,7 @@ def schedule_batch(database: Database) -> asyncio.Task:
 async def run_adhoc() -> None:
     configure_logging(logging.DEBUG, None)
 
-    async with httpx.AsyncClient() as httpx_client:
+    async with httpx.AsyncClient(http2=True) as httpx_client:
         await run_batch(Database.connect_to_database(), httpx_client)
 
 
