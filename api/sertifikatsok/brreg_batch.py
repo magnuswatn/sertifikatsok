@@ -75,8 +75,8 @@ class BrregPageInfo:
 
 @frozen
 class BrregUpdatesResponse[T]:
-    _embedded: T
     page: BrregPageInfo
+    _embedded: T | None = None
 
 
 @frozen
@@ -158,8 +158,8 @@ async def get_update_from_brreg(
     resp.raise_for_status()
     brreg_resp = Converter.structure(resp.json(), BrregUpdatesResponse[update_class])
 
-    total_elements = brreg_resp.page.totalElements
-    if total_elements == 0:
+    if not brreg_resp._embedded:
+        assert brreg_resp.page.totalElements == 0
         return BrregUpdateResult(
             elements_left=0, updated_units=set(), highest_update_id=current_update_id
         )
@@ -172,7 +172,9 @@ async def get_update_from_brreg(
         if unit.endringstype in USEFUL_UPDATES:
             updates.add(unit.organisasjonsnummer)
 
-    elements_left = total_elements - len(brreg_resp._embedded.updated_units)
+    elements_left = brreg_resp.page.totalElements - len(
+        brreg_resp._embedded.updated_units
+    )
 
     return BrregUpdateResult(elements_left, updates, current_update_id)
 
