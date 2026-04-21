@@ -5,5 +5,5 @@ mypy
 pytest-asyncio
 ldaptor
 yarl
-lxml>=5.3.0
+lxml>=6.1.0
 ruff
