@@ -43,9 +43,7 @@ from .search import CertificateSearchResponse
 
 converter = make_converter()
 
-converter.register_unstructure_hook(
-    datetime, lambda dt: get_datetime_as_norway_timezone_str(dt)
-)
+converter.register_unstructure_hook(datetime, get_datetime_as_norway_timezone_str)
 
 
 @singledispatch

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from enum import Enum, auto
+from enum import Enum, StrEnum, auto
 from typing import Literal
 
 from attrs import field, frozen
@@ -10,7 +10,7 @@ from yarl import URL
 Env = Literal["test", "prod"]
 
 
-class LdapOU(str, Enum):
+class LdapOU(StrEnum):
     AUTH = "Encryption"
     SIGN = "Signature"
     CRYPT = "Authentication"
