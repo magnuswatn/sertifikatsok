@@ -1,7 +1,7 @@
 #
 # Node container for frontend build ("build")
 #
-FROM node:current-trixie-slim@sha256:e07376370d548412752d8ef5a08f667b974c36ca69c261d36d6d04ad53889212 AS www-build
+FROM node:current-trixie-slim@sha256:191ef878ecb351d68b78219593de18bd8942afd59af59f29960dc4b24805a3f1 AS www-build
 
 RUN set -x \
     && apt-get update \
@@ -31,7 +31,7 @@ RUN [ "find", "dist", "-type", "f", "-not", "-name", "*.woff2", \
 #
 # Python base container
 #
-FROM python:3.14.2-slim-trixie@sha256:2751cbe93751f0147bc1584be957c6dd4c5f977c3d4e0396b56456a9fd4ed137 AS python-base
+FROM python:3.14.6-slim-trixie@sha256:44dd04494ee8f3b538294360e7c4b3acb87c8268e4d0a4828a6500b1eff50061 AS python-base
 
 #
 # Build base container
