@@ -1,3 +1,6 @@
+[tool.uv]
+exclude-newer = "P14D"
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 markers = ["apitest: api tests to be run in the docker compose stack"]
