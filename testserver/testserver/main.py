@@ -17,7 +17,7 @@ from yarl import URL
 from testserver.ca import CertificateId, OcspResponder, OcspResponders
 from testserver.testdata import generate_testdata
 
-from .config import CertificateAuthority, init
+from .config import CertificateAuthority, TestserverConfig, init
 from .ldap import LDAPServerFactory
 
 logger = logging.getLogger(__name__)
@@ -124,8 +124,10 @@ def main() -> None:
     # Init the LDAP root tree
     ldap_server_factory = LDAPServerFactory.create()
 
+    config = TestserverConfig.from_environ()
+
     # Create clone of CAs from disk
-    loaded_ca_s = init(env)
+    loaded_ca_s = init(config, env)
 
     # set up testdata
     logger.info("Generating test data")

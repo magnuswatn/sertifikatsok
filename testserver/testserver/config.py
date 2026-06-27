@@ -1,7 +1,9 @@
 import logging
 from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
+from typing import Self
 
+import environ
 from attrs import field, frozen
 from cattrs.preconf.json import make_converter
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
@@ -40,6 +42,16 @@ json_converter.register_unstructure_hook(
     Certificate,
     lambda v: v.public_bytes(Encoding.PEM).decode(),
 )
+
+
+@environ.config(prefix="TESTSERVER")
+class TestserverConfig:
+    in_dir: Path = environ.var(converter=Path, default="../api/certs")
+    out_dir: Path = environ.var(converter=Path, default="cloned_certs")
+
+    @classmethod
+    def from_environ(cls) -> Self:
+        return environ.to_config(cls)
 
 
 @frozen
@@ -142,9 +154,9 @@ class CaLoader:
         )
 
 
-def init(env: Env) -> dict[ClonedCa, CertificateAuthority]:
-    input_folder = Path(f"../api/certs/{env}")
-    output_folder = Path(f"cloned_certs/{env}")
+def init(config: TestserverConfig, env: Env) -> dict[ClonedCa, CertificateAuthority]:
+    input_folder = config.in_dir / env
+    output_folder = config.out_dir / env
 
     ca_loader = CaLoader(input_folder, output_folder)
 

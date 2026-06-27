@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Self
 
 import environ
 
@@ -9,8 +10,6 @@ class AppConfig:
     crls_dir: Path = environ.var(converter=Path, default="crls")
     certs_dir: Path = environ.var(converter=Path, default="certs")
 
-
-def load_config(env: dict[str, str] | None = None) -> AppConfig:
-    if env is not None:
-        return environ.to_config(AppConfig, env)
-    return environ.to_config(AppConfig)
+    @classmethod
+    def from_environ(cls) -> Self:
+        return environ.to_config(cls)

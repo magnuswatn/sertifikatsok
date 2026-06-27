@@ -10,7 +10,7 @@ import httpx
 from attrs import asdict, frozen
 from cattrs.preconf.json import make_converter
 
-from sertifikatsok.config import load_config
+from sertifikatsok.config import AppConfig
 from sertifikatsok.enums import BatchResult
 from sertifikatsok.logging import configure_logging, correlation_context
 from sertifikatsok.utils import datetime_now_utc
@@ -340,7 +340,7 @@ def schedule_batch(database: Database) -> asyncio.Task:
 async def run_adhoc() -> None:
     configure_logging(logging.DEBUG, None)
 
-    config = load_config()
+    config = AppConfig.from_environ()
 
     async with httpx.AsyncClient(http2=True) as httpx_client:
         await run_batch(Database.connect_to_database(config.db_file), httpx_client)
