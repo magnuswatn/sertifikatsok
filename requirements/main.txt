@@ -11,6 +11,7 @@ attrs==26.1.0 \
     # via
     #   -r main.in
     #   cattrs
+    #   environ-config
 brotli==1.2.0 \
     --hash=sha256:022426c9e99fd65d9475dce5c195526f04bb8be8907607e27e747893f6ee3e24 \
     --hash=sha256:072e7624b1fc4d601036ab3f4f27942ef772887e876beff0301d261210bca97f \
@@ -245,6 +246,10 @@ cryptography==44.0.1 \
     --hash=sha256:f4daefc971c2d1f82f03097dc6f216744a6cd2ac0f04c68fb935ea2ba2a0d420 \
     --hash=sha256:f51f5705ab27898afda1aaa430f34ad90dc117421057782022edf0600bec5f14 \
     --hash=sha256:fd0ee90072861e276b0ff08bd627abec29e32a53b2be44e41dbcdf87cbee2b00
+    # via -r main.in
+environ-config==24.1.0 \
+    --hash=sha256:473a25809b2199bcd2aab0d70c9ed9289d3ff4dfca16eec518a74c65f2a9f021 \
+    --hash=sha256:f63c03ac6533cbf0836de988fb40dd330278bf6424734218f807d509ee835737
     # via -r main.in
 granian[reload, uvloop]==2.7.5 \
     --hash=sha256:019e403a2a6f4a04e09947d8213f2f78a1f06d8e5e840054b3077a7ddbc6837f \

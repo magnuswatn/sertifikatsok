@@ -4,6 +4,7 @@ import json
 import logging
 import sqlite3
 from datetime import datetime
+from pathlib import Path
 from uuid import UUID
 
 from attrs import frozen
@@ -15,8 +16,6 @@ from .ldap import LDAP_SERVERS, LdapCertificateEntry, LdapServer
 from .logging import performance_log_sync
 
 logger = logging.getLogger(__name__)
-
-DATABASE_FILE = "database/database.db"
 
 
 @frozen
@@ -60,7 +59,7 @@ class Database:
         self._connection = connection
 
     @classmethod
-    def connect_to_database(cls, database_file: str = DATABASE_FILE) -> Database:
+    def connect_to_database(cls, database_file: str | Path) -> Database:
         connection = sqlite3.connect(database_file)
 
         connection.execute("PRAGMA foreign_keys = ON")

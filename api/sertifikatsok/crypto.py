@@ -134,6 +134,7 @@ class AppCrlRetriever:
     Only returns valid CRLs.
     """
 
+    crls_dir: Path
     crl_downloader: CrlDownloaderProto
     crls: dict[str, x509.CertificateRevocationList] = field(factory=dict)
     locks: dict[str, asyncio.Lock] = field(factory=lambda: defaultdict(asyncio.Lock))
@@ -202,7 +203,7 @@ class AppCrlRetriever:
     ) -> x509.CertificateRevocationList | None:
         """Retrieves a CRL from disk"""
         try:
-            crl_bytes = Path("crls", urllib.parse.quote_plus(url)).read_bytes()
+            crl_bytes = Path(self.crls_dir, urllib.parse.quote_plus(url)).read_bytes()
         except FileNotFoundError:
             logger.debug("CRL %s not found on disk", url)
             return None
@@ -239,7 +240,7 @@ class AppCrlRetriever:
 
         self._validate(crl, issuer)
 
-        Path("crls", urllib.parse.quote_plus(url)).write_bytes(crl_bytes)
+        Path(self.crls_dir / urllib.parse.quote_plus(url)).write_bytes(crl_bytes)
 
         return crl
 
@@ -336,8 +337,8 @@ class CertRetriever:
     certs: dict[x509.Name, x509.Certificate]
 
     @classmethod
-    def create(cls, env: Environment) -> CertRetriever:
-        return cls(cls._load_all_certs(env))
+    def create(cls, certs_dir: Path, env: Environment) -> CertRetriever:
+        return cls(cls._load_all_certs(certs_dir, env))
 
     def retrieve(self, name: x509.Name) -> x509.Certificate | None:
         """
@@ -361,9 +362,11 @@ class CertRetriever:
         )
 
     @classmethod
-    def _load_all_certs(cls, env: Environment) -> dict[x509.Name, x509.Certificate]:
+    def _load_all_certs(
+        cls, certs_dir: Path, env: Environment
+    ) -> dict[x509.Name, x509.Certificate]:
         certs: dict[x509.Name, x509.Certificate] = {}
-        for path in Path("certs", env.value).iterdir():
+        for path in Path(certs_dir, env.value).iterdir():
             if path.is_file() and path.suffix in (".crt", ".pem"):
                 try:
                     cls._load_certificate(path, certs)

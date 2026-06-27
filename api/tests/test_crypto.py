@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime
+from pathlib import Path
 
 import httpx
 import pytest
@@ -9,6 +10,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives.serialization import Encoding
 
 from sertifikatsok.cert import MaybeInvalidCertificate
+from sertifikatsok.config import AppConfig
 from sertifikatsok.crypto import (
     AppCrlRetriever,
     CertRetriever,
@@ -124,7 +126,9 @@ class TestAppCrlRetriever:
         assert error.value.message
         assert "Unsupported critical extension(s) in CRL" in error.value.message
 
-    async def test_concurrent_retrieving(self, ca: CertificateAuthority) -> None:
+    async def test_concurrent_retrieving(
+        self, tmp_path: Path, ca: CertificateAuthority
+    ) -> None:
         crl = ca.generate_crl([])
 
         class DummyCrlDownloader:
@@ -137,7 +141,7 @@ class TestAppCrlRetriever:
                 return crl.public_bytes(Encoding.DER)
 
         crl_downloader = DummyCrlDownloader()
-        app_crl_retriever = AppCrlRetriever(crl_downloader)
+        app_crl_retriever = AppCrlRetriever(tmp_path, crl_downloader)
 
         async with asyncio.TaskGroup() as task_group:
             task_group.create_task(
@@ -331,7 +335,7 @@ class TestCertValidator:
         assert cert_status == CertificateStatus.OK
         assert revocation_date is None
 
-    async def test_sha1_expired_cert(self) -> None:
+    async def test_sha1_expired_cert(self, config: AppConfig) -> None:
         class ExceptionRequestCrlRetriever:
             def __init__(self) -> None:
                 self.errors: list[str] = []
@@ -344,7 +348,7 @@ class TestCertValidator:
         # Can't create a SHA1 cert with cryptography, so must
         # use a real one from prod.
         cert_validator = CertValidator(
-            CertRetriever.create(Environment.PROD),
+            CertRetriever.create(config.certs_dir, Environment.PROD),
             ExceptionRequestCrlRetriever(),
         )
 

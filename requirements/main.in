@@ -4,3 +4,4 @@ httpx[brotli, http2]
 granian[uvloop,reload]
 starlette
 cattrs
+environ-config

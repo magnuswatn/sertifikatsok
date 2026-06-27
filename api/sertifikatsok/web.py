@@ -12,6 +12,7 @@ from starlette.routing import Route
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from sertifikatsok import get_version, is_running_on_fly
+from sertifikatsok.config import load_config
 from sertifikatsok.revocation_info import get_revocation_info
 from sertifikatsok.static import StaticResourceHandler
 
@@ -117,11 +118,12 @@ class CorrelationMiddleware:
 @asynccontextmanager
 async def lifespan(app: Starlette) -> AsyncIterator[None]:
     audit_logger.info("## Starting version %s ##", get_version())
-    app.state.database = Database.connect_to_database()
-    app.state.crl_retriever = AppCrlRetriever(CrlDownloader())
+    config = load_config()
+    app.state.database = Database.connect_to_database(config.db_file)
+    app.state.crl_retriever = AppCrlRetriever(config.crls_dir, CrlDownloader())
     app.state.cert_retrievers = {
-        Environment.TEST: CertRetriever.create(Environment.TEST),
-        Environment.PROD: CertRetriever.create(Environment.PROD),
+        Environment.TEST: CertRetriever.create(config.certs_dir, Environment.TEST),
+        Environment.PROD: CertRetriever.create(config.certs_dir, Environment.PROD),
     }
     if not is_running_on_fly():
         # Need a reference to this, so the garbage collector

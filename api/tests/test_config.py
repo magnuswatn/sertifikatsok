@@ -1,12 +1,13 @@
+from sertifikatsok.config import AppConfig
 from sertifikatsok.constants import KNOWN_CERT_TYPES, SUBJECT_FIELDS
 from sertifikatsok.crypto import CertRetriever
 from sertifikatsok.enums import Environment
 
 
-def test_known_cert_types_subject_matches_trusted_cert() -> None:
+def test_known_cert_types_subject_matches_trusted_cert(config: AppConfig) -> None:
     cert_retrievers = [
-        CertRetriever.create(Environment.TEST),
-        CertRetriever.create(Environment.PROD),
+        CertRetriever.create(config.certs_dir, Environment.TEST),
+        CertRetriever.create(config.certs_dir, Environment.PROD),
     ]
     all_trusted_subjects = [
         subject.rfc4514_string(SUBJECT_FIELDS)
