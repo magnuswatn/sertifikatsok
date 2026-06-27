@@ -31,11 +31,12 @@ services:
       - DEV=true
       - APP_CERTS_DIR=/certs/out
       - APP_CRLS_DIR=/tmp
+      - APP_DB_FILE=/var/database/database.db
     depends_on:
       startupcheck:
         condition: service_completed_successfully
     volumes:
-      - ./api:/opt/sertifikatsok/api
+      - ./api/database:/var/database
       - ./testserver/cloned_certs:/certs/out
     command: "--host 0.0.0.0 --port 7001"
   ldap_server_test:

@@ -1,0 +1,22 @@
+[project]
+name = "sertifikatsok"
+version = "0.1.0"
+description = "The api"
+requires-python = ">=3.14"
+dependencies = [
+    "cryptography==44.0.1",
+    "attrs>=21.3.0",
+    "httpx[brotli, http2]",
+    "granian[uvloop,reload]",
+    "starlette",
+    "cattrs",
+    "environ-config",
+    "ruldap3",
+]
+
+[tool.uv.sources]
+ruldap3 = { workspace = true }
+
+[build-system]
+requires = ["uv_build"]
+build-backend = "uv_build"

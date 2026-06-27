@@ -33,12 +33,14 @@ docker stop "${CONTAINER_NAME}" || true
 docker rename "${CONTAINER_NAME}" "${CONTAINER_BACKUP_NAME}" || true
 docker run -d \
   --restart always \
-  -v "${CRL_DIR}:/opt/sertifikatsok/api/crls" \
-  -v "${DB_DIR}:/opt/sertifikatsok/api/database" \
+  -v "${CRL_DIR}:/var/crls" \
+  -v "${DB_DIR}:/var/database" \
   -v "${WWW_DIR}:/tmp/wwwcopy" \
   -v "/var/log/caddy/:/logs" \
   -p 127.0.0.1:7001:7001 \
   --env 'SERTIFIKATSOK_LOG_FILES=/logs/sertifikatsok_{}.log' \
+  --env 'APP_CRLS_DIR=/var/crls' \
+  --env 'APP_DB_FILE=/var/database/database.db' \
   --name "${CONTAINER_NAME}" \
   "${container_tag}" \
   --port 7001 --host 0.0.0.0

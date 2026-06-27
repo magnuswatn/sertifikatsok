@@ -1,7 +1,0 @@
-cryptography==44.0.1
-attrs>=21.3.0
-httpx[brotli, http2]
-granian[uvloop,reload]
-starlette
-cattrs
-environ-config

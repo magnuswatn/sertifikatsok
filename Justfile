@@ -3,64 +3,34 @@ set positional-arguments
 @clean-venv:
   rm -Rf .venv || true
 
-@create-venv:
-  uv venv -p python3.14
+@sync:
+  uv sync --all-packages
 
-@pip-sync:
-  uv pip sync --require-hashes requirements/main.txt requirements/dev.txt requirements/ruldap3.txt
-
-@sync: pip-sync update-lib
-
-@mkvenv: clean-venv create-venv sync
+@mkvenv: clean-venv sync
 
 @run-dev:
-  source ./.venv/bin/activate && cd ./api && DEV=true ../docker-entrypoint.sh --host 127.0.0.1 --port 7001 2>&1
+  cd ./api && DEV=true uv run ../docker-entrypoint.sh --host 127.0.0.1 --port 7001 2>&1
 
 @run-batch:
-  source ./.venv/bin/activate && cd ./api && DEV=true python3 -m sertifikatsok.brreg_batch 2>&1
+  cd ./api && DEV=true uv run python3 -m sertifikatsok.brreg_batch 2>&1
 
 @run-testserver:
-  source ./.venv/bin/activate && cd ./testserver && python -m testserver
+  cd ./testserver && uv run python -m testserver
 
 @tests *args='':
-  source ./.venv/bin/activate && cd ./api && pytest -m "not apitest" "$@"
+  cd ./api && uv run pytest -m "not apitest" "$@"
 
 @mypy:
-  source ./.venv/bin/activate && cd ./api && mypy --version && mypy .
+  cd ./api && uv run mypy --version && uv run mypy .
 
 @ruff:
-  source ./.venv/bin/activate && ruff check && ruff format --check
+  uv run ruff check && uv run ruff format --check
 
 @checks: ruff mypy tests
 
 alias py := python
 @python:
-  source ./.venv/bin/activate && python
-
-@compile:
-  cd requirements && uv pip compile main.in -o main.txt --generate-hashes --no-header --no-strip-extras
-  cd requirements && uv pip compile dev.in -o dev.txt --generate-hashes --no-header --no-strip-extras
-  cd requirements && uv pip compile ruldap3.in -o ruldap3.txt --generate-hashes --no-header --no-strip-extras
-
-@upgrade:
-  cd requirements && uv pip compile main.in -o main.txt --generate-hashes --upgrade --no-header --no-strip-extras
-  cd requirements && uv pip compile dev.in -o dev.txt --generate-hashes --upgrade --no-header --no-strip-extras
-  cd requirements && uv pip compile ruldap3.in -o ruldap3.txt --generate-hashes --upgrade --no-header --no-strip-extras
-
-@upgrade-pkg *args='':
-  cd requirements && uv pip compile main.in -o main.txt --generate-hashes --no-header --no-strip-extras --upgrade-package "$@"
-  cd requirements && uv pip compile dev.in -o dev.txt --generate-hashes --no-header --no-strip-extras --upgrade-package "$@"
-  cd requirements && uv pip compile ruldap3.in -o ruldap3.txt --generate-hashes --no-header --no-strip-extras --upgrade-package "$@"
-
-alias ulib := update-lib
-@update-lib:
-  source ./.venv/bin/activate && maturin develop --uv -m ruldap3/Cargo.toml
-
-@build-lib:
-  source ./.venv/bin/activate && maturin build --release -m ruldap3/Cargo.toml
-
-@install-optimized-lib: build-lib
-  source ./.venv/bin/activate && uv pip install --force-reinstall ./ruldap3/target/wheels/*
+  uv run python
 
 # docker compose stuff
 

@@ -1,3 +1,20 @@
+[dependency-groups]
+dev = [
+    "pytest",
+    "mypy",
+    "pytest-asyncio",
+    "yarl",
+    "lxml>=5.3.0",
+    "ruff",
+]
+
+[tool.uv.workspace]
+members = [
+    "api",
+    "testserver",
+    "ruldap3",
+]
+
 [tool.uv]
 exclude-newer = "P14D"
 
@@ -33,7 +50,7 @@ target-version = "py312"
 
 [tool.ruff.lint.per-file-ignores]
 # Twisted...
-"testserver/testserver/**" = ["N802", "N815"]
+"testserver/src/testserver/**" = ["N802", "N815"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["sertifikatsok"]
