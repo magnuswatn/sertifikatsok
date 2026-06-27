@@ -27,11 +27,16 @@ services:
         SERTIFIKATSOK_VERSION: dev
     ports:
       - 127.0.0.1:7001:7001
+    environment:
+      - DEV=true
+      - APP_CERTS_DIR=/certs/out
+      - APP_CRLS_DIR=/tmp
     depends_on:
       startupcheck:
         condition: service_completed_successfully
     volumes:
-      - ./testserver/cloned_certs:/opt/sertifikatsok/api/certs
+      - ./api:/opt/sertifikatsok/api
+      - ./testserver/cloned_certs:/certs/out
     command: "--host 0.0.0.0 --port 7001"
   ldap_server_test:
     build:
@@ -39,13 +44,16 @@ services:
       target: test
     environment:
       - ENVIRONMENT=test
+      - TESTSERVER_IN_DIR=/certs/in
+      - TESTSERVER_OUT_DIR=/certs/out
       - RUNNING_IN_DOCKER=true
     working_dir: /opt/sertifikatsok/testserver
     command: python3 -m testserver
     ports:
       - 127.0.0.1:3890:389
     volumes:
-      - ./api:/opt/sertifikatsok/api
+      - ./api/certs:/certs/in
+      - ./testserver/cloned_certs:/certs/out
       - ./testserver:/opt/sertifikatsok/testserver
     networks:
       default:
@@ -68,13 +76,16 @@ services:
       target: test
     environment:
       - ENVIRONMENT=prod
+      - TESTSERVER_IN_DIR=/certs/in
+      - TESTSERVER_OUT_DIR=/certs/out
       - RUNNING_IN_DOCKER=true
     working_dir: /opt/sertifikatsok/testserver
     command: python3 -m testserver
     ports:
       - 127.0.0.1:3891:389
     volumes:
-      - ./api:/opt/sertifikatsok/api
+      - ./api/certs:/certs/in
+      - ./testserver/cloned_certs:/certs/out
       - ./testserver:/opt/sertifikatsok/testserver
     networks:
       default:

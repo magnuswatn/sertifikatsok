@@ -65,22 +65,22 @@ alias ulib := update-lib
 # docker compose stuff
 
 @doctests *args='':
-  docker compose -f docker-compose.yaml -f docker-compose.dev.yaml exec test pytest "$@"
+  docker compose -f docker-compose.yaml exec test pytest "$@"
 
 @apitests:
   just doctests -m apitest
 
 @docbuild:
-  docker compose -f docker-compose.yaml -f docker-compose.dev.yaml build
+  docker compose -f docker-compose.yaml build
 
 @docps:
-  docker compose -f docker-compose.yaml -f docker-compose.dev.yaml ps
+  docker compose -f docker-compose.yaml ps
 
 @docdown:
-  docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down
+  docker compose -f docker-compose.yaml down
 
 @docup: docdown
-  docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d
+  docker compose -f docker-compose.yaml up -d
 
 # frontend stuff
 
