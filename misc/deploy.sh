@@ -43,6 +43,4 @@ docker run -d \
   "${container_tag}" \
   --port 7001 --host 0.0.0.0
 
-docker exec "${CONTAINER_NAME}" cp --preserve=all --force -R /opt/sertifikatsok/www/. /tmp/wwwcopy
-
 echo "$head" > "${BIN_DIR}/last_deploy"
