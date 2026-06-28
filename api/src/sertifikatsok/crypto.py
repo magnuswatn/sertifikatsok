@@ -7,7 +7,7 @@ from collections import defaultdict
 from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
-from typing import ClassVar, Protocol, cast
+from typing import ClassVar, Protocol, Self, cast
 
 from attrs import field, frozen
 from cryptography import x509
@@ -378,6 +378,18 @@ class CertRetriever:
             "Loaded %d trusted certificates from file for env %s", len(certs), env
         )
         return certs
+
+
+@frozen
+class CertRetrievers:
+    cert_retrievers: dict[Environment, CertRetriever]
+
+    @classmethod
+    def create(cls, certs_dir: Path) -> Self:
+        return cls({env: CertRetriever.create(certs_dir, env) for env in Environment})
+
+    def get_for_env(self, env: Environment) -> CertRetriever:
+        return self.cert_retrievers[env]
 
 
 @frozen

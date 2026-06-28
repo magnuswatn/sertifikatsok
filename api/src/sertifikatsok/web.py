@@ -1,8 +1,8 @@
 import json
 import logging
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
 
+import svcs.starlette
 from starlette.applications import Starlette
 from starlette.datastructures import MutableHeaders
 from starlette.middleware import Middleware
@@ -12,12 +12,13 @@ from starlette.routing import Route
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from sertifikatsok.config import AppConfig
+from sertifikatsok.crypto import CertRetrievers, RequestCrlRetriever
 from sertifikatsok.revocation_info import get_revocation_info
 from sertifikatsok.static import StaticResourceHandler
 
 from .audit_log import AuditLogger
 from .brreg_batch import schedule_batch
-from .crypto import AppCrlRetriever, CertRetriever, CertValidator, CrlDownloader
+from .crypto import AppCrlRetriever, CertValidator, CrlDownloader
 from .db import Database
 from .enums import Environment, RequestCertType, SearchAttribute
 from .errors import ClientError
@@ -121,13 +122,17 @@ async def api_endpoint(request: Request) -> Response:
     with audit_logger:
         search_params = SearchParams(env, type.to_cert_type(), query, attr)
 
+        cert_retrievers, crl_retriever, database, config = svcs.starlette.svcs_from(
+            request
+        ).get(CertRetrievers, RequestCrlRetriever, Database, AppConfig)
+
         certificate_search = CertificateSearch.create(
             search_params,
             CertValidator(
-                request.app.state.cert_retrievers[search_params.env],
-                request.app.state.crl_retriever.get_retriever_for_request(),
+                cert_retrievers.get_for_env(search_params.env),
+                crl_retriever,
             ),
-            request.app.state.database,
+            database,
         )
 
         search_response = await certificate_search.get_response()
@@ -141,7 +146,7 @@ async def api_endpoint(request: Request) -> Response:
             media_type="application/json",
         )
 
-        if search_response.cacheable and not request.app.state.config.dev:
+        if search_response.cacheable and not config.dev:
             cache_control = "public, max-age=300"
         else:
             cache_control = "no-cache, no-store, must-revalidate, private, s-maxage=0"
@@ -169,9 +174,9 @@ async def revocation_endpoint(request: Request) -> Response:
         revocation_info, thumbprint = await get_revocation_info(
             cert,
             env,
-            request.app.state.cert_retrievers[env],
-            request.app.state.crl_retriever,
-            request.app.state.database,
+            *svcs.starlette.svcs_from(request).get(
+                CertRetrievers, AppCrlRetriever, Database
+            ),
         )
         audit_logger.set_revocation_info_results(revocation_info, thumbprint)
 
@@ -186,25 +191,33 @@ async def revocation_endpoint(request: Request) -> Response:
 
 def make_app(config: AppConfig) -> Starlette:
 
-    @asynccontextmanager
-    async def lifespan(app: Starlette) -> AsyncGenerator[None]:
+    @svcs.starlette.lifespan
+    async def lifespan(app: Starlette, registry: svcs.Registry) -> AsyncGenerator[None]:
         audit_logger.info("## Starting version %s ##", config.version)
 
-        app.state.config = config
-        app.state.database = Database.connect_to_database(config.db_file)
-        app.state.crl_retriever = AppCrlRetriever(config.crls_dir, CrlDownloader())
-        app.state.cert_retrievers = {
-            Environment.TEST: CertRetriever.create(config.certs_dir, Environment.TEST),
-            Environment.PROD: CertRetriever.create(config.certs_dir, Environment.PROD),
-        }
+        registry.register_value(AppConfig, config)
+        registry.register_value(CertRetrievers, CertRetrievers.create(config.certs_dir))
+
+        crl_retriever = AppCrlRetriever(config.crls_dir, CrlDownloader())
+        registry.register_value(AppCrlRetriever, crl_retriever)
+        registry.register_factory(
+            RequestCrlRetriever, crl_retriever.get_retriever_for_request
+        )
+
+        database = Database.connect_to_database(config.db_file)
+        registry.register_value(Database, database)
+
         if not config.running_on_fly:
             # Need a reference to this, so the garbage collector
             # doesn't clean it up.
-            _batch_task = schedule_batch(app.state.database)
+            _batch_task = schedule_batch(database)
         yield
 
     return Starlette(
-        middleware=[Middleware(CorrelationMiddleware)],
+        middleware=[
+            Middleware(svcs.starlette.SVCSMiddleware),
+            Middleware(CorrelationMiddleware),
+        ],
         lifespan=lifespan,
         routes=[
             Route("/api", api_endpoint),

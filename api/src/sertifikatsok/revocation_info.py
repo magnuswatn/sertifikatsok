@@ -28,7 +28,11 @@ from cryptography.x509.ocsp import (
 from cryptography.x509.oid import AuthorityInformationAccessOID, ExtendedKeyUsageOID
 
 from sertifikatsok.cert import MaybeInvalidCertificate
-from sertifikatsok.crypto import AppCrlRetriever, CertRetriever, CrlError
+from sertifikatsok.crypto import (
+    AppCrlRetriever,
+    CertRetrievers,
+    CrlError,
+)
 from sertifikatsok.db import Database
 from sertifikatsok.enums import Environment
 from sertifikatsok.errors import ClientError
@@ -496,7 +500,7 @@ async def get_crl_status(
 async def get_revocation_info(
     raw_cert: bytes,
     env: Environment,
-    cert_retriever: CertRetriever,
+    cert_retrievers: CertRetrievers,
     crl_retriever: AppCrlRetriever,
     database: Database,
 ) -> tuple[RevocationInfoResponse, str]:
@@ -515,7 +519,7 @@ async def get_revocation_info(
         # button should be disabled for such certs in the GUI.
         raise ClientError("Invalid extensions in cert")
 
-    issuer = cert_retriever.retrieve(cert.issuer)
+    issuer = cert_retrievers.get_for_env(env).retrieve(cert.issuer)
     if issuer is None:
         # Should not have made it here "the normal" way, as the
         # button should be disabled for such certs in the GUI.

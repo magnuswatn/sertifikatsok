@@ -12,6 +12,7 @@ dependencies = [
     "cattrs",
     "environ-config",
     "ruldap3",
+    "svcs>=25.1.0",
 ]
 
 [tool.uv.sources]
