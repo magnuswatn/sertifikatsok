@@ -4,7 +4,7 @@ import asyncio
 import datetime
 from pathlib import Path
 
-import httpx
+import httpx2
 import pytest
 from cryptography import x509
 from cryptography.hazmat.primitives.serialization import Encoding
@@ -385,38 +385,38 @@ class TestCertValidator:
 
 class TestCrlDownloader:
     async def test_ok_download(self) -> None:
-        transport = httpx.MockTransport(
-            lambda _: httpx.Response(
+        transport = httpx2.MockTransport(
+            lambda _: httpx2.Response(
                 200,
                 headers={"Content-Type": "application/pkix-crl"},
                 content=b"crliboii",
             )
         )
 
-        async with httpx.AsyncClient(transport=transport) as client:
+        async with httpx2.AsyncClient(transport=transport) as client:
             crl = await CrlDownloader()._download_crl_with_client(
                 client, "http://crl.watn.no"
             )
         assert crl == b"crliboii"
 
     async def test_ok_download_alternative_content_type(self) -> None:
-        transport = httpx.MockTransport(
-            lambda _: httpx.Response(
+        transport = httpx2.MockTransport(
+            lambda _: httpx2.Response(
                 200,
                 headers={"Content-Type": "application/x-pkcs7-crl"},
                 content=b"crliboii",
             )
         )
 
-        async with httpx.AsyncClient(transport=transport) as client:
+        async with httpx2.AsyncClient(transport=transport) as client:
             crl = await CrlDownloader()._download_crl_with_client(
                 client, "http://crl.watn.no"
             )
         assert crl == b"crliboii"
 
     async def test_failed_download_404(self) -> None:
-        transport = httpx.MockTransport(
-            lambda _: httpx.Response(
+        transport = httpx2.MockTransport(
+            lambda _: httpx2.Response(
                 404,
                 headers={"Content-Type": "text/plain"},
                 content=b"Not found",
@@ -424,7 +424,7 @@ class TestCrlDownloader:
         )
 
         with pytest.raises(CrlError) as error:
-            async with httpx.AsyncClient(transport=transport) as client:
+            async with httpx2.AsyncClient(transport=transport) as client:
                 await CrlDownloader()._download_crl_with_client(
                     client, "http://crl.watn.no"
                 )
@@ -433,8 +433,8 @@ class TestCrlDownloader:
         assert "status code 404 " in str(error)
 
     async def test_failed_download_wrong_content_type(self) -> None:
-        transport = httpx.MockTransport(
-            lambda _: httpx.Response(
+        transport = httpx2.MockTransport(
+            lambda _: httpx2.Response(
                 200,
                 headers={"Content-Type": "text/plain"},
                 content=b"Not found but with 200",
@@ -442,7 +442,7 @@ class TestCrlDownloader:
         )
 
         with pytest.raises(CrlError) as error:
-            async with httpx.AsyncClient(transport=transport) as client:
+            async with httpx2.AsyncClient(transport=transport) as client:
                 await CrlDownloader()._download_crl_with_client(
                     client, "http://crl.watn.no"
                 )

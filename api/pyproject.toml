@@ -6,7 +6,7 @@ requires-python = ">=3.14"
 dependencies = [
     "cryptography==44.0.1",
     "attrs>=21.3.0",
-    "httpx[brotli, http2]",
+    "httpx2[brotli, http2]",
     "granian[uvloop,reload]",
     "starlette",
     "cattrs",

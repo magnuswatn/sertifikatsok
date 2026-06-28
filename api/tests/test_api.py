@@ -3,7 +3,7 @@ from datetime import datetime
 from itertools import permutations
 from typing import Literal
 
-import httpx
+import httpx2
 import pytest
 
 Env = Literal["test", "prod"]
@@ -12,10 +12,10 @@ pytestmark = pytest.mark.apitest
 
 
 class Client:
-    def __init__(self, httpx_client: httpx.Client) -> None:
+    def __init__(self, httpx_client: httpx2.Client) -> None:
         self.httpx_client = httpx_client
 
-    def raw_search(self, params: dict[str, str]) -> httpx.Response:
+    def raw_search(self, params: dict[str, str]) -> httpx2.Response:
         resp = self.httpx_client.get(
             "http://sertifikatsok:7001/api",
             params=params,
@@ -24,7 +24,7 @@ class Client:
 
     def _search(
         self, env: str, typ: str, query: str, attr: str | None = None
-    ) -> httpx.Response:
+    ) -> httpx2.Response:
         params = {"env": env, "type": typ, "query": query}
 
         if attr is not None:
@@ -33,7 +33,7 @@ class Client:
 
     def search_resp(
         self, env: str, typ: str, query: str, attr: str | None = None
-    ) -> httpx.Response:
+    ) -> httpx2.Response:
         resp = self._search(env, typ, query, attr)
         resp.raise_for_status()
         return resp
@@ -47,7 +47,7 @@ class Client:
 
     def revocation_info(
         self, env: str, typ: str, query: str, cert: bytes
-    ) -> httpx.Response:
+    ) -> httpx2.Response:
         params = {"env": env, "type": typ, "query": query}
 
         resp = self.httpx_client.post(
@@ -61,7 +61,7 @@ class Client:
 
 @pytest.fixture(scope="session")
 def client() -> Client:
-    return Client(httpx.Client())
+    return Client(httpx2.Client())
 
 
 def _validate_ldap_urls(

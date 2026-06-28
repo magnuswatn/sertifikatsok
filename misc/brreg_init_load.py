@@ -2,14 +2,14 @@ import gzip
 import json
 import sqlite3
 
-import httpx
+import httpx2
 
 
 def main():
     print("Connecting to db")
     connection = sqlite3.connect("../api/database/database.db")
 
-    client = httpx.Client()
+    client = httpx2.Client()
 
     print("Downloading organizations")
     parent_response = client.get(

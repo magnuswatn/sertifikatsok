@@ -6,7 +6,7 @@ import gzip
 import json
 import sqlite3
 
-import httpx
+import httpx2
 
 
 def _check_if_org_exist_in_db(
@@ -46,7 +46,7 @@ def main() -> None:
     print("Connecting to db")
     connection = sqlite3.connect("../api/database/database.db")
 
-    client = httpx.Client()
+    client = httpx2.Client()
 
     print("Downloading organizations")
     parent_response = client.get(

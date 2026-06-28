@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from datetime import timedelta
 from typing import Literal
 
-import httpx
+import httpx2
 from attrs import asdict, frozen
 from cattrs.preconf.json import make_converter
 
@@ -24,14 +24,16 @@ INITIAL_UPDATE_ID = 15600739
 
 BATCH_NAME = "batch-brreg-update"
 
-MAIN_UPDATES_URL = httpx.URL(
+MAIN_UPDATES_URL = httpx2.URL(
     "https://data.brreg.no/enhetsregisteret/api/oppdateringer/enheter/"
 )
-CHILD_UPDATES_URL = httpx.URL(
+CHILD_UPDATES_URL = httpx2.URL(
     "https://data.brreg.no/enhetsregisteret/api/oppdateringer/underenheter/"
 )
-MAIN_SINGLE_URL = httpx.URL("https://data.brreg.no/enhetsregisteret/api/enheter/")
-CHILD_SINGLE_URL = httpx.URL("https://data.brreg.no/enhetsregisteret/api/underenheter/")
+MAIN_SINGLE_URL = httpx2.URL("https://data.brreg.no/enhetsregisteret/api/enheter/")
+CHILD_SINGLE_URL = httpx2.URL(
+    "https://data.brreg.no/enhetsregisteret/api/underenheter/"
+)
 
 MAX_UPDATE_FETCHES_PER_RUN = 500
 USEFUL_UPDATES = ["Endring", "Ny"]
@@ -144,7 +146,7 @@ class BrregUpdateResult:
 
 
 async def get_update_from_brreg(
-    httpx_client: httpx.AsyncClient, current_update_id: int, *, children: bool
+    httpx_client: httpx2.AsyncClient, current_update_id: int, *, children: bool
 ) -> BrregUpdateResult:
     update_class: type[BrregUnderenheterUpdates | BrregEnheterUpdates]
     if children:
@@ -182,7 +184,7 @@ async def get_update_from_brreg(
 
 
 async def get_updates_from_brreg(
-    httpx_client: httpx.AsyncClient, current_update_id: int, *, children: bool
+    httpx_client: httpx2.AsyncClient, current_update_id: int, *, children: bool
 ) -> BrregUpdateResult:
     all_updates: set[str] = set()
     result = None
@@ -201,7 +203,7 @@ async def get_updates_from_brreg(
 
 
 async def get_organizations_from_brreg(
-    httpx_client: httpx.AsyncClient,
+    httpx_client: httpx2.AsyncClient,
     org_numbers: Iterable[str],
     *,
     is_children: bool,
@@ -247,7 +249,7 @@ async def get_organizations_from_brreg(
 
 
 async def update_organizations(
-    httpx_client: httpx.AsyncClient,
+    httpx_client: httpx2.AsyncClient,
     database: Database,
     last_updateid: int,
     *,
@@ -274,7 +276,7 @@ async def update_organizations(
 
 async def fetch_and_store_updates(
     database: Database,
-    httpx_client: httpx.AsyncClient,
+    httpx_client: httpx2.AsyncClient,
     last_run: BrregBatchRun | None,
 ) -> BrregBatchRun:
     if last_run is None:
@@ -293,7 +295,7 @@ async def fetch_and_store_updates(
     return BrregBatchRun(main_updateid, child_updateid)
 
 
-async def run_batch(database: Database, httpx_client: httpx.AsyncClient) -> None:
+async def run_batch(database: Database, httpx_client: httpx2.AsyncClient) -> None:
     with correlation_context() as uuid:
         logger.info("Starting %s", BATCH_NAME)
         try:
@@ -328,7 +330,7 @@ async def run_batch_when_scheduled(database: Database) -> None:
             sleep_seconds = get_seconds_to_next_run()
         logger.debug("Scheduling %s in %d seconds", BATCH_NAME, sleep_seconds)
         await asyncio.sleep(sleep_seconds)
-        async with httpx.AsyncClient(http2=True) as httpx_client:
+        async with httpx2.AsyncClient(http2=True) as httpx_client:
             await run_batch(database, httpx_client)
 
 
@@ -342,7 +344,7 @@ async def run_adhoc() -> None:
 
     config = AppConfig.from_environ()
 
-    async with httpx.AsyncClient(http2=True) as httpx_client:
+    async with httpx2.AsyncClient(http2=True) as httpx_client:
         await run_batch(Database.connect_to_database(config.db_file), httpx_client)
 
 

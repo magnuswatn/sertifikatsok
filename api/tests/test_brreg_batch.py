@@ -4,7 +4,7 @@ from typing import Literal
 from unittest import mock
 from uuid import uuid4
 
-import httpx
+import httpx2
 import pytest
 from attrs import frozen
 
@@ -94,7 +94,7 @@ def generate_single_unit_resp(changed_org: ChangedOrganization) -> dict:
 def generate_base_updates_resp(
     units: dict[int, dict],
     typ: Literal["oppdaterteEnheter"] | Literal["oppdaterteUnderenheter"],
-    params: httpx.QueryParams,
+    params: httpx2.QueryParams,
 ) -> dict:
     oppdateringid = int(params["oppdateringsid"])
 
@@ -141,8 +141,8 @@ def get_mock_httpx_client(
     child_units: dict[int, dict],
     all_main_units: list[ChangedOrganization],
     all_child_units: list[ChangedOrganization],
-) -> httpx.AsyncClient:
-    def transport_handler(request: httpx.Request) -> httpx.Response:
+) -> httpx2.AsyncClient:
+    def transport_handler(request: httpx2.Request) -> httpx2.Response:
         status_code = 200
         if request.url.path == MAIN_UPDATES_URL.path:
             body = generate_base_updates_resp(
@@ -179,9 +179,9 @@ def get_mock_httpx_client(
         else:
             raise NotImplementedError(request.url.path)
 
-        return httpx.Response(status_code, json=body)
+        return httpx2.Response(status_code, json=body)
 
-    return httpx.AsyncClient(transport=httpx.MockTransport(transport_handler))
+    return httpx2.AsyncClient(transport=httpx2.MockTransport(transport_handler))
 
 
 async def test_no_updates(database: Database) -> None:

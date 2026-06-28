@@ -9,7 +9,7 @@ from hashlib import sha256
 from secrets import choice
 from typing import cast
 
-import httpx
+import httpx2
 from attrs import frozen
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature
@@ -339,9 +339,9 @@ def validate_ocsp_resp_against_request(
 
 
 @performance_log(id_param=0)
-async def do_ocsp_call(url: str, req: bytes) -> httpx.Response:
+async def do_ocsp_call(url: str, req: bytes) -> httpx2.Response:
     try:
-        async with httpx.AsyncClient() as httpx_client:
+        async with httpx2.AsyncClient() as httpx_client:
             # We do a POST here, instead of a GET, because
             # we want a fresh response, not something
             # old fetched from cache. (The nonce should
@@ -351,7 +351,7 @@ async def do_ocsp_call(url: str, req: bytes) -> httpx.Response:
                 content=req,
                 headers={"Content-Type": "application/ocsp-request"},
             )
-    except httpx.HTTPError as e:
+    except httpx2.HTTPError as e:
         raise OcspError(OcspErrorReason.NETWORK_ERROR, "Network error") from e
 
     return resp

@@ -7,7 +7,7 @@ import json
 import subprocess
 from pathlib import Path
 
-import httpx
+import httpx2
 
 OLD_SERVER = "https://sertifikatsok.no/api"
 NEW_SERVER = "http://localhost:7000/api"
@@ -36,7 +36,7 @@ PARAMS = [
     {"query": "KJERNEJOURNAL", "type": "enterprise", "env": "prod"},
 ]
 
-session = httpx.Client()
+session = httpx2.Client()
 
 for params in PARAMS:
     old_response = session.get(OLD_SERVER, params=params)

@@ -15,7 +15,7 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.hashes import HashAlgorithm
-from httpx import AsyncClient, HTTPError
+from httpx2 import AsyncClient, HTTPError
 
 from sertifikatsok.utils import datetime_now_utc
 

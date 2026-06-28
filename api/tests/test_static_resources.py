@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 
-import httpx
+import httpx2
 import pytest
 from lxml.html import iterlinks  # type: ignore
 from yarl import URL
@@ -10,10 +10,10 @@ from sertifikatsok.utils import datetime_now_utc
 
 
 class Client:
-    def __init__(self, httpx_client: httpx.Client) -> None:
+    def __init__(self, httpx_client: httpx2.Client) -> None:
         self.httpx_client = httpx_client
 
-    def get(self, path: str, accept_encoding: str | None = None) -> httpx.Response:
+    def get(self, path: str, accept_encoding: str | None = None) -> httpx2.Response:
         path = path[1:] if path.startswith("/") else path
         resp = self.httpx_client.get(
             f"http://sertifikatsok:7001/{path}",
@@ -50,7 +50,7 @@ def test_security_txt_doesnt_expire_in_the_next_five_weeks() -> None:
 @pytest.mark.apitest
 @pytest.mark.parametrize("compression", [False, True])
 def test_get_index(*, compression: bool) -> None:
-    client = Client(httpx.Client())
+    client = Client(httpx2.Client())
 
     resp = client.get("/", accept_encoding="mordi,br,fardi" if compression else None)
     assert resp.status_code == 200
