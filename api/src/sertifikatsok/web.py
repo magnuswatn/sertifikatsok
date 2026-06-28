@@ -1,6 +1,6 @@
 import json
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from starlette.applications import Starlette
@@ -11,7 +11,6 @@ from starlette.responses import Response
 from starlette.routing import Route
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from sertifikatsok import get_version, is_running_on_fly
 from sertifikatsok.config import AppConfig
 from sertifikatsok.revocation_info import get_revocation_info
 from sertifikatsok.static import StaticResourceHandler
@@ -115,23 +114,6 @@ class CorrelationMiddleware:
             await self.app(scope, receive, send_with_extra_headers)
 
 
-@asynccontextmanager
-async def lifespan(app: Starlette) -> AsyncIterator[None]:
-    audit_logger.info("## Starting version %s ##", get_version())
-    config = AppConfig.from_environ()
-    app.state.database = Database.connect_to_database(config.db_file)
-    app.state.crl_retriever = AppCrlRetriever(config.crls_dir, CrlDownloader())
-    app.state.cert_retrievers = {
-        Environment.TEST: CertRetriever.create(config.certs_dir, Environment.TEST),
-        Environment.PROD: CertRetriever.create(config.certs_dir, Environment.PROD),
-    }
-    if not is_running_on_fly():
-        # Need a reference to this, so the garbage collector
-        # doesn't clean it up.
-        _batch_task = schedule_batch(app.state.database)
-    yield
-
-
 @performance_log()
 async def api_endpoint(request: Request) -> Response:
     env, type, query, attr = _parse_query(request)
@@ -159,7 +141,7 @@ async def api_endpoint(request: Request) -> Response:
             media_type="application/json",
         )
 
-        if search_response.cacheable and not request.app.state.dev:
+        if search_response.cacheable and not request.app.state.config.dev:
             cache_control = "public, max-age=300"
         else:
             cache_control = "no-cache, no-store, must-revalidate, private, s-maxage=0"
@@ -202,20 +184,39 @@ async def revocation_endpoint(request: Request) -> Response:
     return response
 
 
-app = Starlette(
-    middleware=[Middleware(CorrelationMiddleware)],
-    lifespan=lifespan,
-    routes=[
-        Route("/api", api_endpoint),
-        Route("/revocation_info", revocation_endpoint, methods=["POST"]),
-        Route(
-            "/{path:path}",
-            StaticResourceHandler.create().handle_static_request,
-        ),
-    ],
-    exception_handlers={
-        ClientError: handle_client_error,
-        CouldNotContactCaError: handle_could_not_contact_ca_error,
-        Exception: handle_exception,
-    },
-)
+def make_app(config: AppConfig) -> Starlette:
+
+    @asynccontextmanager
+    async def lifespan(app: Starlette) -> AsyncGenerator[None]:
+        audit_logger.info("## Starting version %s ##", config.version)
+
+        app.state.config = config
+        app.state.database = Database.connect_to_database(config.db_file)
+        app.state.crl_retriever = AppCrlRetriever(config.crls_dir, CrlDownloader())
+        app.state.cert_retrievers = {
+            Environment.TEST: CertRetriever.create(config.certs_dir, Environment.TEST),
+            Environment.PROD: CertRetriever.create(config.certs_dir, Environment.PROD),
+        }
+        if not config.running_on_fly:
+            # Need a reference to this, so the garbage collector
+            # doesn't clean it up.
+            _batch_task = schedule_batch(app.state.database)
+        yield
+
+    return Starlette(
+        middleware=[Middleware(CorrelationMiddleware)],
+        lifespan=lifespan,
+        routes=[
+            Route("/api", api_endpoint),
+            Route("/revocation_info", revocation_endpoint, methods=["POST"]),
+            Route(
+                "/{path:path}",
+                StaticResourceHandler.create().handle_static_request,
+            ),
+        ],
+        exception_handlers={
+            ClientError: handle_client_error,
+            CouldNotContactCaError: handle_could_not_contact_ca_error,
+            Exception: handle_exception,
+        },
+    )

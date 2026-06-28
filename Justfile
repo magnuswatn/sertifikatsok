@@ -9,10 +9,10 @@ set positional-arguments
 @mkvenv: clean-venv sync
 
 @run-dev:
-  cd ./api && DEV=true uv run ../docker-entrypoint.sh --host 127.0.0.1 --port 7001 2>&1
+  cd ./api && APP_DEV=true uv run ../docker-entrypoint.sh --host 127.0.0.1 --port 7001 2>&1
 
 @run-batch:
-  cd ./api && DEV=true uv run python3 -m sertifikatsok.brreg_batch 2>&1
+  cd ./api && APP_DEV=true uv run python3 -m sertifikatsok.brreg_batch 2>&1
 
 @run-testserver:
   cd ./testserver && uv run python -m testserver

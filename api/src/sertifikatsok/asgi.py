@@ -1,12 +1,13 @@
 import logging
-import os
 
-from sertifikatsok import is_dev
+from sertifikatsok.config import AppConfig
 from sertifikatsok.logging import configure_logging
-from sertifikatsok.web import app
+from sertifikatsok.web import make_app
 
-app.state.dev = is_dev()
+config = AppConfig.from_environ()
 
-log_level = logging.DEBUG if app.state.dev else logging.INFO
+log_level = logging.DEBUG if config.dev else logging.INFO
 
-configure_logging(log_level, os.getenv("SERTIFIKATSOK_LOG_FILES"))
+configure_logging(log_level, config.log_files)
+
+app = make_app(config)

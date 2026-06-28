@@ -28,7 +28,7 @@ services:
     ports:
       - 127.0.0.1:7001:7001
     environment:
-      - DEV=true
+      - APP_DEV=true
       - APP_CERTS_DIR=/certs/out
       - APP_CRLS_DIR=/tmp
       - APP_DB_FILE=/var/database/database.db
