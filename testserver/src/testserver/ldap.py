@@ -12,13 +12,13 @@ from cryptography.x509 import (
     RFC822Name,
     SubjectAlternativeName,
 )
-from ldaptor.inmemory import ReadOnlyInMemoryLDAPEntry  # type: ignore
-from ldaptor.protocols.ldap.ldaperrors import (  # type: ignore
+from ldaptor.inmemory import ReadOnlyInMemoryLDAPEntry
+from ldaptor.protocols.ldap.ldaperrors import (
     LDAPNoSuchAttribute,
     LDAPOperationsError,
 )
-from ldaptor.protocols.ldap.ldapserver import BaseLDAPServer, LDAPServer  # type: ignore
-from ldaptor.protocols.pureldap import (  # type: ignore
+from ldaptor.protocols.ldap.ldapserver import BaseLDAPServer, LDAPServer
+from ldaptor.protocols.pureldap import (
     LDAPAttributeDescription,
     LDAPAttributeValueAssertion,
     LDAPFilter,
@@ -36,7 +36,7 @@ from testserver.config import CertificateAuthority
 logger = logging.getLogger(__name__)
 
 
-class SertifikatsokLDAPServer(LDAPServer):  # type: ignore
+class SertifikatsokLDAPServer(LDAPServer):
     def handle_LDAPSearchRequest(
         self, request: LDAPSearchRequest, controls: Any, reply: Callable
     ) -> Any:
@@ -87,7 +87,7 @@ class SertifikatsokLDAPServer(LDAPServer):  # type: ignore
 
         if isinstance(filter, LDAPFilter):
             self.check_for_magic_filter(
-                filter.value,  # type: ignore
+                filter.value,
                 base_object,
                 is_buypass_request=is_buypass_request,
             )
@@ -97,7 +97,7 @@ class SertifikatsokLDAPServer(LDAPServer):  # type: ignore
             return
 
         attribute_desc = filter.attributeDesc.value.lower().decode()
-        assertion_value = filter.assertionValue.value.lower().decode()  # type: ignore
+        assertion_value = filter.assertionValue.value.lower().decode()
 
         if attribute_desc == "ou" and assertion_value == "fail":
             raise LDAPOperationsError("You asked me to fail (general fail)")
@@ -120,7 +120,7 @@ class SertifikatsokLDAPServer(LDAPServer):  # type: ignore
             return
 
         if isinstance(filter, LDAPFilter):
-            self.check_for_malformed_cert_sn(filter.value)  # type: ignore
+            self.check_for_malformed_cert_sn(filter.value)
             return
 
         if isinstance(filter, LDAPAttributeDescription):
@@ -129,7 +129,7 @@ class SertifikatsokLDAPServer(LDAPServer):  # type: ignore
         if isinstance(filter, LDAPAttributeValueAssertion):
             if filter.attributeDesc.value.lower() == b"certificateserialnumber":
                 try:
-                    int(filter.assertionValue.value)  # type: ignore
+                    int(filter.assertionValue.value)
                 except ValueError as e:
                     raise LDAPNoSuchAttribute("Buypass no like this serial") from e
             return
@@ -305,7 +305,7 @@ class LDAPServerFactory(ServerFactory):
             ca_root.addChild(rdn=rdn, attributes=cert_ldap_attrs)
 
     def buildProtocol(self, addr: IAddress) -> BaseLDAPServer:
-        proto = self.protocol()  # type: ignore
-        proto.debug = self.debug  # type: ignore
+        proto = self.protocol()
+        proto.debug = self.debug
         proto.factory = self
-        return proto  # type: ignore
+        return proto

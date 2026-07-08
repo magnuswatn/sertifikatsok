@@ -224,7 +224,7 @@ async def get_organizations_from_brreg(
         resp.raise_for_status()
         brreg_org: BrregGenericEnhet = Converter.structure(
             resp.json(),
-            BrregGenericEnhet,  # type:ignore[arg-type]
+            BrregGenericEnhet,  # type:ignore[arg-type] # ty: ignore[invalid-argument-type]
         )
 
         if isinstance(brreg_org, (BrregSlettetUnderenhet, BrregSlettetEnhet)):

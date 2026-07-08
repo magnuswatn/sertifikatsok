@@ -20,13 +20,13 @@ set positional-arguments
 @tests *args='':
   cd ./api && uv run pytest -m "not apitest" "$@"
 
-@mypy:
-  cd ./api && uv run mypy --version && uv run mypy .
+@ty:
+  uv run ty check
 
 @ruff:
   uv run ruff check && uv run ruff format --check
 
-@checks: ruff mypy tests
+@checks: ruff ty tests
 
 alias py := python
 @python:

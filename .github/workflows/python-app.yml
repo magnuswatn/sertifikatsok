@@ -22,7 +22,7 @@ jobs:
         run: docker compose build
       - name: Start docker stack
         run: docker compose up -d
-      - name: Check with mypy
-        run: docker compose exec test mypy .
+      - name: Check with ty
+        run: docker compose exec test ty check
       - name: Test with pytest
         run: docker compose exec test pytest || (docker compose logs sertifikatsok && return 1)

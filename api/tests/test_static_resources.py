@@ -3,7 +3,7 @@ from pathlib import Path
 
 import httpx2
 import pytest
-from lxml.html import iterlinks  # type: ignore
+from lxml.html import iterlinks
 from yarl import URL
 
 from sertifikatsok.utils import datetime_now_utc

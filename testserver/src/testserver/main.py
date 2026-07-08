@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from typing import Literal, Self, TypeGuard
 
 from cryptography.x509 import ocsp
-from ldaptor.interfaces import IConnectedLDAPEntry  # type: ignore
+from ldaptor.interfaces import IConnectedLDAPEntry
 from twisted.internet import endpoints, reactor
 from twisted.python import log
 from twisted.python.components import registerAdapter
@@ -73,7 +73,7 @@ class TestServerResource(resource.Resource):
         incoming_url = URL().build(
             scheme="http",
             host=req.getRequestHostname().decode(),
-            path=req.path.decode(),  # type: ignore
+            path=req.path.decode(),
         )
         logger.info("OCSP request for %s received", incoming_url)
         ocsp_responders = self.ocsp_responders.get(incoming_url)
