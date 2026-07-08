@@ -119,7 +119,8 @@ def performance_log(
 
             time_taken = (time.perf_counter() - start) * 1000
             id_arg = args[id_param] if id_param is not None else ".."
-            method = f"{func.__qualname__}({id_arg})"
+            func_name = getattr(func, "__qualname__", "unknown_method")
+            method = f"{func_name}({id_arg})"
 
             performance_logger.info(
                 "METHOD=%s TIME_TAKEN=%d CORRELATION_ID=%s",
@@ -145,7 +146,8 @@ def performance_log_sync(
 
             time_taken = (time.perf_counter() - start) * 1000
             id_arg = args[id_param] if id_param is not None else ".."
-            method = f"{func.__qualname__}({id_arg})"
+            func_name = getattr(func, "__qualname__", "unknown_method")
+            method = f"{func_name}({id_arg})"
 
             performance_logger.info(
                 "METHOD=%s TIME_TAKEN=%d CORRELATION_ID=%s",
