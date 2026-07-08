@@ -76,12 +76,17 @@ def get_log_config(log_level: int, log_files: str | None) -> dict:
         },
         "loggers": {
             "": {"level": log_level, "handlers": ["app"], "propagate": True},
-            "httpcore": {
+            "httpcore2": {
                 "level": log_level + 10,  # info when debug, warn when info
                 "handlers": ["app"],
                 "propagate": True,
             },
-            "httpx": {
+            "httpx2": {
+                "level": log_level + 10,  # info when debug, warn when info
+                "handlers": ["app"],
+                "propagate": True,
+            },
+            "svcs": {
                 "level": log_level + 10,  # info when debug, warn when info
                 "handlers": ["app"],
                 "propagate": True,
