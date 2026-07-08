@@ -29,6 +29,7 @@ services:
       - 127.0.0.1:7001:7001
     environment:
       - APP_DEV=true
+      - APP_RUN_BATCH=false
       - APP_CERTS_DIR=/certs/out
       - APP_CRLS_DIR=/tmp
       - APP_DB_FILE=/var/database/database.db

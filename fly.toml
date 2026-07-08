@@ -12,6 +12,9 @@ kill_timeout = "5s"
 cmd = ["--host", "0.0.0.0", "--port", "8080"]
 auto_rollback = true
 
+[env]
+  APP_RUN_BATCH = "false"
+
 [[services]]
 protocol = "tcp"
 internal_port = 8080

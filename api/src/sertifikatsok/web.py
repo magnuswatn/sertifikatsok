@@ -207,7 +207,7 @@ def make_app(config: AppConfig) -> Starlette:
         database = Database.connect_to_database(config.db_file)
         registry.register_value(Database, database)
 
-        if not config.running_on_fly:
+        if config.run_batch:
             # Need a reference to this, so the garbage collector
             # doesn't clean it up.
             _batch_task = schedule_batch(database)
