@@ -28,4 +28,7 @@ def datetime_now_utc() -> datetime:
 
 
 def get_datetime_as_norway_timezone_str(dt: datetime) -> str:
-    return dt.astimezone(NORWAY_TIME_ZONE).isoformat(sep=" ")
+    try:
+        return dt.astimezone(NORWAY_TIME_ZONE).isoformat(sep=" ")
+    except OverflowError:
+        return dt.isoformat(sep=" ")
