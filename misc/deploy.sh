@@ -38,7 +38,7 @@ docker run -d \
   -v "${WWW_DIR}:/tmp/wwwcopy" \
   -v "/var/log/caddy/:/logs" \
   -p 127.0.0.1:7001:7001 \
-  --env 'SERTIFIKATSOK_LOG_FILES=/logs/sertifikatsok_{}.log' \
+  --env 'APP_SERTIFIKATSOK_LOG_FILES=/logs/sertifikatsok_{}.log' \
   --env 'APP_CRLS_DIR=/var/crls' \
   --env 'APP_DB_FILE=/var/database/database.db' \
   --name "${CONTAINER_NAME}" \
