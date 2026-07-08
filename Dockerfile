@@ -135,13 +135,15 @@ groupadd -r app -g 1001
 useradd -r -d /app/ -g app -N app -u 1001
 EOT
 
-WORKDIR /app
-
 COPY docker-entrypoint.sh /
 COPY --from=www-build --chown=app:app /app/www/dist /www/
 COPY --from=build --chown=app:app /app /app
 COPY --chown=app:app api/certs /app/certs
 
 USER app
+WORKDIR /app
+
+# just so that it runs with default settings
+RUN mkdir /app/database/ /app/crls
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
