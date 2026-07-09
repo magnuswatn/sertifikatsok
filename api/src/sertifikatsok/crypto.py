@@ -94,14 +94,13 @@ class RequestCrlRetrieverProto(Protocol):
 class CrlDownloader:
     HEADERS: ClassVar[dict[str, str]] = {"user-agent": "sertifikatsok.no"}
 
-    async def download_crl(self, url: str) -> bytes:
-        async with AsyncClient() as client:
-            return await self._download_crl_with_client(client, url)
+    def __init__(self, httpx_client: AsyncClient) -> None:
+        self.httpx_client = httpx_client
 
-    async def _download_crl_with_client(self, client: AsyncClient, url: str) -> bytes:
+    async def download_crl(self, url: str) -> bytes:
         logger.info("Downloading CRL %s", url)
         try:
-            resp = await client.get(url, headers=self.HEADERS)
+            resp = await self.httpx_client.get(url, headers=self.HEADERS)
         except HTTPError as error:
             raise CrlError(CrlErrorReason.NETWORK_ERROR) from error
 

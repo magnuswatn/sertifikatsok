@@ -320,7 +320,9 @@ def get_seconds_to_next_run() -> float:
     return (two_am - now).total_seconds()
 
 
-async def run_batch_when_scheduled(database: Database) -> None:
+async def run_batch_when_scheduled(
+    database: Database, httpx_client: httpx2.AsyncClient
+) -> None:
     initial_run = True
     while True:
         if initial_run:
@@ -330,13 +332,15 @@ async def run_batch_when_scheduled(database: Database) -> None:
             sleep_seconds = get_seconds_to_next_run()
         logger.debug("Scheduling %s in %d seconds", BATCH_NAME, sleep_seconds)
         await asyncio.sleep(sleep_seconds)
-        async with httpx2.AsyncClient(http2=True) as httpx_client:
-            await run_batch(database, httpx_client)
+
+        await run_batch(database, httpx_client)
 
 
-def schedule_batch(database: Database) -> asyncio.Task:
+def schedule_batch(
+    database: Database, httpx_client: httpx2.AsyncClient
+) -> asyncio.Task:
     # Hackish? Yes. Works? Also yes.
-    return asyncio.ensure_future(run_batch_when_scheduled(database))
+    return asyncio.ensure_future(run_batch_when_scheduled(database, httpx_client))
 
 
 async def run_adhoc() -> None:

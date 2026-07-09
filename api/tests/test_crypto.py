@@ -394,9 +394,7 @@ class TestCrlDownloader:
         )
 
         async with httpx2.AsyncClient(transport=transport) as client:
-            crl = await CrlDownloader()._download_crl_with_client(
-                client, "http://crl.watn.no"
-            )
+            crl = await CrlDownloader(client).download_crl("http://crl.watn.no")
         assert crl == b"crliboii"
 
     async def test_ok_download_alternative_content_type(self) -> None:
@@ -409,9 +407,7 @@ class TestCrlDownloader:
         )
 
         async with httpx2.AsyncClient(transport=transport) as client:
-            crl = await CrlDownloader()._download_crl_with_client(
-                client, "http://crl.watn.no"
-            )
+            crl = await CrlDownloader(client).download_crl("http://crl.watn.no")
         assert crl == b"crliboii"
 
     async def test_failed_download_404(self) -> None:
@@ -425,9 +421,7 @@ class TestCrlDownloader:
 
         with pytest.raises(CrlError) as error:
             async with httpx2.AsyncClient(transport=transport) as client:
-                await CrlDownloader()._download_crl_with_client(
-                    client, "http://crl.watn.no"
-                )
+                await CrlDownloader(client).download_crl("http://crl.watn.no")
         assert isinstance(error.value.error_reason, CrlHttpStatusError)
         assert error.value.error_reason.http_status_code == 404
         assert "status code 404 " in str(error)
@@ -443,9 +437,7 @@ class TestCrlDownloader:
 
         with pytest.raises(CrlError) as error:
             async with httpx2.AsyncClient(transport=transport) as client:
-                await CrlDownloader()._download_crl_with_client(
-                    client, "http://crl.watn.no"
-                )
+                await CrlDownloader(client).download_crl("http://crl.watn.no")
         assert isinstance(error.value.error_reason, CrlErrorReason)
         assert error.value.error_reason == CrlErrorReason.INVALID_CONTENT_TYPE
         assert "Got content type: text/plain " in str(error)

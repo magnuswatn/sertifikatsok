@@ -2,6 +2,7 @@ import json
 import logging
 from collections.abc import AsyncGenerator
 
+import httpx2
 import svcs.starlette
 from starlette.applications import Starlette
 from starlette.datastructures import MutableHeaders
@@ -174,8 +175,8 @@ async def revocation_endpoint(request: Request) -> Response:
         revocation_info, thumbprint = await get_revocation_info(
             cert,
             env,
-            *svcs.starlette.svcs_from(request).get(
-                CertRetrievers, AppCrlRetriever, Database
+            *await svcs.starlette.aget(
+                request, CertRetrievers, AppCrlRetriever, Database, httpx2.AsyncClient
             ),
         )
         audit_logger.set_revocation_info_results(revocation_info, thumbprint)
@@ -195,23 +196,30 @@ def make_app(config: AppConfig) -> Starlette:
     async def lifespan(app: Starlette, registry: svcs.Registry) -> AsyncGenerator[None]:
         audit_logger.info("## Starting version %s ##", config.version)
 
-        registry.register_value(AppConfig, config)
-        registry.register_value(CertRetrievers, CertRetrievers.create(config.certs_dir))
+        async with httpx2.AsyncClient(http2=True) as httpx_client:
+            registry.register_value(AppConfig, config)
+            registry.register_value(
+                CertRetrievers, CertRetrievers.create(config.certs_dir)
+            )
 
-        crl_retriever = AppCrlRetriever(config.crls_dir, CrlDownloader())
-        registry.register_value(AppCrlRetriever, crl_retriever)
-        registry.register_factory(
-            RequestCrlRetriever, crl_retriever.get_retriever_for_request
-        )
+            registry.register_value(httpx2.AsyncClient, httpx_client)
 
-        database = Database.connect_to_database(config.db_file)
-        registry.register_value(Database, database)
+            crl_retriever = AppCrlRetriever(
+                config.crls_dir, CrlDownloader(httpx_client)
+            )
+            registry.register_value(AppCrlRetriever, crl_retriever)
+            registry.register_factory(
+                RequestCrlRetriever, crl_retriever.get_retriever_for_request
+            )
 
-        if config.run_batch:
-            # Need a reference to this, so the garbage collector
-            # doesn't clean it up.
-            _batch_task = schedule_batch(database)
-        yield
+            database = Database.connect_to_database(config.db_file)
+            registry.register_value(Database, database)
+
+            if config.run_batch:
+                # Need a reference to this, so the garbage collector
+                # doesn't clean it up.
+                _batch_task = schedule_batch(database, httpx_client)
+            yield
 
     return Starlette(
         middleware=[

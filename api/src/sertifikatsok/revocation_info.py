@@ -343,18 +343,19 @@ def validate_ocsp_resp_against_request(
 
 
 @performance_log(id_param=0)
-async def do_ocsp_call(url: str, req: bytes) -> httpx2.Response:
+async def do_ocsp_call(
+    httpx_client: httpx2.AsyncClient, url: str, req: bytes
+) -> httpx2.Response:
     try:
-        async with httpx2.AsyncClient() as httpx_client:
-            # We do a POST here, instead of a GET, because
-            # we want a fresh response, not something
-            # old fetched from cache. (The nonce should
-            # make sure of this, but still).
-            resp = await httpx_client.post(
-                url,
-                content=req,
-                headers={"Content-Type": "application/ocsp-request"},
-            )
+        # We do a POST here, instead of a GET, because
+        # we want a fresh response, not something
+        # old fetched from cache. (The nonce should
+        # make sure of this, but still).
+        resp = await httpx_client.post(
+            url,
+            content=req,
+            headers={"Content-Type": "application/ocsp-request"},
+        )
     except httpx2.HTTPError as e:
         raise OcspError(OcspErrorReason.NETWORK_ERROR, "Network error") from e
 
@@ -362,7 +363,9 @@ async def do_ocsp_call(url: str, req: bytes) -> httpx2.Response:
 
 
 async def get_ocsp_status(
-    cert: MaybeInvalidCertificate, issuer: x509.Certificate
+    httpx_client: httpx2.AsyncClient,
+    cert: MaybeInvalidCertificate,
+    issuer: x509.Certificate,
 ) -> OcspRevocationInfo | None:
     assert cert.extensions is not None
 
@@ -399,7 +402,9 @@ async def get_ocsp_status(
 
     chosen_ocsp_endpoint = choice(ocsp_endpoints)
 
-    resp = await do_ocsp_call(chosen_ocsp_endpoint, ocsp_req.public_bytes(Encoding.DER))
+    resp = await do_ocsp_call(
+        httpx_client, chosen_ocsp_endpoint, ocsp_req.public_bytes(Encoding.DER)
+    )
 
     if (ct := resp.headers.get("Content-Type")) != "application/ocsp-response":
         if resp.is_error:
@@ -503,6 +508,7 @@ async def get_revocation_info(
     cert_retrievers: CertRetrievers,
     crl_retriever: AppCrlRetriever,
     database: Database,
+    httpx_client: httpx2.AsyncClient,
 ) -> tuple[RevocationInfoResponse, str]:
     # If this is a legit request, we should have the cert in our local db
     thumbprint = sha256(raw_cert).hexdigest()
@@ -527,7 +533,7 @@ async def get_revocation_info(
 
     ocsp_status: OcspRevocationInfo | OcspError | None
     try:
-        ocsp_status = await get_ocsp_status(cert, issuer)
+        ocsp_status = await get_ocsp_status(httpx_client, cert, issuer)
     except OcspError as e:
         logger.exception(
             "Failure during OCSP checking of cert %s from %s",
