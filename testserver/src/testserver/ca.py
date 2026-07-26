@@ -62,7 +62,7 @@ from testserver import Enterprise, Env, LdapOU, OcspType, Person
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_HASH_ALGORITHMS = [SHA1(), SHA256()]  # noqa: S303
+SUPPORTED_HASH_ALGORITHMS = [SHA1(), SHA256()]
 
 
 def get_key_usage(

@@ -33,7 +33,7 @@ class ChangedOrganization:
     removed: bool  # 410 GONE
     deleted: bool  # with "slettedato"
     disappeared: bool  # 404 not found
-    change_type: Literal["Ny"] | Literal["Endring"] | Literal["Sletting"]
+    change_type: Literal["Ny", "Endring", "Sletting"]
 
     def __attrs_post_init__(self) -> None:
         if self.change_type == "Sletting":
@@ -93,7 +93,7 @@ def generate_single_unit_resp(changed_org: ChangedOrganization) -> dict:
 
 def generate_base_updates_resp(
     units: dict[int, dict],
-    typ: Literal["oppdaterteEnheter"] | Literal["oppdaterteUnderenheter"],
+    typ: Literal["oppdaterteEnheter", "oppdaterteUnderenheter"],
     params: httpx2.QueryParams,
 ) -> dict:
     oppdateringid = int(params["oppdateringsid"])

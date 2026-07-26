@@ -47,7 +47,7 @@ class LdapCertificateEntry:
         return cls(search_entry.dn, raw_cert, cert_serial, ldap_server)
 
     def cert_sha1sum(self) -> str:
-        return hashlib.sha1(self.raw_cert).hexdigest()  # noqa: S324
+        return hashlib.sha1(self.raw_cert).hexdigest()
 
     def cert_sha256sum(self) -> str:
         return hashlib.sha256(self.raw_cert).hexdigest()

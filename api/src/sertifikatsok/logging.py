@@ -56,12 +56,12 @@ def get_log_config(log_level: int, log_files: str | None) -> dict:
         "performance": {"level": "INFO", "formatter": "bare"},
     }
     if log_files:
-        for handler in handlers:
-            handlers[handler]["class"] = "logging.FileHandler"
-            handlers[handler]["filename"] = log_files.format(handler)
+        for handler_name, handler in handlers.items():
+            handler["class"] = "logging.FileHandler"
+            handler["filename"] = log_files.format(handler_name)
     else:
-        for handler in handlers:
-            handlers[handler]["class"] = "logging.StreamHandler"
+        for handler in handlers.values():
+            handler["class"] = "logging.StreamHandler"
 
     log_settings = {
         "version": 1,

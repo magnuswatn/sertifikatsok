@@ -116,7 +116,7 @@ class RevocationInfoResponse:
 
 
 def _get_key_hash(cert: x509.Certificate) -> bytes:
-    hash = Hash(SHA1())  # noqa: S303
+    hash = Hash(SHA1())
     hash.update(cert.public_key().public_bytes(Encoding.DER, PublicFormat.PKCS1))
     return hash.finalize()
 

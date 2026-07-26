@@ -156,8 +156,7 @@ class LdapSearchParams:
         elif typ == CertType.PERSONAL and PERSONAL_SERIAL_REGEX.fullmatch(query):
             search_type = SearchType.PERSONAL_SERIAL
 
-            if query.startswith("UN:NO-"):
-                query = query[6:]
+            query = query.removeprefix("UN:NO-")
 
             ldap_query_params = [
                 (SearchAttribute.SN, query),
@@ -525,7 +524,7 @@ class CertificateSearch:
                 )
             except ValueError:
                 # https://github.com/magnuswatn/sertifikatsok/issues/22
-                logging.exception("ValueError while decoding certificate")
+                logger.exception("ValueError while decoding certificate")
                 self.errors.add("ERR-005")
                 continue
 

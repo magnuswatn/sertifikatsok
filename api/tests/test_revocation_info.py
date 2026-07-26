@@ -20,14 +20,14 @@ def test_validate_successfull_ocsp_response_mismatch_between_signature_alg_and_h
     and not mix in the one used to generate the key hash for the cert.
     """
     ocsp_req = (
-        OCSPRequestBuilder().add_certificate(ee_cert.cert, ca.cert, SHA1()).build()  # noqa: S303
+        OCSPRequestBuilder().add_certificate(ee_cert.cert, ca.cert, SHA1()).build()
     )
     ocsp_resp = (
         OCSPResponseBuilder()
         .add_response(
             cert=ee_cert.cert,
             issuer=ca.cert,
-            algorithm=SHA1(),  # noqa: S303
+            algorithm=SHA1(),
             cert_status=OCSPCertStatus.GOOD,
             this_update=datetime_now_utc(),
             next_update=None,

@@ -66,7 +66,7 @@ def qualified_certificate(
 
     # We use SHA1 here since thats what Windows uses
     info["Avtrykk (SHA-1)"] = codecs.encode(
-        val.cert.cert.fingerprint(hashes.SHA1()),  # noqa: S303
+        val.cert.cert.fingerprint(hashes.SHA1()),
         "hex",
     ).decode("ascii")
     info["Emne"] = val.print_subject(full=True)

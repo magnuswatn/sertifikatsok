@@ -170,8 +170,7 @@ async def get_update_from_brreg(
 
     updates: set[str] = set()
     for unit in brreg_resp._embedded.updated_units:
-        if unit.oppdateringsid > current_update_id:
-            current_update_id = unit.oppdateringsid
+        current_update_id = max(current_update_id, unit.oppdateringsid)
 
         if unit.endringstype in USEFUL_UPDATES:
             updates.add(unit.organisasjonsnummer)

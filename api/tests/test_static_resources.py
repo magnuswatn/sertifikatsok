@@ -14,7 +14,7 @@ class Client:
         self.httpx_client = httpx_client
 
     def get(self, path: str, accept_encoding: str | None = None) -> httpx2.Response:
-        path = path[1:] if path.startswith("/") else path
+        path = path.removeprefix("/")
         resp = self.httpx_client.get(
             f"http://sertifikatsok:7001/{path}",
             headers={"accept-encoding": accept_encoding or ""},
