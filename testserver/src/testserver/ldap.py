@@ -304,7 +304,7 @@ class LDAPServerFactory(ServerFactory):
 
             ca_root.addChild(rdn=rdn, attributes=cert_ldap_attrs)
 
-    def buildProtocol(self, addr: IAddress) -> BaseLDAPServer:
+    def buildProtocol(self, addr: IAddress) -> BaseLDAPServer:  # ty: ignore[invalid-method-override]
         proto = self.protocol()
         proto.debug = self.debug
         proto.factory = self
