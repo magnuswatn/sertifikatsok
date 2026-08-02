@@ -58,12 +58,6 @@ class CertificateAuthority(Enum):
     COMMFIDES = "commfides"
 
 
-class SEID(Enum):
-    UNKNOWN = 0
-    SEID1 = 1
-    SEID2 = 2
-
-
 class SearchType(Enum):
     ORG_NR = "org_nr"
     PERSONAL_SERIAL = "personal_serial"

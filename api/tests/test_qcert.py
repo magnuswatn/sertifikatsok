@@ -4,7 +4,6 @@ import pytest
 
 from sertifikatsok.cert import MaybeInvalidCertificate
 from sertifikatsok.enums import (
-    SEID,
     CertificateAuthority,
     CertificateRoles,
     CertificateStatus,
@@ -233,7 +232,6 @@ class TestQualifiedCertificateSet:
         if invalid_exts:
             assert qcert.get_key_usages() == ""
             assert qcert.get_extended_key_usages() == ""
-            assert qcert.seid == SEID.UNKNOWN
             assert qcert.roles == []
             assert qcert.type == CertType.UNKNOWN
 

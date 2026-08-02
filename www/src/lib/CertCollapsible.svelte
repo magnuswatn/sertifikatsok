@@ -12,7 +12,6 @@
     import LdapButton from "./buttons/LdapButton.svelte";
     import FeilformatertNotification from "./notifications/FeilformatertNotification.svelte";
     import RevokertNotification from "./notifications/RevokertNotification.svelte";
-    import Seid2Notification from "./notifications/Seid2Notification.svelte";
     import UkjentCertTypeNotification from "./notifications/UkjentCertTypeNotification.svelte";
     import UnderenhetNotification from "./notifications/UnderenhetNotification.svelte";
     import NotASmartCardNotification from "./notifications/NotASmartCardNotification.svelte";
@@ -97,9 +96,6 @@
                     {/if}
                     {#if cert_set.notices.includes("ukjent")}
                         <UkjentCertTypeNotification />
-                    {/if}
-                    {#if cert_set.notices.includes("seid2")}
-                        <Seid2Notification />
                     {/if}
                     {#if cert_set.notices.includes("underenhet")}
                         <UnderenhetNotification />

@@ -25,7 +25,6 @@ from .constants import (
 )
 from .crypto import CertValidator
 from .enums import (
-    SEID,
     CertificateRoles,
     CertificateStatus,
     CertType,
@@ -52,7 +51,7 @@ class QualifiedCertificate:
         self.cert: MaybeInvalidCertificate = cert
         self.ldap_cert_entry = ldap_cert_entry
         self.issuer = self.cert.issuer.rfc4514_string(SUBJECT_FIELDS)
-        self.type, self.description, self.seid = self._get_type()
+        self.type, self.description = self._get_type()
         self.roles = self._get_roles()
         self.status = cert_status
         self.revocation_date = revocation_date
@@ -69,12 +68,12 @@ class QualifiedCertificate:
 
         return cls(cert, ldap_cert_entry, cert_status, revocation_date)
 
-    def _get_type(self) -> tuple[CertType, str | None, SEID]:
+    def _get_type(self) -> tuple[CertType, str | None]:
         """Returns the type of certificate, based on issuer and Policy OID"""
         cert_policies = self.cert.cert_policies
         if cert_policies is None:
             # invalid cert
-            return (CertType.UNKNOWN, None, SEID.UNKNOWN)
+            return (CertType.UNKNOWN, None)
 
         for policy in cert_policies:
             try:
@@ -90,7 +89,7 @@ class QualifiedCertificate:
             "Unknown certificate type. OIDs=%s Issuer='%s'", oids, self.issuer
         )
 
-        return (CertType.UNKNOWN, ", ".join(oids), SEID.UNKNOWN)
+        return (CertType.UNKNOWN, ", ".join(oids))
 
     def _get_roles(self) -> list[CertificateRoles]:
         """
@@ -278,7 +277,6 @@ class QualifiedCertificateSet:
     status: CertificateStatus
     org_number: str | None
     underenhet: bool
-    seid2: bool
 
     @classmethod
     def create(cls, certs: list[QualifiedCertificate]) -> QualifiedCertificateSet:
@@ -299,8 +297,7 @@ class QualifiedCertificateSet:
                 status = CertificateStatus.INVALID
 
         org_number, underenhet = main_cert.get_orgnumber()
-        seid2 = main_cert.seid == SEID.SEID2
-        return cls(certs, main_cert, status, org_number, underenhet, seid2)
+        return cls(certs, main_cert, status, org_number, underenhet)
 
     @classmethod
     def create_sets_from_certs(
