@@ -425,7 +425,7 @@ class CertValidator:
                 status = CertificateStatus.UNKNOWN
             else:
                 revoked_cert: x509.RevokedCertificate | None
-                revoked_cert = crl.get_revoked_certificate_by_serial_number(  # type:ignore
+                revoked_cert = crl.get_revoked_certificate_by_serial_number(
                     cert.cert.serial_number
                 )
                 if revoked_cert is not None:

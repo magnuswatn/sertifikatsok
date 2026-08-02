@@ -17,6 +17,8 @@ members = [
 
 [tool.uv]
 exclude-newer = "P14D"
+# We trust the cryptography people
+exclude-newer-package = { cryptography = false, pyopenssl = false }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
