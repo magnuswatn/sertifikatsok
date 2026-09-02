@@ -26,7 +26,10 @@ set positional-arguments
 @ruff:
   uv run ruff check && uv run ruff format --check
 
-@checks: ruff ty tests
+@audit:
+  uv audit
+
+@checks: ruff ty audit tests
 
 alias py := python
 @python:
