@@ -27,7 +27,14 @@ set positional-arguments
   uv run ruff check && uv run ruff format --check
 
 @audit:
-  uv audit
+  # We don't use twisted in prod, only for tests
+  uv audit \
+   --ignore GHSA-2qrf-pqgx-qh9v \
+   --ignore GHSA-53xc-49m8-p798 \
+   --ignore GHSA-8pqf-f4m5-798g \
+   --ignore GHSA-cwm5-jh59-mwxr \
+   --ignore GHSA-3476-c5c2-fr73 \
+   --ignore GHSA-q7qq-6mhp-9rc4 \
 
 @checks: ruff ty audit tests
 

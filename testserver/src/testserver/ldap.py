@@ -138,7 +138,7 @@ class SertifikatsokLDAPServer(LDAPServer):
 
 
 class LDAPServerFactory(ServerFactory):
-    protocol = SertifikatsokLDAPServer
+    protocol = SertifikatsokLDAPServer  # type: ignore
 
     def __init__(
         self, root: ReadOnlyInMemoryLDAPEntry, commfides_root: ReadOnlyInMemoryLDAPEntry
@@ -305,7 +305,7 @@ class LDAPServerFactory(ServerFactory):
             ca_root.addChild(rdn=rdn, attributes=cert_ldap_attrs)
 
     def buildProtocol(self, addr: IAddress) -> BaseLDAPServer:  # ty: ignore[invalid-method-override]
-        proto = self.protocol()
-        proto.debug = self.debug
+        proto = self.protocol()  # type: ignore
+        proto.debug = self.debug  # type: ignore
         proto.factory = self
-        return proto
+        return proto  # type: ignore

@@ -17,8 +17,8 @@ members = [
 
 [tool.uv]
 exclude-newer = "P14D"
-# We trust the cryptography people + the astral people
-exclude-newer-package = { cryptography = false, pyopenssl = false, ruff = false }
+# We trust the cryptography people + the astral people. Brotli(cffi) becuase of CVE-2026-111497
+exclude-newer-package = { cryptography = false, pyopenssl = false, ruff = false, brotli = "P4D", brotlicffi = "P4D" }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

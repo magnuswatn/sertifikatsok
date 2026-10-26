@@ -4,7 +4,7 @@ import logging
 import logging.config
 import time
 import uuid
-from collections.abc import Awaitable, Callable, Iterator
+from collections.abc import Awaitable, Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from functools import wraps
@@ -22,7 +22,7 @@ class CorrelationFilter(logging.Filter):
 
 
 @contextmanager
-def correlation_context() -> Iterator[uuid.UUID]:
+def correlation_context() -> Generator[uuid.UUID]:
     correlation_id = uuid.uuid4()
     token = correlation_id_var.set(str(correlation_id))
     try:

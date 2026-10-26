@@ -435,10 +435,8 @@ def test_revocation_info(
             revocation_info = revocation_info_resp.json()
             assert revocation_info["ocsp_result"] is not None
             assert "error" not in revocation_info["ocsp_result"]
-            assert (
-                revocation_info["ocsp_result"]["status"] == "REVOKED"
-                if revocation_expected
-                else "GOOD"
+            assert revocation_info["ocsp_result"]["status"] == (
+                "REVOKED" if revocation_expected else "GOOD"
             )
 
             assert revocation_info["crl_result"] is not None
